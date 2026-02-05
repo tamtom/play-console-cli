@@ -5,13 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/oauth"
 	"github.com/tamtom/play-console-cli/internal/output"
 )
 
@@ -96,55 +97,66 @@ func AuthInitCommand() *ffcli.Command {
 func AuthLoginCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("auth login", flag.ExitOnError)
 	profile := fs.String("profile", "default", "Profile name")
-	typeFlag := fs.String("type", "service_account", "Profile type: service_account or oauth")
-	serviceAccount := fs.String("service-account", "", "Path to service account JSON")
-	oauthToken := fs.String("oauth-token", "", "Path to OAuth token JSON")
-	clientID := fs.String("client-id", "", "OAuth client ID")
-	clientSecret := fs.String("client-secret", "", "OAuth client secret")
+	serviceAccount := fs.String("service-account", "", "Path to service account JSON (for CI/CD)")
+	clientID := fs.String("client-id", "", "OAuth client ID (optional, uses default)")
+	clientSecret := fs.String("client-secret", "", "OAuth client secret (optional, uses default)")
 	setDefault := fs.Bool("set-default", true, "Set as default profile")
 	local := fs.Bool("local", false, "Write to local repo config")
-	keepTokenPath := fs.Bool("keep-token-path", false, "Keep OAuth token at its current path")
+	timeout := fs.Duration("timeout", 5*time.Minute, "Browser auth timeout")
 
 	return &ffcli.Command{
 		Name:       "login",
 		ShortUsage: "gplay auth login [flags]",
-		ShortHelp:  "Store credentials in a profile.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		ShortHelp:  "Authenticate with Google Play Console via browser or service account.",
+		LongHelp: `Authenticate with Google Play Console.
+
+By default, opens your browser for OAuth authentication:
+  gplay auth login
+
+For CI/CD, use a service account:
+  gplay auth login --service-account /path/to/key.json
+
+Examples:
+  gplay auth login                                    # Browser login (default)
+  gplay auth login --profile work                     # Browser login with named profile
+  gplay auth login --service-account key.json         # Service account for CI/CD
+  gplay auth login --client-id ID --client-secret S   # Custom OAuth client`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if strings.TrimSpace(*profile) == "" {
 				return fmt.Errorf("--profile is required")
 			}
 
-			profileType := strings.ToLower(strings.TrimSpace(*typeFlag))
-			newProfile := config.Profile{Name: *profile, Type: profileType}
+			var newProfile config.Profile
 
-			switch profileType {
-			case "service_account", "service-account", "serviceaccount":
-				if strings.TrimSpace(*serviceAccount) == "" {
-					return fmt.Errorf("--service-account is required for service_account profiles")
+			if strings.TrimSpace(*serviceAccount) != "" {
+				// Service account flow (for CI/CD)
+				newProfile = config.Profile{
+					Name:    *profile,
+					Type:    "service_account",
+					KeyPath: *serviceAccount,
 				}
-				newProfile.KeyPath = *serviceAccount
-		case "oauth":
-			if strings.TrimSpace(*oauthToken) == "" {
-				return fmt.Errorf("--oauth-token is required for oauth profiles")
-			}
-			if strings.TrimSpace(*clientID) == "" || strings.TrimSpace(*clientSecret) == "" {
-				return fmt.Errorf("--client-id and --client-secret are required for oauth profiles")
-			}
-			tokenPath := *oauthToken
-			if !*keepTokenPath {
-				copiedPath, err := copyTokenToDefaultLocation(*profile, *oauthToken)
+			} else {
+				// Browser OAuth flow (default)
+				result, err := oauth.RunBrowserFlow(ctx, *profile, oauth.BrowserFlowOptions{
+					ClientID:     *clientID,
+					ClientSecret: *clientSecret,
+					Timeout:      *timeout,
+				})
 				if err != nil {
-					return fmt.Errorf("failed to store token: %w", err)
+					return fmt.Errorf("browser authentication failed: %w", err)
 				}
-				tokenPath = copiedPath
-			}
-			newProfile.TokenPath = tokenPath
-			newProfile.ClientID = *clientID
-			newProfile.ClientSecret = *clientSecret
-			default:
-				return fmt.Errorf("unknown profile type: %s", *typeFlag)
+
+				fmt.Println("Authentication successful!")
+
+				newProfile = config.Profile{
+					Name:         *profile,
+					Type:         "oauth",
+					TokenPath:    result.TokenPath,
+					ClientID:     result.ClientID,
+					ClientSecret: result.ClientSecret,
+				}
 			}
 
 			cfg, _ := config.Load()
@@ -446,22 +458,3 @@ func envAuthPresent() bool {
 	return false
 }
 
-func copyTokenToDefaultLocation(profileName, tokenPath string) (string, error) {
-	data, err := os.ReadFile(tokenPath)
-	if err != nil {
-		return "", err
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	dir := filepath.Join(home, ".gplay", "tokens")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", err
-	}
-	target := filepath.Join(dir, fmt.Sprintf("%s.json", profileName))
-	if err := os.WriteFile(target, data, 0o600); err != nil {
-		return "", err
-	}
-	return target, nil
-}

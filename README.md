@@ -39,6 +39,7 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
 - [CI/CD Integration](#cicd-integration)
 - [Security](#security)
 - [Contributing](#contributing)
+- [Agent Skills](#agent-skills)
 - [License](#license)
 
 ## Quick Start
@@ -469,8 +470,35 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md) - Development guidelines for AI assistants
+- [Agents.md](Agents.md) - Guidelines for AI agents (CLI usage, structure, patterns)
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+
+## Agent Skills
+
+Use `gplay` with AI coding agents for assisted Android publishing workflows. Compatible with any agent that supports the [Agent Skills](https://github.com/anthropics/agent-skills) format.
+
+### Install Skills
+
+```bash
+npx add-skill tamtom/gplay-cli-skills
+```
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `gplay-cli-usage` | Guidance for running gplay commands (flags, pagination, output, auth) |
+| `gplay-release-flow` | End-to-end release workflows for internal, beta, and production tracks |
+| `gplay-gradle-build` | Build, sign, and package Android apps with Gradle before uploading |
+| `gplay-metadata-sync` | Metadata and localization sync (including FastLane format) |
+| `gplay-rollout-management` | Staged rollout orchestration and monitoring |
+| `gplay-review-management` | Review monitoring, filtering, and automated responses |
+| `gplay-iap-setup` | In-app products, subscriptions, base plans, and offers |
+| `gplay-purchase-verification` | Server-side purchase verification |
+| `gplay-testers-orchestration` | Beta testing groups and tester management |
+| `gplay-signing-setup` | Android app signing, keystores, and Play App Signing |
+
+Skills repository: [github.com/tamtom/gplay-cli-skills](https://github.com/tamtom/gplay-cli-skills)
 
 ## License
 
