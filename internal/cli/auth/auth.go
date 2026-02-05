@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
-	"github.com/tamtom/play-console-cli/internal/oauth"
 	"github.com/tamtom/play-console-cli/internal/output"
 )
 
@@ -97,66 +95,37 @@ func AuthInitCommand() *ffcli.Command {
 func AuthLoginCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("auth login", flag.ExitOnError)
 	profile := fs.String("profile", "default", "Profile name")
-	serviceAccount := fs.String("service-account", "", "Path to service account JSON (for CI/CD)")
-	clientID := fs.String("client-id", "", "OAuth client ID (optional, uses default)")
-	clientSecret := fs.String("client-secret", "", "OAuth client secret (optional, uses default)")
+	serviceAccount := fs.String("service-account", "", "Path to service account JSON (required)")
 	setDefault := fs.Bool("set-default", true, "Set as default profile")
 	local := fs.Bool("local", false, "Write to local repo config")
-	timeout := fs.Duration("timeout", 5*time.Minute, "Browser auth timeout")
 
 	return &ffcli.Command{
 		Name:       "login",
-		ShortUsage: "gplay auth login [flags]",
-		ShortHelp:  "Authenticate with Google Play Console via browser or service account.",
-		LongHelp: `Authenticate with Google Play Console.
+		ShortUsage: "gplay auth login --service-account <path> [flags]",
+		ShortHelp:  "Authenticate with Google Play Console using a service account.",
+		LongHelp: `Authenticate with Google Play Console using a service account.
 
-By default, opens your browser for OAuth authentication:
-  gplay auth login
-
-For CI/CD, use a service account:
-  gplay auth login --service-account /path/to/key.json
+Service accounts are required for the Google Play Android Developer API.
+See README.md for setup instructions.
 
 Examples:
-  gplay auth login                                    # Browser login (default)
-  gplay auth login --profile work                     # Browser login with named profile
-  gplay auth login --service-account key.json         # Service account for CI/CD
-  gplay auth login --client-id ID --client-secret S   # Custom OAuth client`,
+  gplay auth login --service-account /path/to/key.json
+  gplay auth login --service-account key.json --profile work
+  gplay auth login --service-account key.json --local`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if strings.TrimSpace(*profile) == "" {
 				return fmt.Errorf("--profile is required")
 			}
+			if strings.TrimSpace(*serviceAccount) == "" {
+				return fmt.Errorf("--service-account is required")
+			}
 
-			var newProfile config.Profile
-
-			if strings.TrimSpace(*serviceAccount) != "" {
-				// Service account flow (for CI/CD)
-				newProfile = config.Profile{
-					Name:    *profile,
-					Type:    "service_account",
-					KeyPath: *serviceAccount,
-				}
-			} else {
-				// Browser OAuth flow (default)
-				result, err := oauth.RunBrowserFlow(ctx, *profile, oauth.BrowserFlowOptions{
-					ClientID:     *clientID,
-					ClientSecret: *clientSecret,
-					Timeout:      *timeout,
-				})
-				if err != nil {
-					return fmt.Errorf("browser authentication failed: %w", err)
-				}
-
-				fmt.Println("Authentication successful!")
-
-				newProfile = config.Profile{
-					Name:         *profile,
-					Type:         "oauth",
-					TokenPath:    result.TokenPath,
-					ClientID:     result.ClientID,
-					ClientSecret: result.ClientSecret,
-				}
+			newProfile := config.Profile{
+				Name:    *profile,
+				Type:    "service_account",
+				KeyPath: *serviceAccount,
 			}
 
 			cfg, _ := config.Load()

@@ -54,13 +54,10 @@ make dev        # format + lint + test + build
 
 ## Authentication
 
-Service accounts are created in Google Cloud Console and granted access in Play Console. Browser-based OAuth is also supported for interactive use. Credentials are stored in config with file path reference. Never commit service account JSON files.
+Service accounts are required for the Google Play Android Developer API. Create one in Google Cloud Console and grant access in Play Console. Credentials are stored in config with file path reference. Never commit service account JSON files.
 
 ```bash
-# Browser login (interactive)
-gplay auth login
-
-# Service account (CI/CD)
+# Login with service account
 gplay auth login --service-account /path/to/key.json
 
 # Validate setup
@@ -106,7 +103,6 @@ play-console-cli/
 │   │   ├── shared/        # Shared utilities
 │   │   └── */             # Individual command packages
 │   ├── config/            # Configuration management
-│   ├── oauth/             # Browser OAuth flow
 │   ├── output/            # Output formatting
 │   ├── playclient/        # Google Play API client
 │   ├── update/            # Self-update functionality
