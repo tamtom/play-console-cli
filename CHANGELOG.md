@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-02-05
+
+### Added
+- `apks addexternallyhosted` - Add externally hosted APKs without uploading
+- `tracks create` - Create custom release tracks
+- `purchases productsv2 get` - Get purchase details using v2 API
+- `onetimeproducts` - Full one-time products management (list, get, create, patch, delete, batch operations)
+
+### Improved
+- API coverage increased to 89% (32/36 resources)
+
 ## [0.2.0] - 2025-02-05
 
 ### Added
