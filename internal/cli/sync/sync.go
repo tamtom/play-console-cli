@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -125,7 +124,7 @@ func ExportListingsCommand() *ffcli.Command {
 				}
 				tempEdit = true
 				defer func() {
-					service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
+					_ = service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
 				}()
 			}
 
@@ -339,7 +338,7 @@ func ExportImagesCommand() *ffcli.Command {
 				}
 				tempEdit = true
 				defer func() {
-					service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
+					_ = service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
 				}()
 			}
 
@@ -593,7 +592,7 @@ func DiffListingsCommand() *ffcli.Command {
 				}
 				tempEdit = true
 				defer func() {
-					service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
+					_ = service.API.Edits.Delete(pkg, edit.Id).Context(context.Background()).Do()
 				}()
 			}
 
@@ -730,31 +729,4 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
-}
-
-// Helper to read file content, returning empty string if file doesn't exist
-func readFileContent(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
-}
-
-// CopyFile copies a file from src to dst
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	return err
 }

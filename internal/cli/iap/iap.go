@@ -408,20 +408,6 @@ func BatchUpdateCommand() *ffcli.Command {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 
-			// Build request objects
-			var requests []*androidpublisher.InappproductsBatchUpdateRequest
-			for _, p := range products {
-				p.PackageName = pkg
-				req := &androidpublisher.InappproductsBatchUpdateRequest{
-					Requests: []*androidpublisher.InappproductsUpdateRequest{{
-						AutoConvertMissingPrices: *autoConvertPrices,
-						AllowMissing:             *allowMissing,
-						Inappproduct:             p,
-					}},
-				}
-				requests = append(requests, req)
-			}
-
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 

@@ -195,10 +195,10 @@ func compareVersions(a, b string) int {
 	for i := 0; i < 3; i++ {
 		var numA, numB int
 		if i < len(partsA) {
-			fmt.Sscanf(partsA[i], "%d", &numA)
+			_, _ = fmt.Sscanf(partsA[i], "%d", &numA)
 		}
 		if i < len(partsB) {
-			fmt.Sscanf(partsB[i], "%d", &numB)
+			_, _ = fmt.Sscanf(partsB[i], "%d", &numB)
 		}
 
 		if numA > numB {
@@ -271,12 +271,12 @@ func ApplyUpdate(newBinaryPath string) error {
 	// Move new binary into place
 	if err := os.Rename(newBinaryPath, currentBinary); err != nil {
 		// Try to restore backup
-		os.Rename(backupPath, currentBinary)
+		_ = os.Rename(backupPath, currentBinary)
 		return err
 	}
 
 	// Remove backup
-	os.Remove(backupPath)
+	_ = os.Remove(backupPath)
 
 	return nil
 }

@@ -210,7 +210,7 @@ Example:
 							continue
 						}
 						trackStatus, err := service.API.Edits.Tracks.Get(pkg, checkEdit.Id, *track).Context(checkCtx).Do()
-						service.API.Edits.Delete(pkg, checkEdit.Id).Context(checkCtx).Do()
+						_ = service.API.Edits.Delete(pkg, checkEdit.Id).Context(checkCtx).Do()
 						checkCancel()
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Warning: failed to get track status: %v\n", err)
