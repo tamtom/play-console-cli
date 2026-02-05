@@ -27,6 +27,7 @@ and subscription management.`,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			ProductsCommand(),
+			ProductsV2Command(),
 			SubscriptionsCommand(),
 			VoidedCommand(),
 		},
@@ -223,6 +224,80 @@ After consumption, the product can be purchased again.`,
 				"productId": *productID,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
+		},
+	}
+}
+
+// ProductsV2Command handles in-app product purchases using v2 API
+func ProductsV2Command() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases productsv2", flag.ExitOnError)
+	return &ffcli.Command{
+		Name:       "productsv2",
+		ShortUsage: "gplay purchases productsv2 <subcommand> [flags]",
+		ShortHelp:  "Verify in-app product purchases (v2 API).",
+		LongHelp: `Verify in-app product purchases using the newer v2 API.
+
+The v2 API provides enhanced purchase information including
+multi-quantity purchases and improved status fields.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Subcommands: []*ffcli.Command{
+			ProductsV2GetCommand(),
+		},
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) == 0 {
+				return flag.ErrHelp
+			}
+			return flag.ErrHelp
+		},
+	}
+}
+
+func ProductsV2GetCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases productsv2 get", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	token := fs.String("token", "", "Purchase token")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "get",
+		ShortUsage: "gplay purchases productsv2 get --package <name> --token <token>",
+		ShortHelp:  "Get purchase details using v2 API.",
+		LongHelp: `Get purchase details using the v2 API.
+
+The v2 API returns enhanced purchase information including:
+  - productId: The purchased product ID
+  - purchaseState: Current state of the purchase
+  - consumptionState: Whether the product has been consumed
+  - acknowledgementState: Whether acknowledged
+  - quantity: Number of items purchased (for multi-quantity)`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			service, err := playclient.NewService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Purchases.Productsv2.Getproductpurchasev2(pkg, *token).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }

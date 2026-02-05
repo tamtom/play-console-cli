@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"google.golang.org/api/androidpublisher/v3"
 	"google.golang.org/api/googleapi"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -25,6 +26,7 @@ func APKsCommand() *ffcli.Command {
 		Subcommands: []*ffcli.Command{
 			UploadCommand(),
 			ListCommand(),
+			AddExternallyHostedCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -123,6 +125,77 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func AddExternallyHostedCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("apks addexternallyhosted", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	editID := fs.String("edit", "", "Edit ID")
+	jsonFlag := fs.String("json", "", "ExternallyHostedApk JSON (or @file)")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "addexternallyhosted",
+		ShortUsage: "gplay apks addexternallyhosted --package <name> --edit <id> --json <json>",
+		ShortHelp:  "Add an externally hosted APK without uploading.",
+		LongHelp: `Add an externally hosted APK without uploading.
+
+Creates an APK entry that references an APK hosted at an external URL.
+This is useful for very large APKs that are hosted elsewhere.
+
+JSON format:
+{
+  "externallyHostedApk": {
+    "packageName": "com.example.app",
+    "versionCode": 1,
+    "versionName": "1.0",
+    "applicationLabel": "My App",
+    "fileSize": 12345678,
+    "fileSha1Base64": "...",
+    "fileSha256Base64": "...",
+    "externallyHostedUrl": "https://example.com/app.apk",
+    "minimumSdk": 21,
+    "nativeCodes": ["armeabi-v7a", "arm64-v8a"],
+    "usesPermissions": [{"name": "android.permission.INTERNET"}]
+  }
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			service, err := playclient.NewService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+			if strings.TrimSpace(*editID) == "" {
+				return fmt.Errorf("--edit is required")
+			}
+
+			var req androidpublisher.ApksAddExternallyHostedRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Edits.Apks.Addexternallyhosted(pkg, *editID, &req).Context(ctx).Do()
+			if err != nil {
+				return shared.WrapGoogleAPIError("failed to add externally hosted APK", err)
+			}
 			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
