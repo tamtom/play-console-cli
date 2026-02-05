@@ -65,26 +65,41 @@ make build
 
 `gplay` checks for updates on startup and shows upgrade hints. Disable with `--no-update` or `GPLAY_NO_UPDATE=1`.
 
-### Authenticate
+### Authenticate (Service Account)
 
+**Step 1: Create a Google Cloud Project**
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select an existing one
+3. Note your project ID
+
+**Step 2: Enable the API**
+1. Go to **APIs & Services > Library**
+2. Search for "Google Play Android Developer API"
+3. Click **Enable**
+
+**Step 3: Create a Service Account**
+1. Go to **IAM & Admin > Service Accounts**
+2. Click **Create Service Account**
+3. Give it a name (e.g., "gplay-cli")
+4. Click **Create and Continue**, then **Done**
+5. Click on the created service account
+6. Go to **Keys > Add Key > Create new key > JSON**
+7. Save the downloaded JSON file securely
+
+**Step 4: Grant Access in Play Console**
+1. Go to [Google Play Console](https://play.google.com/console)
+2. Go to **Users and permissions > Invite new users**
+3. Enter the service account email (from the JSON file, looks like `name@project.iam.gserviceaccount.com`)
+4. Set permissions (Admin or specific app access)
+5. Click **Invite user**
+
+**Step 5: Login with gplay**
 ```bash
-# Using service account (recommended for CI/CD)
 gplay auth login --service-account /path/to/service-account.json
 
-# Add named profile
-gplay auth add-profile production --service-account /path/to/prod-sa.json
-
-# Switch profiles
-gplay auth switch --name production
-
-# Use profile for single command
-gplay --profile production tracks list --package com.example.app
-
-# Validate setup
+# Verify it works
 gplay auth doctor
 ```
-
-Generate service accounts at: https://console.cloud.google.com/iam-admin/serviceaccounts
 
 ## Commands
 
@@ -327,22 +342,46 @@ make install  # Installs to /usr/local/bin
 
 ## Authentication
 
-### Service Account (Recommended)
+### Service Account Setup (Required)
 
-1. Create a service account in [Google Cloud Console](https://console.cloud.google.com/iam-admin/serviceaccounts)
-2. Grant the service account access in [Play Console](https://play.google.com/console) → Users and permissions
-3. Download the JSON key file
+Service accounts are required for the Google Play Android Developer API.
+
+#### 1. Create Google Cloud Project & Enable API
+
+```
+Google Cloud Console → Create Project → APIs & Services → Library
+→ Search "Google Play Android Developer API" → Enable
+```
+
+#### 2. Create Service Account & Download Key
+
+```
+IAM & Admin → Service Accounts → Create Service Account
+→ Name it (e.g., "gplay-cli") → Create → Done
+→ Click the account → Keys → Add Key → Create new key → JSON
+→ Save the JSON file securely (never commit to git!)
+```
+
+#### 3. Grant Access in Play Console
+
+```
+Play Console → Users and permissions → Invite new users
+→ Paste service account email (from JSON: "client_email" field)
+→ Set permissions (Admin, or per-app access)
+→ Invite user
+```
+
+#### 4. Configure gplay
 
 ```bash
-# Via environment variable
+# Option A: Login command (saves to profile)
+gplay auth login --service-account /path/to/service-account.json
+
+# Option B: Environment variable
 export GPLAY_SERVICE_ACCOUNT=/path/to/service-account.json
 
-# Via flag
-gplay --service-account /path/to/service-account.json <command>
-
-# Via profile
-gplay auth add-profile production --service-account /path/to/service-account.json
-gplay auth use-profile production
+# Verify setup
+gplay auth doctor
 ```
 
 ### Environment Variables
@@ -377,19 +416,18 @@ debug: false
 ### Profiles
 
 ```bash
-# Add profiles
-gplay auth add-profile work --service-account /path/to/work-sa.json
-gplay auth add-profile personal --service-account /path/to/personal-sa.json
+# Add profiles for different accounts/apps
+gplay auth login --profile work --service-account /path/to/work-sa.json
+gplay auth login --profile personal --service-account /path/to/personal-sa.json
 
-# Switch profiles
-gplay auth switch --name work
-gplay auth current-profile
+# Switch default profile
+gplay auth switch --profile work
 
-# List profiles
-gplay auth list-profiles
+# Check current status
+gplay auth status
 
-# Use profile for single command
-gplay --profile personal apps list
+# Use specific profile for a command
+GPLAY_PROFILE=personal gplay tracks list --package com.example.app
 ```
 
 ## CI/CD Integration
