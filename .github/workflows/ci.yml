@@ -77,4 +77,4 @@ jobs:
         run: make build
 
       - name: Verify binary
-        run: ./build/gplay version
+        run: ./gplay version
