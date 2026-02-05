@@ -1,0 +1,41 @@
+# Binaries
+gplay
+gplay-*
+*.exe
+build/
+dist/
+
+# Test artifacts
+coverage.out
+coverage.html
+*.test
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+
+# Credentials (NEVER commit these)
+*.json
+!go.mod
+!go.sum
+service-account*.json
+credentials*.json
+*.p12
+*.pem
+
+# Config with secrets
+.gplay/
+
+# Temp files
+*.tmp
+*.log

@@ -36,7 +36,14 @@ type Service struct {
 
 // NewService creates an authenticated Android Publisher service.
 func NewService(ctx context.Context) (*Service, error) {
-	cfg, _ := config.Load()
+	cfg, err := config.Load()
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
+		return nil, shared.NewActionableError(
+			"failed to load config",
+			err,
+			"Check that your config file is valid JSON and readable. Use `gplay auth init` to recreate it.",
+		)
+	}
 	client, err := newHTTPClient(ctx, cfg)
 	if err != nil {
 		return nil, err
@@ -78,13 +85,21 @@ func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCrede
 				return nil, err
 			}
 			if shared.StrictAuthEnabled() && envAuthPresent() {
-				return nil, fmt.Errorf("strict auth: profile selected but environment credentials also present")
+				return nil, shared.NewAuthError(
+					"authentication failed",
+					fmt.Errorf("strict auth: profile selected but environment credentials also present"),
+					"Unset environment credentials or set GPLAY_STRICT_AUTH=false.",
+				)
 			}
 			creds.ProfileName = profileName
 			creds.Source = sourceProfile
 			return creds, nil
 		}
-		return nil, fmt.Errorf("profile not found: %s", profileName)
+		return nil, shared.NewAuthError(
+			"authentication failed",
+			fmt.Errorf("profile not found: %s", profileName),
+			"Run `gplay auth login --profile <name>` or set GPLAY_PROFILE to an existing profile.",
+		)
 	}
 
 	if envAuthPresent() {
@@ -96,7 +111,11 @@ func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCrede
 		return creds, nil
 	}
 
-	return nil, errors.New("no credentials found (use gplay auth login or set env vars)")
+	return nil, shared.NewAuthError(
+		"authentication failed",
+		errors.New("no credentials found"),
+		"Run `gplay auth login` or set GPLAY_SERVICE_ACCOUNT_JSON / GPLAY_OAUTH_TOKEN_PATH.",
+	)
 }
 
 func envAuthPresent() bool {
@@ -122,7 +141,11 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 	switch strings.ToLower(strings.TrimSpace(profile.Type)) {
 	case "service_account", "service-account", "serviceaccount":
 		if strings.TrimSpace(profile.KeyPath) == "" {
-			return nil, fmt.Errorf("service account profile missing key_path")
+			return nil, shared.NewAuthError(
+				"invalid auth profile",
+				errors.New("service account profile missing key_path"),
+				"Set key_path in config.json or re-run `gplay auth login` with --service-account.",
+			)
 		}
 		creds, err := credentialsFromServiceAccount(ctx, profile.KeyPath)
 		if err != nil {
@@ -131,12 +154,20 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 		return &resolvedCredentials{TokenSource: creds}, nil
 	case "oauth":
 		if strings.TrimSpace(profile.TokenPath) == "" {
-			return nil, fmt.Errorf("oauth profile missing token_path")
+			return nil, shared.NewAuthError(
+				"invalid auth profile",
+				errors.New("oauth profile missing token_path"),
+				"Set token_path in config.json or re-run `gplay auth login` with --oauth-token.",
+			)
 		}
 		clientID := strings.TrimSpace(profile.ClientID)
 		clientSecret := strings.TrimSpace(profile.ClientSecret)
 		if clientID == "" || clientSecret == "" {
-			return nil, fmt.Errorf("oauth profile missing client_id or client_secret")
+			return nil, shared.NewAuthError(
+				"invalid auth profile",
+				errors.New("oauth profile missing client_id or client_secret"),
+				"Set client_id/client_secret in config.json or re-run `gplay auth login` with --client-id/--client-secret.",
+			)
 		}
 		creds, err := credentialsFromOAuth(ctx, profile.TokenPath, clientID, clientSecret, redirectURIFromEnv())
 		if err != nil {
@@ -144,7 +175,11 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 		}
 		return &resolvedCredentials{TokenSource: creds}, nil
 	default:
-		return nil, fmt.Errorf("unknown profile type: %s", profile.Type)
+		return nil, shared.NewAuthError(
+			"invalid auth profile",
+			fmt.Errorf("unknown profile type: %s", profile.Type),
+			"Use type service_account or oauth.",
+		)
 	}
 }
 
@@ -162,7 +197,11 @@ func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
 	clientSecret := strings.TrimSpace(os.Getenv(oauthClientSecretEnvVar))
 	if tokenPath != "" {
 		if clientID == "" || clientSecret == "" {
-			return nil, fmt.Errorf("oauth env vars require %s and %s", oauthClientIDEnvVar, oauthClientSecretEnvVar)
+			return nil, shared.NewAuthError(
+				"oauth env vars incomplete",
+				fmt.Errorf("missing %s or %s", oauthClientIDEnvVar, oauthClientSecretEnvVar),
+				"Set both env vars or use `gplay auth login` to create a profile.",
+			)
 		}
 		tokenSource, err := credentialsFromOAuth(ctx, tokenPath, clientID, clientSecret, redirectURIFromEnv())
 		if err != nil {
@@ -177,11 +216,19 @@ func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
 func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.TokenSource, error) {
 	data, err := os.ReadFile(keyPath)
 	if err != nil {
-		return nil, err
+		return nil, shared.NewAuthError(
+			"failed to read service account file",
+			err,
+			fmt.Sprintf("Check that %s exists and is readable (configured via profile key_path or %s).", keyPath, serviceAccountEnvVar),
+		)
 	}
 	creds, err := google.CredentialsFromJSON(ctx, data, scopes...)
 	if err != nil {
-		return nil, err
+		return nil, shared.NewAuthError(
+			"failed to parse service account JSON",
+			err,
+			"Ensure the file is a valid service account JSON with Android Publisher access.",
+		)
 	}
 	return creds.TokenSource, nil
 }
@@ -189,11 +236,19 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 func credentialsFromOAuth(ctx context.Context, tokenPath, clientID, clientSecret, redirectURI string) (oauth2.TokenSource, error) {
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
-		return nil, err
+		return nil, shared.NewAuthError(
+			"failed to read OAuth token file",
+			err,
+			fmt.Sprintf("Check that %s exists and is readable (configured via profile token_path or %s).", tokenPath, oauthTokenEnvVar),
+		)
 	}
 	var token oauth2.Token
 	if err := json.Unmarshal(data, &token); err != nil {
-		return nil, err
+		return nil, shared.NewAuthError(
+			"failed to parse OAuth token JSON",
+			err,
+			"Ensure the OAuth token file contains valid JSON.",
+		)
 	}
 	cfg := &oauth2.Config{
 		ClientID:     clientID,

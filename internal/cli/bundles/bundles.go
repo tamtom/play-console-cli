@@ -69,7 +69,7 @@ func UploadCommand() *ffcli.Command {
 			}
 			file, err := os.Open(*filePath)
 			if err != nil {
-				return err
+				return shared.WrapActionable(err, "failed to open bundle file", "Check that the file exists and is readable.")
 			}
 			defer file.Close()
 
@@ -79,7 +79,7 @@ func UploadCommand() *ffcli.Command {
 			call.Media(file, googleapi.ContentType("application/octet-stream"))
 			resp, err := call.Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("failed to upload bundle", err)
 			}
 			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
