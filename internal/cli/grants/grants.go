@@ -26,7 +26,7 @@ as opposed to account-wide permissions.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
-			ListCommand(),
+			// ListCommand() is not available - Google Play API v3 Grants service does not expose List method
 			CreateCommand(),
 			UpdateCommand(),
 			DeleteCommand(),
@@ -40,62 +40,23 @@ as opposed to account-wide permissions.`,
 	}
 }
 
+// ListCommand is not implemented because the Google Play Android Publisher API v3
+// Grants service does not expose a List method. The available methods are:
+// Create, Delete, and Patch.
+//
+// To view grants, you would need to track them separately or use the
+// Google Play Console web interface.
 func ListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("grants list", flag.ExitOnError)
-	developerID := fs.String("developer", "", "Developer ID")
-	email := fs.String("email", "", "User email address")
-	pageSize := fs.Int("page-size", 100, "Page size")
-	paginate := fs.Bool("paginate", false, "Fetch all pages")
-	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
-	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
 		Name:       "list",
-		ShortUsage: "gplay grants list --developer <id> --email <email>",
-		ShortHelp:  "List all grants for a user.",
+		ShortUsage: "gplay grants list (not implemented)",
+		ShortHelp:  "List grants (not available in API v3).",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
-				return err
-			}
-			if strings.TrimSpace(*developerID) == "" {
-				return fmt.Errorf("--developer is required")
-			}
-			if strings.TrimSpace(*email) == "" {
-				return fmt.Errorf("--email is required")
-			}
-			service, err := playclient.NewService(ctx)
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
-			defer cancel()
-
-			parent := fmt.Sprintf("developers/%s/users/%s", *developerID, *email)
-			var all []*androidpublisher.Grant
-			pageToken := ""
-			for {
-				call := service.API.Grants.List(parent).Context(ctx).PageSize(int64(*pageSize))
-				if pageToken != "" {
-					call.PageToken(pageToken)
-				}
-				resp, err := call.Do()
-				if err != nil {
-					return err
-				}
-				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
-				}
-				all = append(all, resp.Grants...)
-				if resp.NextPageToken == "" {
-					break
-				}
-				pageToken = resp.NextPageToken
-			}
-
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return fmt.Errorf("grants list is not implemented: the Google Play Android Publisher API v3 does not expose a List method for Grants. Available operations are: create, update (patch), and delete")
 		},
 	}
 }

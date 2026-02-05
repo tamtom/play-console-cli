@@ -65,9 +65,11 @@ JSON format:
     "supportedAbis": ["arm64-v8a", "armeabi-v7a"],
     "supportedLocales": ["en-US", "es"]
   },
-  "rotated": false,
-  "uncompressedDexFiles": false,
-  "uncompressedNativeLibraries": true
+  "options": {
+    "rotated": false,
+    "uncompressedDexFiles": false,
+    "uncompressedNativeLibraries": true
+  }
 }`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
@@ -90,15 +92,15 @@ JSON format:
 				return fmt.Errorf("--package is required")
 			}
 
-			var options androidpublisher.SystemApkOptions
-			if err := shared.LoadJSONArg(*jsonFlag, &options); err != nil {
+			var variant androidpublisher.Variant
+			if err := shared.LoadJSONArg(*jsonFlag, &variant); err != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Systemapks.Variants.Create(pkg, *versionCode, &options).Context(ctx).Do()
+			resp, err := service.API.Systemapks.Variants.Create(pkg, *versionCode, &variant).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -184,7 +186,7 @@ func GetCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Systemapks.Variants.Get(pkg, *versionCode, uint64(*variantID)).Context(ctx).Do()
+			resp, err := service.API.Systemapks.Variants.Get(pkg, *versionCode, *variantID).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -230,7 +232,7 @@ func DownloadCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Systemapks.Variants.Download(pkg, *versionCode, uint64(*variantID)).Context(ctx).Download()
+			resp, err := service.API.Systemapks.Variants.Download(pkg, *versionCode, *variantID).Context(ctx).Download()
 			if err != nil {
 				return err
 			}

@@ -43,7 +43,6 @@ func ListCommand() *ffcli.Command {
 	editID := fs.String("edit", "", "Edit ID")
 	locale := fs.String("locale", "", "Locale (e.g. en-US)")
 	imageType := fs.String("type", "", "Image type (phoneScreenshots, featureGraphic, etc)")
-	paginate := fs.Bool("paginate", false, "Fetch all pages")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -77,30 +76,13 @@ func ListCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			var all []interface{}
-			pageToken := ""
-			for {
-				call := service.API.Edits.Images.List(pkg, *editID, *locale, *imageType).Context(ctx)
-				if pageToken != "" {
-					call.PageToken(pageToken)
-				}
-				resp, err := call.Do()
-				if err != nil {
-					return err
-				}
-				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
-				}
-				for _, img := range resp.Images {
-					all = append(all, img)
-				}
-				if resp.NextPageToken == "" {
-					break
-				}
-				pageToken = resp.NextPageToken
+			call := service.API.Edits.Images.List(pkg, *editID, *locale, *imageType).Context(ctx)
+			resp, err := call.Do()
+			if err != nil {
+				return err
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -211,11 +193,11 @@ func DeleteCommand() *ffcli.Command {
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			resp, err := service.API.Edits.Images.Delete(pkg, *editID, *locale, *imageType, *imageID).Context(ctx).Do()
+			err = service.API.Edits.Images.Delete(pkg, *editID, *locale, *imageType, *imageID).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutput(nil, *outputFlag, *pretty)
 		},
 	}
 }

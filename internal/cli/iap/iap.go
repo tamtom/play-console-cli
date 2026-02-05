@@ -409,10 +409,10 @@ func BatchUpdateCommand() *ffcli.Command {
 			}
 
 			// Build request objects
-			var requests []*androidpublisher.InAppProductsBatchUpdateRequest
+			var requests []*androidpublisher.InappproductsBatchUpdateRequest
 			for _, p := range products {
 				p.PackageName = pkg
-				req := &androidpublisher.InAppProductsBatchUpdateRequest{
+				req := &androidpublisher.InappproductsBatchUpdateRequest{
 					Requests: []*androidpublisher.InappproductsUpdateRequest{{
 						AutoConvertMissingPrices: *autoConvertPrices,
 						AllowMissing:             *allowMissing,
@@ -425,7 +425,7 @@ func BatchUpdateCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			batchReq := &androidpublisher.InAppProductsBatchUpdateRequest{
+			batchReq := &androidpublisher.InappproductsBatchUpdateRequest{
 				Requests: make([]*androidpublisher.InappproductsUpdateRequest, 0, len(products)),
 			}
 			for _, p := range products {
@@ -495,7 +495,7 @@ func BatchDeleteCommand() *ffcli.Command {
 				})
 			}
 
-			req := &androidpublisher.InAppProductsBatchDeleteRequest{
+			req := &androidpublisher.InappproductsBatchDeleteRequest{
 				Requests: requests,
 			}
 

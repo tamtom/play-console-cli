@@ -42,7 +42,6 @@ func ListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("listings list", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	editID := fs.String("edit", "", "Edit ID")
-	paginate := fs.Bool("paginate", false, "Fetch all pages")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -70,28 +69,14 @@ func ListCommand() *ffcli.Command {
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			var all []*androidpublisher.Listing
-			pageToken := ""
-			for {
-				call := service.API.Edits.Listings.List(pkg, *editID).Context(ctx)
-				if pageToken != "" {
-					call.PageToken(pageToken)
-				}
-				resp, err := call.Do()
-				if err != nil {
-					return err
-				}
-				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
-				}
-				all = append(all, resp.Listings...)
-				if resp.NextPageToken == "" {
-					break
-				}
-				pageToken = resp.NextPageToken
+
+			call := service.API.Edits.Listings.List(pkg, *editID).Context(ctx)
+			resp, err := call.Do()
+			if err != nil {
+				return err
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -226,11 +211,11 @@ func DeleteCommand() *ffcli.Command {
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			resp, err := service.API.Edits.Listings.Delete(pkg, *editID, *locale).Context(ctx).Do()
+			err = service.API.Edits.Listings.Delete(pkg, *editID, *locale).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutput(nil, *outputFlag, *pretty)
 		},
 	}
 }
@@ -269,11 +254,11 @@ func DeleteAllCommand() *ffcli.Command {
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			resp, err := service.API.Edits.Listings.Deleteall(pkg, *editID).Context(ctx).Do()
+			err = service.API.Edits.Listings.Deleteall(pkg, *editID).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutput(nil, *outputFlag, *pretty)
 		},
 	}
 }

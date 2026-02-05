@@ -117,15 +117,17 @@ func BatchGetCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			req := &androidpublisher.OrdersV2BatchGetRequest{
-				OrderIds: idList,
+			// Batch get orders one by one since API doesn't support true batch get
+			var orders []*androidpublisher.Order
+			for _, orderID := range idList {
+				order, err := service.API.Orders.Get(pkg, orderID).Context(ctx).Do()
+				if err != nil {
+					return fmt.Errorf("failed to get order %s: %w", orderID, err)
+				}
+				orders = append(orders, order)
 			}
 
-			resp, err := service.API.Orders.BatchGet(pkg, req).Context(ctx).Do()
-			if err != nil {
-				return err
-			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutput(orders, *outputFlag, *pretty)
 		},
 	}
 }

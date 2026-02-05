@@ -228,11 +228,11 @@ func DeleteCommand() *ffcli.Command {
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			resp, err := service.API.Edits.Delete(pkg, *editID).Context(ctx).Do()
+			err = service.API.Edits.Delete(pkg, *editID).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutput(nil, *outputFlag, *pretty)
 		},
 	}
 }

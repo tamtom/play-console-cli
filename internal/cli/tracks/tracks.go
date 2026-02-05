@@ -40,7 +40,6 @@ func ListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("tracks list", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	editID := fs.String("edit", "", "Edit ID")
-	paginate := fs.Bool("paginate", false, "Fetch all pages")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -68,28 +67,13 @@ func ListCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			var all []*androidpublisher.Track
-			pageToken := ""
-			for {
-				call := service.API.Edits.Tracks.List(pkg, *editID).Context(ctx)
-				if pageToken != "" {
-					call.PageToken(pageToken)
-				}
-				resp, err := call.Do()
-				if err != nil {
-					return err
-				}
-				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
-				}
-				all = append(all, resp.Tracks...)
-				if resp.NextPageToken == "" {
-					break
-				}
-				pageToken = resp.NextPageToken
+			call := service.API.Edits.Tracks.List(pkg, *editID).Context(ctx)
+			resp, err := call.Do()
+			if err != nil {
+				return err
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }

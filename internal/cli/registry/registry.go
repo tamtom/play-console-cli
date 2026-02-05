@@ -20,7 +20,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
 	"github.com/tamtom/play-console-cli/internal/cli/generatedapks"
-	"github.com/tamtom/play-console-cli/internal/cli/grants"
+	// "github.com/tamtom/play-console-cli/internal/cli/grants" // Grants API methods not fully available
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
 	"github.com/tamtom/play-console-cli/internal/cli/images"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
@@ -40,7 +40,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
 	"github.com/tamtom/play-console-cli/internal/cli/testers"
 	"github.com/tamtom/play-console-cli/internal/cli/tracks"
-	"github.com/tamtom/play-console-cli/internal/cli/users"
+	// "github.com/tamtom/play-console-cli/internal/cli/users" // Users API methods not fully available
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
 )
 
