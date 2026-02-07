@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -136,13 +137,28 @@ func UploadCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()
 			call := service.API.Edits.Images.Upload(pkg, *editID, *locale, *imageType)
-			call.Media(file, googleapi.ContentType("application/octet-stream"))
+			call.Media(file, googleapi.ContentType(mimeTypeForImage(*filePath)))
 			resp, err := call.Context(ctx).Do()
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload image", err)
 			}
 			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
+	}
+}
+
+func mimeTypeForImage(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".webp":
+		return "image/webp"
+	case ".gif":
+		return "image/gif"
+	default:
+		return "application/octet-stream"
 	}
 }
 
