@@ -15,11 +15,14 @@ import (
 var version = "dev"
 
 func main() {
+	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
+	dryRun := rootFS.Bool("dry-run", false, "Preview write operations without executing them")
+
 	root := &ffcli.Command{
 		Name:       "gplay",
 		ShortUsage: "gplay <command> [flags]",
 		ShortHelp:  "A CLI for Google Play Console.",
-		FlagSet:    flag.NewFlagSet("gplay", flag.ExitOnError),
+		FlagSet:    rootFS,
 		Subcommands: registry.Subcommands(version),
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -30,7 +33,15 @@ func main() {
 		},
 	}
 
-	if err := root.ParseAndRun(context.Background(), os.Args[1:]); err != nil {
+	ctx := context.Background()
+	if err := root.Parse(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ctx = shared.ContextWithDryRun(ctx, *dryRun)
+
+	if err := root.Run(ctx); err != nil {
 		if !shared.IsReportedError(err) {
 			fmt.Fprintln(os.Stderr, err)
 		}
