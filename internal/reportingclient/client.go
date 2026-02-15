@@ -1,4 +1,4 @@
-package playclient
+package reportingclient
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/androidpublisher/v3"
 	"google.golang.org/api/option"
+	"google.golang.org/api/playdeveloperreporting/v1beta1"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
@@ -26,16 +26,17 @@ const (
 	oauthRedirectEnvVar     = "GPLAY_OAUTH_REDIRECT_URI"
 )
 
-var scopes = []string{"https://www.googleapis.com/auth/androidpublisher"}
-
-// Service wraps the Android Publisher service and config.
-type Service struct {
-	API     *androidpublisher.Service
-	Cfg     *config.Config
-	BaseURL string // When set, overrides API.BasePath (used for testing).
+var scopes = []string{
+	"https://www.googleapis.com/auth/playdeveloperreporting",
 }
 
-// NewService creates an authenticated Android Publisher service.
+// Service wraps the Play Developer Reporting service and config.
+type Service struct {
+	API *playdeveloperreporting.Service
+	Cfg *config.Config
+}
+
+// NewService creates an authenticated Play Developer Reporting service.
 func NewService(ctx context.Context) (*Service, error) {
 	cfg, err := config.Load()
 	if err != nil && !errors.Is(err, config.ErrNotFound) {
@@ -49,27 +50,11 @@ func NewService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
+	api, err := playdeveloperreporting.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
 	}
 	return &Service{API: api, Cfg: cfg}, nil
-}
-
-// NewTestService creates a Service that targets the given base URL using a
-// plain (unauthenticated) HTTP client. This is intended for use with
-// httptest.Server in tests.
-func NewTestService(baseURL string) (*Service, error) {
-	ctx := context.Background()
-	api, err := androidpublisher.NewService(ctx,
-		option.WithHTTPClient(http.DefaultClient),
-		option.WithoutAuthentication(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	api.BasePath = baseURL
-	return &Service{API: api, BaseURL: baseURL}, nil
 }
 
 func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {
@@ -80,16 +65,9 @@ func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error
 	return oauth2.NewClient(ctx, creds.TokenSource), nil
 }
 
-type credentialSource string
-
-const (
-	sourceProfile credentialSource = "profile"
-	sourceEnv     credentialSource = "env"
-)
-
 type resolvedCredentials struct {
 	TokenSource oauth2.TokenSource
-	Source      credentialSource
+	Source      string
 	ProfileName string
 }
 
@@ -109,7 +87,7 @@ func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCrede
 				)
 			}
 			creds.ProfileName = profileName
-			creds.Source = sourceProfile
+			creds.Source = "profile"
 			return creds, nil
 		}
 		return nil, shared.NewAuthError(
@@ -124,7 +102,7 @@ func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCrede
 		if err != nil {
 			return nil, err
 		}
-		creds.Source = sourceEnv
+		creds.Source = "env"
 		return creds, nil
 	}
 
@@ -164,11 +142,11 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 				"Set key_path in config.json or re-run `gplay auth login` with --service-account.",
 			)
 		}
-		creds, err := credentialsFromServiceAccount(ctx, profile.KeyPath)
+		ts, err := credentialsFromServiceAccount(ctx, profile.KeyPath)
 		if err != nil {
 			return nil, err
 		}
-		return &resolvedCredentials{TokenSource: creds}, nil
+		return &resolvedCredentials{TokenSource: ts}, nil
 	case "oauth":
 		if strings.TrimSpace(profile.TokenPath) == "" {
 			return nil, shared.NewAuthError(
@@ -186,11 +164,11 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 				"Set client_id/client_secret in config.json or re-run `gplay auth login` with --client-id/--client-secret.",
 			)
 		}
-		creds, err := credentialsFromOAuth(ctx, profile.TokenPath, clientID, clientSecret, redirectURIFromEnv())
+		ts, err := credentialsFromOAuth(ctx, profile.TokenPath, clientID, clientSecret, redirectURIFromEnv())
 		if err != nil {
 			return nil, err
 		}
-		return &resolvedCredentials{TokenSource: creds}, nil
+		return &resolvedCredentials{TokenSource: ts}, nil
 	default:
 		return nil, shared.NewAuthError(
 			"invalid auth profile",
@@ -202,11 +180,11 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 
 func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
 	if keyPath := strings.TrimSpace(os.Getenv(serviceAccountEnvVar)); keyPath != "" {
-		tokenSource, err := credentialsFromServiceAccount(ctx, keyPath)
+		ts, err := credentialsFromServiceAccount(ctx, keyPath)
 		if err != nil {
 			return nil, err
 		}
-		return &resolvedCredentials{TokenSource: tokenSource}, nil
+		return &resolvedCredentials{TokenSource: ts}, nil
 	}
 
 	tokenPath := strings.TrimSpace(os.Getenv(oauthTokenEnvVar))
@@ -220,11 +198,11 @@ func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
 				"Set both env vars or use `gplay auth login` to create a profile.",
 			)
 		}
-		tokenSource, err := credentialsFromOAuth(ctx, tokenPath, clientID, clientSecret, redirectURIFromEnv())
+		ts, err := credentialsFromOAuth(ctx, tokenPath, clientID, clientSecret, redirectURIFromEnv())
 		if err != nil {
 			return nil, err
 		}
-		return &resolvedCredentials{TokenSource: tokenSource}, nil
+		return &resolvedCredentials{TokenSource: ts}, nil
 	}
 
 	return nil, errors.New("no credentials found")
@@ -236,7 +214,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 		return nil, shared.NewAuthError(
 			"failed to read service account file",
 			err,
-			fmt.Sprintf("Check that %s exists and is readable (configured via profile key_path or %s).", keyPath, serviceAccountEnvVar),
+			fmt.Sprintf("Check that %s exists and is readable.", keyPath),
 		)
 	}
 	//nolint:staticcheck
@@ -245,7 +223,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 		return nil, shared.NewAuthError(
 			"failed to parse service account JSON",
 			err,
-			"Ensure the file is a valid service account JSON with Android Publisher access.",
+			"Ensure the file is a valid service account JSON with Play Developer Reporting access.",
 		)
 	}
 	return creds.TokenSource, nil
@@ -257,7 +235,7 @@ func credentialsFromOAuth(ctx context.Context, tokenPath, clientID, clientSecret
 		return nil, shared.NewAuthError(
 			"failed to read OAuth token file",
 			err,
-			fmt.Sprintf("Check that %s exists and is readable (configured via profile token_path or %s).", tokenPath, oauthTokenEnvVar),
+			fmt.Sprintf("Check that %s exists and is readable.", tokenPath),
 		)
 	}
 	var token oauth2.Token

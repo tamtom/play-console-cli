@@ -9,6 +9,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/cli/vitals/errors"
 	"github.com/tamtom/play-console-cli/internal/cli/vitals/performance"
 )
 
@@ -25,6 +26,7 @@ func VitalsCommand() *ffcli.Command {
 		Subcommands: []*ffcli.Command{
 			CrashesCommand(),
 			performance.PerformanceCommand(),
+			errors.ErrorsCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
