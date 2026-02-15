@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running pre-commit checks..."
+
+# Format check
+echo "  Checking formatting..."
+make format 2>/dev/null
+if ! git diff --exit-code --quiet; then
+    echo ""
+    echo "ERROR: Files were reformatted by gofumpt. The following files changed:"
+    git diff --name-only
+    echo ""
+    echo "Please stage the formatting changes and try again."
+    exit 1
+fi
+
+# Lint check
+echo "  Running linter..."
+if ! make lint 2>/dev/null; then
+    echo ""
+    echo "ERROR: Linting failed. Please fix the issues above and try again."
+    exit 1
+fi
+
+echo "Pre-commit checks passed!"
