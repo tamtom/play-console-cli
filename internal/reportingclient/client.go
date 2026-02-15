@@ -217,6 +217,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 			fmt.Sprintf("Check that %s exists and is readable.", keyPath),
 		)
 	}
+	//nolint:staticcheck
 	creds, err := google.CredentialsFromJSON(ctx, data, scopes...)
 	if err != nil {
 		return nil, shared.NewAuthError(
