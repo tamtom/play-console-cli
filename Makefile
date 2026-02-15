@@ -243,9 +243,20 @@ help:
 	@echo "  run             Build and run (use ARGS= for arguments)"
 	@echo "  completions     Generate shell completion scripts"
 	@echo "  dev             format + lint + test + build"
+	@echo "  update-api-spec Update Google Play API discovery document"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
 	@echo "  VERSION         Override version (default: git tag)"
 	@echo "  INSTALL_PREFIX  Install location (default: /usr/local/bin)"
 	@echo ""
+
+# Update Google Play API discovery document and endpoints index
+.PHONY: update-api-spec
+update-api-spec:
+	@echo "$(BLUE)Downloading Google Play Android Publisher API v3 discovery document...$(NC)"
+	@curl -s 'https://androidpublisher.googleapis.com/$$discovery/rest?version=v3' | \
+		python3 -m json.tool > docs/api/discovery.json
+	@echo "$(BLUE)Generating endpoints index...$(NC)"
+	@python3 scripts/gen-endpoints.py
+	@echo "$(GREEN)✓ API spec updated. Review changes with: git diff docs/api/$(NC)"
