@@ -135,6 +135,14 @@ tidy:
 	@echo "$(BLUE)Tidying dependencies...$(NC)"
 	$(GO) mod tidy
 
+## Download and verify dependencies
+.PHONY: deps
+deps:
+	@echo "$(BLUE)Downloading dependencies...$(NC)"
+	$(GO) mod download
+	$(GO) mod verify
+	@echo "$(GREEN)✓ Dependencies downloaded and verified.$(NC)"
+
 # Update dependencies
 .PHONY: update-deps
 update-deps:
@@ -230,6 +238,7 @@ help:
 	@echo ""
 	@echo "$(BLUE)Dependencies:$(NC)"
 	@echo "  tidy            Tidy go.mod dependencies"
+	@echo "  deps            Download and verify dependencies"
 	@echo "  update-deps     Update all dependencies"
 	@echo "  tools           Install dev tools (gofumpt, golangci-lint)"
 	@echo ""
