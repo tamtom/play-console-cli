@@ -77,7 +77,6 @@ func Build(t *testing.T) {
 
 // findProjectRoot walks up from cwd to find go.mod
 func findProjectRoot() string {
-	// The binary is at the module root
 	cmd := exec.Command("go", "env", "GOMOD")
 	out, err := cmd.Output()
 	if err != nil {
@@ -87,8 +86,10 @@ func findProjectRoot() string {
 	if modPath == "" {
 		return "."
 	}
-	// go.mod path -> directory
 	idx := strings.LastIndex(modPath, "/")
+	if idx < 0 {
+		idx = strings.LastIndex(modPath, "\\")
+	}
 	if idx >= 0 {
 		return modPath[:idx]
 	}
