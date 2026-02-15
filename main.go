@@ -8,24 +8,29 @@ import (
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
-	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/registry"
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
 var version = "dev"
 
 func main() {
-	root := &ffcli.Command{
-		Name:       "gplay",
-		ShortUsage: "gplay <command> [flags]",
-		ShortHelp:  "A CLI for Google Play Console.",
-		FlagSet:    flag.NewFlagSet("gplay", flag.ExitOnError),
+	var root *ffcli.Command
+	root = &ffcli.Command{
+		Name:        "gplay",
+		ShortUsage:  "gplay <command> [flags]",
+		ShortHelp:   "A CLI for Google Play Console.",
+		FlagSet:     flag.NewFlagSet("gplay", flag.ExitOnError),
 		Subcommands: registry.Subcommands(version),
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", args[0])
+			var names []string
+			for _, sub := range root.Subcommands {
+				names = append(names, sub.Name)
+			}
+			fmt.Fprintln(os.Stderr, shared.FormatUnknownCommand(args[0], names))
 			return flag.ErrHelp
 		},
 	}
