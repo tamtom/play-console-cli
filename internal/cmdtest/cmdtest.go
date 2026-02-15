@@ -25,7 +25,7 @@ func Run(t *testing.T, args ...string) Result {
 		t.Fatal("cmdtest.BinaryPath not set; call cmdtest.Build in TestMain")
 	}
 
-	cmd := exec.Command(BinaryPath, args...)
+	cmd := exec.Command(BinaryPath, args...) // #nosec G204 -- BinaryPath is set by test infrastructure, not user input
 	cmd.Env = append(cmd.Environ(), "GPLAY_NO_UPDATE=1")
 
 	var stdout, stderr strings.Builder
@@ -66,7 +66,7 @@ func Build(t *testing.T) {
 	if os.PathSeparator == '\\' {
 		binary += ".exe"
 	}
-	cmd := exec.Command("go", "build", "-o", binary, ".")
+	cmd := exec.Command("go", "build", "-o", binary, ".") // #nosec G204 -- building our own project binary for tests
 	cmd.Dir = findProjectRoot()
 	out, err := cmd.CombinedOutput()
 	if err != nil {

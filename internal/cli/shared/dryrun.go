@@ -52,7 +52,7 @@ func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	// Log the intercepted request.
-	fmt.Fprintf(w, "[DRY RUN] %s %s\n", req.Method, req.URL.String())
+	fmt.Fprintf(w, "[DRY RUN] %s %s\n", req.Method, req.URL.String()) // #nosec G705 -- writing to stderr, not a web response
 
 	if req.Body != nil && req.Body != http.NoBody {
 		body, err := io.ReadAll(req.Body)
