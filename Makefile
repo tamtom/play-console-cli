@@ -206,6 +206,21 @@ security:
 		echo "$(YELLOW)govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest$(NC)"; \
 	fi
 
+# Generate command reference documentation
+.PHONY: docs check-docs
+
+docs:
+	@echo "$(BLUE)Generating GPLAY.md...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md
+	@echo "$(GREEN)✓ GPLAY.md generated$(NC)"
+
+check-docs:
+	@echo "$(BLUE)Checking GPLAY.md is up to date...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md.tmp
+	@diff GPLAY.md GPLAY.md.tmp > /dev/null 2>&1 || (echo "$(RED)GPLAY.md is out of date. Run 'make docs'$(NC)" && rm GPLAY.md.tmp && exit 1)
+	@rm -f GPLAY.md.tmp
+	@echo "$(GREEN)✓ GPLAY.md is up to date$(NC)"
+
 # Help
 .PHONY: help
 help:
@@ -243,6 +258,8 @@ help:
 	@echo "  run             Build and run (use ARGS= for arguments)"
 	@echo "  completions     Generate shell completion scripts"
 	@echo "  dev             format + lint + test + build"
+	@echo "  docs            Generate GPLAY.md command reference"
+	@echo "  check-docs      Verify GPLAY.md is up to date"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
