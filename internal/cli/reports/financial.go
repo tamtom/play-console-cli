@@ -4,20 +4,43 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/gcsclient"
 )
 
 var monthRegex = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
+
+// monthFromFilename extracts YYYYMM from a report filename.
+// Looks for a 6-digit sequence that starts with 20 (e.g., 202601).
+var monthFromFilenameRegex = regexp.MustCompile(`(20\d{4})`)
 
 var validReportTypes = map[string]bool{
 	"earnings": true,
 	"sales":    true,
 	"payouts":  true,
+}
+
+// financialPrefixes maps report types to their GCS prefix in the bucket.
+var financialPrefixes = map[string]string{
+	"earnings": "earnings/",
+	"sales":    "sales/",
+	"payouts":  "payouts/",
+}
+
+// newGCSServiceFunc is the factory for creating GCS services.
+// It is overridden in tests to inject mock clients.
+var newGCSServiceFunc = defaultNewGCSService
+
+func defaultNewGCSService(ctx context.Context) (*gcsclient.Service, error) {
+	return gcsclient.NewService(ctx)
 }
 
 // validateMonth checks that a month string matches YYYY-MM format.
@@ -37,6 +60,36 @@ func validateReportType(value string) error {
 		return fmt.Errorf("--type must be one of: earnings, sales, payouts, all (got %q)", value)
 	}
 	return nil
+}
+
+// bucketName constructs the GCS bucket name from a developer ID.
+func bucketName(developerID string) string {
+	return "pubsite_prod_rev_" + developerID
+}
+
+// monthToCompact converts "2024-01" to "202401" for filename matching.
+func monthToCompact(month string) string {
+	return strings.ReplaceAll(month, "-", "")
+}
+
+// matchesDateRange checks if a filename's embedded YYYYMM falls within [from, to].
+// If from/to are empty, no filtering is applied.
+func matchesDateRange(name, from, to string) bool {
+	if from == "" && to == "" {
+		return true
+	}
+	matches := monthFromFilenameRegex.FindStringSubmatch(name)
+	if len(matches) < 2 {
+		return true // no date in filename — include it
+	}
+	fileMonth := matches[1]
+	if from != "" && fileMonth < monthToCompact(from) {
+		return false
+	}
+	if to != "" && fileMonth > monthToCompact(to) {
+		return false
+	}
+	return true
 }
 
 // FinancialCommand returns the financial subcommand group.
@@ -95,14 +148,31 @@ func FinancialListCommand() *ffcli.Command {
 				return err
 			}
 
-			// Stub: in a real implementation this would list reports from
-			// Google Cloud Storage bucket pubsite_prod_rev_<developer_id>.
+			svc, err := newGCSServiceFunc(ctx)
+			if err != nil {
+				return err
+			}
+
+			bucket := bucketName(*developer)
+			prefixes := financialPrefixesForType(*reportType)
+
+			var reports []gcsclient.ObjectInfo
+			for _, prefix := range prefixes {
+				objects, err := svc.ListObjects(ctx, bucket, prefix)
+				if err != nil {
+					return err
+				}
+				for _, obj := range objects {
+					if matchesDateRange(obj.Name, *from, *to) {
+						reports = append(reports, obj)
+					}
+				}
+			}
+
 			result := map[string]interface{}{
 				"developer": *developer,
-				"type":      *reportType,
-				"from":      *from,
-				"to":        *to,
-				"reports":   []interface{}{},
+				"bucket":    bucket,
+				"reports":   reports,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
@@ -150,22 +220,79 @@ func FinancialDownloadCommand() *ffcli.Command {
 			if err := validateReportType(*reportType); err != nil {
 				return err
 			}
-			// "all" is not valid for download — you must pick a specific type.
 			if *reportType == "all" {
 				return fmt.Errorf("--type must be one of: earnings, sales, payouts (got \"all\")")
 			}
 
-			// Stub: in a real implementation this would download from
-			// Google Cloud Storage bucket pubsite_prod_rev_<developer_id>.
+			svc, err := newGCSServiceFunc(ctx)
+			if err != nil {
+				return err
+			}
+
+			bucket := bucketName(*developer)
+			prefix := financialPrefixes[*reportType]
+
+			objects, err := svc.ListObjects(ctx, bucket, prefix)
+			if err != nil {
+				return err
+			}
+
+			var downloaded []map[string]interface{}
+			for _, obj := range objects {
+				if !matchesDateRange(obj.Name, *from, effectiveTo) {
+					continue
+				}
+				localPath := filepath.Join(*dir, filepath.Base(obj.Name))
+				if err := downloadFile(ctx, svc, bucket, obj.Name, localPath); err != nil {
+					return fmt.Errorf("failed to download %s: %w", obj.Name, err)
+				}
+				downloaded = append(downloaded, map[string]interface{}{
+					"name": obj.Name,
+					"path": localPath,
+					"size": obj.Size,
+				})
+			}
+
 			result := map[string]interface{}{
 				"developer": *developer,
 				"type":      *reportType,
 				"from":      *from,
 				"to":        effectiveTo,
 				"dir":       *dir,
-				"files":     []interface{}{},
+				"files":     downloaded,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
 	}
+}
+
+// financialPrefixesForType returns the GCS prefixes to search for a given report type.
+func financialPrefixesForType(reportType string) []string {
+	if reportType == "all" {
+		return []string{"earnings/", "sales/", "payouts/"}
+	}
+	if p, ok := financialPrefixes[reportType]; ok {
+		return []string{p}
+	}
+	return nil
+}
+
+// downloadFile downloads a GCS object and writes it to a local file.
+func downloadFile(ctx context.Context, svc *gcsclient.Service, bucket, object, localPath string) error {
+	rc, err := svc.DownloadObject(ctx, bucket, object)
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	f, err := os.Create(localPath)
+	if err != nil {
+		return fmt.Errorf("create file: %w", err)
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(f, rc); err != nil {
+		return fmt.Errorf("write file: %w", err)
+	}
+	return nil
 }
