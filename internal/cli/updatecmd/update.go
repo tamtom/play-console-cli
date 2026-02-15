@@ -89,9 +89,12 @@ func detectInstallMethod(path string) string {
 	}
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		gopath = filepath.Join(os.Getenv("HOME"), "go")
+		home, err := os.UserHomeDir()
+		if err == nil {
+			gopath = filepath.Join(home, "go")
+		}
 	}
-	if strings.HasPrefix(path, filepath.Join(gopath, "bin")) {
+	if gopath != "" && strings.HasPrefix(path, filepath.Join(gopath, "bin")) {
 		return "goinstall"
 	}
 	return "binary"

@@ -26,7 +26,7 @@ func runCommand(t *testing.T, cmd *ffcli.Command, args []string) error {
 
 	w.Close()
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 
 	return err
 }

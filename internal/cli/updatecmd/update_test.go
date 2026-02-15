@@ -1,6 +1,9 @@
 package updatecmd
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -46,10 +49,16 @@ func TestUpdateCommandUsageFunc(t *testing.T) {
 }
 
 func TestDetectInstallMethod(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("cannot get user home dir: %v", err)
+	}
+
 	tests := []struct {
 		name     string
 		path     string
 		expected string
+		skip     bool
 	}{
 		{
 			name:     "homebrew cellar path",
@@ -68,26 +77,30 @@ func TestDetectInstallMethod(t *testing.T) {
 		},
 		{
 			name:     "go install default GOPATH",
-			path:     "/Users/testuser/go/bin/gplay",
+			path:     filepath.Join(homeDir, "go", "bin", "gplay"),
 			expected: "goinstall",
 		},
 		{
 			name:     "binary direct path",
-			path:     "/usr/local/bin/gplay",
+			path:     filepath.Join(string(filepath.Separator), "usr", "local", "bin", "gplay"),
 			expected: "binary",
+			skip:     runtime.GOOS == "windows",
 		},
 		{
 			name:     "binary in opt",
-			path:     "/opt/gplay/bin/gplay",
+			path:     filepath.Join(string(filepath.Separator), "opt", "gplay", "bin", "gplay"),
 			expected: "binary",
+			skip:     runtime.GOOS == "windows",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// For the go install test, we need HOME set correctly
+			if tt.skip {
+				t.Skip("skipping on this platform")
+			}
+			// Clear GOPATH so default home-based detection is used
 			if tt.expected == "goinstall" {
-				t.Setenv("HOME", "/Users/testuser")
 				t.Setenv("GOPATH", "")
 			}
 			got := detectInstallMethod(tt.path)
@@ -99,8 +112,9 @@ func TestDetectInstallMethod(t *testing.T) {
 }
 
 func TestDetectInstallMethodCustomGOPATH(t *testing.T) {
-	t.Setenv("GOPATH", "/custom/gopath")
-	got := detectInstallMethod("/custom/gopath/bin/gplay")
+	customGopath := filepath.Join(t.TempDir(), "gopath")
+	t.Setenv("GOPATH", customGopath)
+	got := detectInstallMethod(filepath.Join(customGopath, "bin", "gplay"))
 	if got != "goinstall" {
 		t.Errorf("expected %q for custom GOPATH, got %q", "goinstall", got)
 	}
