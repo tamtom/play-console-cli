@@ -2,6 +2,7 @@ package cmdtest
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -62,6 +63,9 @@ func Build(t *testing.T) {
 	t.Helper()
 	dir := t.TempDir()
 	binary := dir + "/gplay"
+	if os.PathSeparator == '\\' {
+		binary += ".exe"
+	}
 	cmd := exec.Command("go", "build", "-o", binary, ".")
 	cmd.Dir = findProjectRoot()
 	out, err := cmd.CombinedOutput()
