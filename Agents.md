@@ -36,8 +36,8 @@ gplay grants                    # Manage per-app permission grants (create, upda
 gplay update                    # Self-update the CLI binary
 gplay notify send               # Send webhook notifications (Slack, Discord, generic)
 gplay migrate fastlane          # Migrate from Fastlane metadata
-gplay reports financial         # Financial reports (list/download)
-gplay reports stats             # Statistics reports (list/download)
+gplay reports financial         # Financial reports (list/download from GCS)
+gplay reports stats             # Statistics reports (list/download from GCS)
 gplay listings locales          # List available locales with validation
 ```
 
@@ -147,6 +147,7 @@ play-console-cli/
 │   │   └── */             # Other command packages
 │   ├── cmdtest/           # Black-box CLI testing
 │   ├── config/            # Configuration management
+│   ├── gcsclient/         # Google Cloud Storage client (reports)
 │   ├── output/            # Output formatting (table, ANSI colors)
 │   ├── playclient/        # Google Play API client
 │   ├── reportingclient/   # Play Developer Reporting API client
@@ -175,5 +176,6 @@ Available skills:
 - `gplay-submission-checks` - Pre-submission validation
 - `gplay-screenshot-automation` - Screenshot management workflows
 - `gplay-subscription-localization` - Subscription and in-app product localization
+- `gplay-reports-download` - Financial and statistics report download from GCS
 
 Skills repository: https://github.com/tamtom/gplay-cli-skills

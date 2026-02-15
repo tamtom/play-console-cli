@@ -205,14 +205,18 @@ gplay grants delete --developer <id> --email user@example.com --package com.exam
 
 ### Reports
 
-```bash
-# Financial reports
-gplay reports financial list --developer <id>
-gplay reports financial download --developer <id> --from 2026-01 --type earnings
+Reports are stored as CSV/ZIP files in Google Cloud Storage buckets (`pubsite_prod_rev_<developer_id>`). The service account must have access to the GCS bucket (granted automatically when added to Play Console).
 
-# Statistics reports
-gplay reports stats list --package com.example.app
-gplay reports stats download --package com.example.app --from 2026-01 --type installs
+```bash
+# Financial reports (earnings, sales, payouts)
+gplay reports financial list --developer <id>
+gplay reports financial list --developer <id> --type earnings --from 2026-01 --to 2026-06
+gplay reports financial download --developer <id> --from 2026-01 --type earnings --dir ./reports
+
+# Statistics reports (installs, ratings, crashes, store_performance, subscriptions)
+gplay reports stats list --developer <id>
+gplay reports stats list --developer <id> --package com.example.app --type installs
+gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type installs --dir ./reports
 ```
 
 ### Notifications
@@ -613,6 +617,7 @@ npx skills add tamtom/gplay-cli-skills
 | `gplay-vitals-monitoring` | App vitals monitoring for crashes, errors, and performance |
 | `gplay-user-management` | Developer account user and permission grant management |
 | `gplay-migrate-fastlane` | Migration from Fastlane metadata to gplay format |
+| `gplay-reports-download` | Financial and statistics report listing/downloading from GCS |
 
 Skills repository: [github.com/tamtom/gplay-cli-skills](https://github.com/tamtom/gplay-cli-skills)
 

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.3] - 2026-02-15
+
+### Changed
+
+#### Reports — Real GCS-Based Implementation
+- `gplay reports financial list/download` now fetches real report files from Google Cloud Storage bucket `pubsite_prod_rev_<developer_id>`
+- `gplay reports stats list/download` now fetches real statistics CSVs from GCS
+- Added `--developer` flag (required) to stats commands for bucket name construction
+- `--package` is now optional for `stats list` (filters results) and required for `stats download`
+- Date range filtering via `--from`/`--to` extracts YYYYMM from filenames
+- Download writes files to `--dir` with JSON summary output
+- New `internal/gcsclient` package — thin GCS client reusing the same credential resolution pattern as `playclient` and `reportingclient`
+- GCS mock tests using `httptest` for listing, filtering, and download verification
+
 ## [0.4.2] - 2026-02-15
 
 ### Added
