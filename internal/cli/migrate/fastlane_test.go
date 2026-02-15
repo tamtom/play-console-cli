@@ -37,10 +37,10 @@ func setupFastlaneFixture(t *testing.T) string {
 // mkFile creates a file with the given content, creating parent dirs.
 func mkFile(t *testing.T, path, content string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -268,7 +268,7 @@ func TestRunFastlaneMigration_EmptySource(t *testing.T) {
 func TestRunFastlaneMigration_SourceNotDir(t *testing.T) {
 	tmp := t.TempDir()
 	file := filepath.Join(tmp, "notadir.txt")
-	if err := os.WriteFile(file, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

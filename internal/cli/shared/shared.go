@@ -17,12 +17,12 @@ import (
 )
 
 const (
-	strictAuthEnvVar = "GPLAY_STRICT_AUTH"
-	profileEnvVar    = "GPLAY_PROFILE"
-	packageEnvVar    = "GPLAY_PACKAGE_NAME"
-	timeoutEnvVar    = "GPLAY_TIMEOUT"
-	timeoutSecondsEnvVar = "GPLAY_TIMEOUT_SECONDS"
-	uploadTimeoutEnvVar = "GPLAY_UPLOAD_TIMEOUT"
+	strictAuthEnvVar           = "GPLAY_STRICT_AUTH"
+	profileEnvVar              = "GPLAY_PROFILE"
+	packageEnvVar              = "GPLAY_PACKAGE_NAME"
+	timeoutEnvVar              = "GPLAY_TIMEOUT"
+	timeoutSecondsEnvVar       = "GPLAY_TIMEOUT_SECONDS"
+	uploadTimeoutEnvVar        = "GPLAY_UPLOAD_TIMEOUT"
 	uploadTimeoutSecondsEnvVar = "GPLAY_UPLOAD_TIMEOUT_SECONDS"
 )
 

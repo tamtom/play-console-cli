@@ -38,7 +38,7 @@ func TestAttemptFixes_MissingConfigDir(t *testing.T) {
 func TestAttemptFixes_ServiceAccountEnv(t *testing.T) {
 	// Create a temp file to act as a service account
 	tmpFile := filepath.Join(t.TempDir(), "sa.json")
-	if err := os.WriteFile(tmpFile, []byte("{}"), 0600); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

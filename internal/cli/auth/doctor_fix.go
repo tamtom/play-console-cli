@@ -23,7 +23,7 @@ func attemptFixes(report authReport, apply bool) []fixResult {
 		configDir := filepath.Dir(configPath)
 		if _, statErr := os.Stat(configDir); os.IsNotExist(statErr) {
 			if apply {
-				if mkErr := os.MkdirAll(configDir, 0700); mkErr == nil {
+				if mkErr := os.MkdirAll(configDir, 0o700); mkErr == nil {
 					fixes = append(fixes, fixResult{
 						Name:    "config_directory",
 						Status:  "fixed",
@@ -51,7 +51,7 @@ func attemptFixes(report authReport, apply bool) []fixResult {
 		if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
 			if apply {
 				dir := filepath.Dir(configPath)
-				if mkErr := os.MkdirAll(dir, 0700); mkErr != nil {
+				if mkErr := os.MkdirAll(dir, 0o700); mkErr != nil {
 					fixes = append(fixes, fixResult{
 						Name:    "config_file",
 						Status:  "failed",

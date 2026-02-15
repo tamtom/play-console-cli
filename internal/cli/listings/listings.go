@@ -288,10 +288,10 @@ func updateListing(ctx context.Context, packageName, editID, locale, title, full
 	}
 
 	listing := &androidpublisher.Listing{
-		Title:           title,
-		FullDescription: fullDesc,
+		Title:            title,
+		FullDescription:  fullDesc,
 		ShortDescription: shortDesc,
-		Video:           video,
+		Video:            video,
 	}
 
 	ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)

@@ -243,7 +243,7 @@ func DownloadCommand() *ffcli.Command {
 			}
 
 			// Create output directory
-			if err := os.MkdirAll(*outputDir, 0755); err != nil {
+			if err := os.MkdirAll(*outputDir, 0o755); err != nil {
 				return fmt.Errorf("failed to create output directory: %w", err)
 			}
 

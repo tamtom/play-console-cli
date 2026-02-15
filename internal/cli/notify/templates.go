@@ -37,8 +37,8 @@ type SlackPayload struct {
 
 // SlackBlock represents a Slack block element.
 type SlackBlock struct {
-	Type string         `json:"type"`
-	Text *SlackTextObj  `json:"text,omitempty"`
+	Type string        `json:"type"`
+	Text *SlackTextObj `json:"text,omitempty"`
 }
 
 // SlackTextObj is a Slack text object used inside blocks.

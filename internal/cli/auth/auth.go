@@ -267,10 +267,10 @@ func AuthStatusCommand() *ffcli.Command {
 			configPath, _ := config.Path()
 			profileName := shared.ResolveProfileName(cfg)
 			result := struct {
-				ConfigPath  string         `json:"config_path"`
-				Profile     string         `json:"profile"`
-				Profiles    []config.Profile `json:"profiles"`
-				EnvPresent  bool           `json:"env_present"`
+				ConfigPath string           `json:"config_path"`
+				Profile    string           `json:"profile"`
+				Profiles   []config.Profile `json:"profiles"`
+				EnvPresent bool             `json:"env_present"`
 			}{
 				ConfigPath: configPath,
 				Profile:    profileName,
@@ -345,9 +345,9 @@ func AuthDoctorCommand() *ffcli.Command {
 }
 
 type authReport struct {
-	Errors int      `json:"errors"`
-	Warnings int    `json:"warnings"`
-	Checks []string `json:"checks"`
+	Errors   int      `json:"errors"`
+	Warnings int      `json:"warnings"`
+	Checks   []string `json:"checks"`
 }
 
 func buildAuthReport() authReport {
@@ -449,4 +449,3 @@ func envAuthPresent() bool {
 	}
 	return false
 }
-

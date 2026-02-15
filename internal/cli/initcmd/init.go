@@ -45,7 +45,7 @@ func InitCommand() *ffcli.Command {
 			}
 
 			// Create directory
-			if err := os.MkdirAll(configDir, 0700); err != nil {
+			if err := os.MkdirAll(configDir, 0o700); err != nil {
 				return fmt.Errorf("creating config directory: %w", err)
 			}
 
@@ -56,7 +56,7 @@ func InitCommand() *ffcli.Command {
 			}
 			content := generateConfig(pkg, *serviceAccount, *timeout)
 
-			if err := os.WriteFile(configPath, []byte(content), 0600); err != nil {
+			if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 				return fmt.Errorf("writing config: %w", err)
 			}
 

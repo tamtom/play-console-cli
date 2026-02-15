@@ -8,7 +8,7 @@ package testutil
 // EditFixture returns a sample Edits.insert / Edits.get response.
 func EditFixture() map[string]interface{} {
 	return map[string]interface{}{
-		"id":            "edit-123",
+		"id":                "edit-123",
 		"expiryTimeSeconds": "1700000000",
 	}
 }
@@ -19,10 +19,10 @@ func TrackFixture() map[string]interface{} {
 		"track": "production",
 		"releases": []map[string]interface{}{
 			{
-				"name":            "1.0.0",
-				"versionCodes":    []string{"100"},
-				"status":          "completed",
-				"userFraction":    1.0,
+				"name":         "1.0.0",
+				"versionCodes": []string{"100"},
+				"status":       "completed",
+				"userFraction": 1.0,
 			},
 		},
 	}
@@ -31,7 +31,7 @@ func TrackFixture() map[string]interface{} {
 // TracksListFixture returns a sample Tracks.list response.
 func TracksListFixture() map[string]interface{} {
 	return map[string]interface{}{
-		"kind":   "androidpublisher#tracksListResponse",
+		"kind": "androidpublisher#tracksListResponse",
 		"tracks": []map[string]interface{}{
 			TrackFixture(),
 			{
@@ -51,17 +51,17 @@ func TracksListFixture() map[string]interface{} {
 // ReviewFixture returns a sample Reviews.get response.
 func ReviewFixture() map[string]interface{} {
 	return map[string]interface{}{
-		"reviewId": "review-abc",
+		"reviewId":   "review-abc",
 		"authorName": "Test User",
 		"comments": []map[string]interface{}{
 			{
 				"userComment": map[string]interface{}{
-					"text":            "Great app!",
-					"starRating":      5,
-					"lastModified":    map[string]interface{}{"seconds": "1700000000"},
-					"appVersionCode":  100,
-					"appVersionName":  "1.0.0",
-					"device":          "Pixel 6",
+					"text":           "Great app!",
+					"starRating":     5,
+					"lastModified":   map[string]interface{}{"seconds": "1700000000"},
+					"appVersionCode": 100,
+					"appVersionName": "1.0.0",
+					"device":         "Pixel 6",
 				},
 			},
 		},

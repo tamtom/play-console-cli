@@ -152,9 +152,9 @@ Checks:
 }
 
 type ValidationResult struct {
-	Valid    bool              `json:"valid"`
-	Errors   []string          `json:"errors,omitempty"`
-	Warnings []string          `json:"warnings,omitempty"`
+	Valid    bool                   `json:"valid"`
+	Errors   []string               `json:"errors,omitempty"`
+	Warnings []string               `json:"warnings,omitempty"`
 	Details  map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -264,19 +264,19 @@ func validateListings(dir, locale, format string) *ValidationResult {
 }
 
 type LocaleValidationResult struct {
-	Valid    bool     `json:"valid"`
-	Errors   []string `json:"errors,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
-	Title    *FieldValidation `json:"title,omitempty"`
+	Valid            bool             `json:"valid"`
+	Errors           []string         `json:"errors,omitempty"`
+	Warnings         []string         `json:"warnings,omitempty"`
+	Title            *FieldValidation `json:"title,omitempty"`
 	ShortDescription *FieldValidation `json:"shortDescription,omitempty"`
 	FullDescription  *FieldValidation `json:"fullDescription,omitempty"`
 }
 
 type FieldValidation struct {
-	Present bool `json:"present"`
-	Length  int  `json:"length"`
-	MaxLength int `json:"maxLength"`
-	Valid   bool `json:"valid"`
+	Present   bool `json:"present"`
+	Length    int  `json:"length"`
+	MaxLength int  `json:"maxLength"`
+	Valid     bool `json:"valid"`
 }
 
 func validateLocaleListing(localeDir, format string) *LocaleValidationResult {
@@ -420,11 +420,11 @@ func validateScreenshots(dir, locale string) *ValidationResult {
 	localeResults := make(map[string]interface{})
 
 	screenshotDirs := map[string]int{
-		"phoneScreenshots":      maxPhoneScreenshots,
-		"sevenInchScreenshots":  maxTabletScreenshots,
-		"tenInchScreenshots":    maxTabletScreenshots,
-		"tvScreenshots":         maxTVScreenshots,
-		"wearScreenshots":       maxWearScreenshots,
+		"phoneScreenshots":     maxPhoneScreenshots,
+		"sevenInchScreenshots": maxTabletScreenshots,
+		"tenInchScreenshots":   maxTabletScreenshots,
+		"tvScreenshots":        maxTVScreenshots,
+		"wearScreenshots":      maxWearScreenshots,
 	}
 
 	for _, loc := range locales {

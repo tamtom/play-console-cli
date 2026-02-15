@@ -120,14 +120,14 @@ type Profile struct {
 
 // Config holds the application configuration.
 type Config struct {
-	DefaultProfile string    `json:"default_profile"`
-	Profiles       []Profile `json:"profiles,omitempty"`
-	PackageName    string    `json:"package_name,omitempty"`
-	Timeout        DurationValue `json:"timeout"`
-	TimeoutSeconds DurationValue `json:"timeout_seconds"`
-	UploadTimeout  DurationValue `json:"upload_timeout"`
+	DefaultProfile       string        `json:"default_profile"`
+	Profiles             []Profile     `json:"profiles,omitempty"`
+	PackageName          string        `json:"package_name,omitempty"`
+	Timeout              DurationValue `json:"timeout"`
+	TimeoutSeconds       DurationValue `json:"timeout_seconds"`
+	UploadTimeout        DurationValue `json:"upload_timeout"`
 	UploadTimeoutSeconds DurationValue `json:"upload_timeout_seconds"`
-	Debug          string    `json:"debug"`
+	Debug                string        `json:"debug"`
 }
 
 // ErrNotFound is returned when the config file doesn't exist.

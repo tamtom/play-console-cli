@@ -42,13 +42,13 @@ var fastlaneSingleImages = []string{
 
 // FastlaneSummary is the JSON-serialisable result of a migration.
 type FastlaneSummary struct {
-	Source      string           `json:"source"`
-	OutputDir   string           `json:"outputDir,omitempty"`
-	DryRun      bool             `json:"dryRun"`
-	Locales     []LocaleSummary  `json:"locales"`
-	TotalFiles  int              `json:"totalFiles"`
-	TotalImages int              `json:"totalImages"`
-	Warnings    []string         `json:"warnings,omitempty"`
+	Source      string          `json:"source"`
+	OutputDir   string          `json:"outputDir,omitempty"`
+	DryRun      bool            `json:"dryRun"`
+	Locales     []LocaleSummary `json:"locales"`
+	TotalFiles  int             `json:"totalFiles"`
+	TotalImages int             `json:"totalImages"`
+	Warnings    []string        `json:"warnings,omitempty"`
 }
 
 // LocaleSummary describes what was found/imported for one locale.
@@ -142,8 +142,8 @@ func runFastlaneMigration(source, outputDir string, dryRun bool, localeFilter ma
 	}
 
 	summary := &FastlaneSummary{
-		Source:  source,
-		DryRun:  dryRun,
+		Source: source,
+		DryRun: dryRun,
 	}
 	if !dryRun {
 		summary.OutputDir = outputDir
@@ -274,7 +274,7 @@ func runFastlaneMigration(source, outputDir string, dryRun bool, localeFilter ma
 
 // copyFile copies a single file, creating parent directories as needed.
 func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return err
 	}
 

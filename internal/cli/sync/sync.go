@@ -18,21 +18,21 @@ import (
 
 // FastLane metadata file names
 const (
-	titleFile            = "title.txt"
-	shortDescFile        = "short_description.txt"
-	fullDescFile         = "full_description.txt"
-	videoFile            = "video.txt"
-	changelogsDir        = "changelogs"
-	imagesDir            = "images"
-	phoneScreenshotsDir  = "phoneScreenshots"
-	tablet7ScreensDir    = "sevenInchScreenshots"
-	tablet10ScreensDir   = "tenInchScreenshots"
-	tvScreenshotsDir     = "tvScreenshots"
-	wearScreenshotsDir   = "wearScreenshots"
-	featureGraphicFile   = "featureGraphic.png"
-	iconFile             = "icon.png"
-	promoGraphicFile     = "promoGraphic.png"
-	tvBannerFile         = "tvBanner.png"
+	titleFile           = "title.txt"
+	shortDescFile       = "short_description.txt"
+	fullDescFile        = "full_description.txt"
+	videoFile           = "video.txt"
+	changelogsDir       = "changelogs"
+	imagesDir           = "images"
+	phoneScreenshotsDir = "phoneScreenshots"
+	tablet7ScreensDir   = "sevenInchScreenshots"
+	tablet10ScreensDir  = "tenInchScreenshots"
+	tvScreenshotsDir    = "tvScreenshots"
+	wearScreenshotsDir  = "wearScreenshots"
+	featureGraphicFile  = "featureGraphic.png"
+	iconFile            = "icon.png"
+	promoGraphicFile    = "promoGraphic.png"
+	tvBannerFile        = "tvBanner.png"
 )
 
 func SyncCommand() *ffcli.Command {
@@ -135,14 +135,14 @@ func ExportListingsCommand() *ffcli.Command {
 			}
 
 			// Create output directory
-			if err := os.MkdirAll(*outputDir, 0755); err != nil {
+			if err := os.MkdirAll(*outputDir, 0o755); err != nil {
 				return fmt.Errorf("failed to create output directory: %w", err)
 			}
 
 			// Export each listing
 			for _, listing := range listingsResp.Listings {
 				localeDir := filepath.Join(*outputDir, listing.Language)
-				if err := os.MkdirAll(localeDir, 0755); err != nil {
+				if err := os.MkdirAll(localeDir, 0o755); err != nil {
 					return fmt.Errorf("failed to create locale directory: %w", err)
 				}
 
@@ -152,28 +152,28 @@ func ExportListingsCommand() *ffcli.Command {
 					if err != nil {
 						return fmt.Errorf("failed to marshal listing: %w", err)
 					}
-					if err := os.WriteFile(filepath.Join(localeDir, "listing.json"), data, 0644); err != nil {
+					if err := os.WriteFile(filepath.Join(localeDir, "listing.json"), data, 0o644); err != nil {
 						return fmt.Errorf("failed to write listing.json: %w", err)
 					}
 				} else {
 					// Export as FastLane format
 					if listing.Title != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, titleFile), []byte(listing.Title), 0644); err != nil {
+						if err := os.WriteFile(filepath.Join(localeDir, titleFile), []byte(listing.Title), 0o644); err != nil {
 							return fmt.Errorf("failed to write title: %w", err)
 						}
 					}
 					if listing.ShortDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, shortDescFile), []byte(listing.ShortDescription), 0644); err != nil {
+						if err := os.WriteFile(filepath.Join(localeDir, shortDescFile), []byte(listing.ShortDescription), 0o644); err != nil {
 							return fmt.Errorf("failed to write short description: %w", err)
 						}
 					}
 					if listing.FullDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, fullDescFile), []byte(listing.FullDescription), 0644); err != nil {
+						if err := os.WriteFile(filepath.Join(localeDir, fullDescFile), []byte(listing.FullDescription), 0o644); err != nil {
 							return fmt.Errorf("failed to write full description: %w", err)
 						}
 					}
 					if listing.Video != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, videoFile), []byte(listing.Video), 0644); err != nil {
+						if err := os.WriteFile(filepath.Join(localeDir, videoFile), []byte(listing.Video), 0o644); err != nil {
 							return fmt.Errorf("failed to write video: %w", err)
 						}
 					}
@@ -389,7 +389,7 @@ func ExportImagesCommand() *ffcli.Command {
 						targetDir = filepath.Join(*outputDir, loc, imagesDir)
 					}
 
-					if err := os.MkdirAll(targetDir, 0755); err != nil {
+					if err := os.MkdirAll(targetDir, 0o755); err != nil {
 						return fmt.Errorf("failed to create directory: %w", err)
 					}
 
@@ -400,7 +400,7 @@ func ExportImagesCommand() *ffcli.Command {
 					if err != nil {
 						return fmt.Errorf("failed to marshal image metadata: %w", err)
 					}
-					if err := os.WriteFile(metaFile, data, 0644); err != nil {
+					if err := os.WriteFile(metaFile, data, 0o644); err != nil {
 						return fmt.Errorf("failed to write image metadata: %w", err)
 					}
 

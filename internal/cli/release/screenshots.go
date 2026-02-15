@@ -10,12 +10,12 @@ import (
 
 // ValidScreenshotTypes lists the image types accepted by the Google Play API.
 var ValidScreenshotTypes = map[string]bool{
-	"phoneScreenshots":        true,
-	"sevenInchScreenshots":    true,
-	"tenInchScreenshots":      true,
-	"tvScreenshots":           true,
-	"wearScreenshots":         true,
-	"chromebookScreenshots":   true,
+	"phoneScreenshots":      true,
+	"sevenInchScreenshots":  true,
+	"tenInchScreenshots":    true,
+	"tvScreenshots":         true,
+	"wearScreenshots":       true,
+	"chromebookScreenshots": true,
 }
 
 // ParseScreenshotsDir reads a directory structured as:

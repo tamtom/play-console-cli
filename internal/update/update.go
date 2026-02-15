@@ -72,7 +72,7 @@ func getCacheDir() (string, error) {
 		return "", err
 	}
 	cacheDir := filepath.Join(homeDir, ".cache", "gplay")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return "", err
 	}
 	return cacheDir, nil
@@ -106,7 +106,7 @@ func recordCheck() {
 	}
 
 	lastCheckFile := filepath.Join(cacheDir, "last_update_check")
-	_ = os.WriteFile(lastCheckFile, []byte(time.Now().Format(time.RFC3339)), 0644)
+	_ = os.WriteFile(lastCheckFile, []byte(time.Now().Format(time.RFC3339)), 0o644)
 }
 
 // CheckForUpdate checks if a newer version is available
@@ -258,7 +258,7 @@ func ApplyUpdate(newBinaryPath string) error {
 	}
 
 	// Make the new binary executable
-	if err := os.Chmod(newBinaryPath, 0755); err != nil {
+	if err := os.Chmod(newBinaryPath, 0o755); err != nil {
 		return err
 	}
 

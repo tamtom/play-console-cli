@@ -14,16 +14,16 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 	"google.golang.org/api/option"
 
-	"github.com/tamtom/play-console-cli/internal/config"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/config"
 )
 
 const (
-	serviceAccountEnvVar = "GPLAY_SERVICE_ACCOUNT_JSON"
-	oauthTokenEnvVar     = "GPLAY_OAUTH_TOKEN_PATH"
-	oauthClientIDEnvVar  = "GPLAY_OAUTH_CLIENT_ID"
+	serviceAccountEnvVar    = "GPLAY_SERVICE_ACCOUNT_JSON"
+	oauthTokenEnvVar        = "GPLAY_OAUTH_TOKEN_PATH"
+	oauthClientIDEnvVar     = "GPLAY_OAUTH_CLIENT_ID"
 	oauthClientSecretEnvVar = "GPLAY_OAUTH_CLIENT_SECRET"
-	oauthRedirectEnvVar  = "GPLAY_OAUTH_REDIRECT_URI"
+	oauthRedirectEnvVar     = "GPLAY_OAUTH_REDIRECT_URI"
 )
 
 var scopes = []string{"https://www.googleapis.com/auth/androidpublisher"}
