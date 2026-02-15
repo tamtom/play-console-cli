@@ -16,7 +16,6 @@ import (
 // VitalsCommand returns the "gplay vitals" parent command group.
 func VitalsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("vitals", flag.ExitOnError)
-
 	return &ffcli.Command{
 		Name:       "vitals",
 		ShortUsage: "gplay vitals <subcommand> [flags]",

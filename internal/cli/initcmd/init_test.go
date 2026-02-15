@@ -10,20 +10,23 @@ import (
 
 func TestInitCommand_CreatesConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
 		if err := os.Chdir(origDir); err != nil {
-			t.Log(err)
+			t.Fatal(err)
 		}
 	}()
 
 	cmd := InitCommand()
 	var buf bytes.Buffer
 
-	err := cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
+	err = cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
 	if err != nil {
 		t.Fatalf("init failed: %v", err)
 	}
@@ -41,13 +44,16 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 
 func TestInitCommand_ExistingConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
 		if err := os.Chdir(origDir); err != nil {
-			t.Log(err)
+			t.Fatal(err)
 		}
 	}()
 
@@ -59,7 +65,7 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 	}
 
 	cmd := InitCommand()
-	err := cmd.ParseAndRun(context.Background(), []string{})
+	err = cmd.ParseAndRun(context.Background(), []string{})
 	if err == nil {
 		t.Error("expected error for existing config")
 	}
@@ -67,13 +73,16 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 
 func TestInitCommand_Force(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
 		if err := os.Chdir(origDir); err != nil {
-			t.Log(err)
+			t.Fatal(err)
 		}
 	}()
 
@@ -85,7 +94,7 @@ func TestInitCommand_Force(t *testing.T) {
 	}
 
 	cmd := InitCommand()
-	err := cmd.ParseAndRun(context.Background(), []string{"--force"})
+	err = cmd.ParseAndRun(context.Background(), []string{"--force"})
 	if err != nil {
 		t.Fatalf("init --force failed: %v", err)
 	}

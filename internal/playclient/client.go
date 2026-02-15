@@ -14,25 +14,24 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 	"google.golang.org/api/option"
 
-	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
 const (
-	serviceAccountEnvVar    = "GPLAY_SERVICE_ACCOUNT_JSON"
-	oauthTokenEnvVar        = "GPLAY_OAUTH_TOKEN_PATH"
-	oauthClientIDEnvVar     = "GPLAY_OAUTH_CLIENT_ID"
+	serviceAccountEnvVar = "GPLAY_SERVICE_ACCOUNT_JSON"
+	oauthTokenEnvVar     = "GPLAY_OAUTH_TOKEN_PATH"
+	oauthClientIDEnvVar  = "GPLAY_OAUTH_CLIENT_ID"
 	oauthClientSecretEnvVar = "GPLAY_OAUTH_CLIENT_SECRET"
-	oauthRedirectEnvVar     = "GPLAY_OAUTH_REDIRECT_URI"
+	oauthRedirectEnvVar  = "GPLAY_OAUTH_REDIRECT_URI"
 )
 
 var scopes = []string{"https://www.googleapis.com/auth/androidpublisher"}
 
 // Service wraps the Android Publisher service and config.
 type Service struct {
-	API     *androidpublisher.Service
-	Cfg     *config.Config
-	BaseURL string // When set, overrides API.BasePath (used for testing).
+	API *androidpublisher.Service
+	Cfg *config.Config
 }
 
 // NewService creates an authenticated Android Publisher service.
@@ -54,22 +53,6 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	return &Service{API: api, Cfg: cfg}, nil
-}
-
-// NewTestService creates a Service that targets the given base URL using a
-// plain (unauthenticated) HTTP client. This is intended for use with
-// httptest.Server in tests.
-func NewTestService(baseURL string) (*Service, error) {
-	ctx := context.Background()
-	api, err := androidpublisher.NewService(ctx,
-		option.WithHTTPClient(http.DefaultClient),
-		option.WithoutAuthentication(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	api.BasePath = baseURL
-	return &Service{API: api, BaseURL: baseURL}, nil
 }
 
 func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {
@@ -239,8 +222,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 			fmt.Sprintf("Check that %s exists and is readable (configured via profile key_path or %s).", keyPath, serviceAccountEnvVar),
 		)
 	}
-	//nolint:staticcheck
-	creds, err := google.CredentialsFromJSON(ctx, data, scopes...)
+	creds, err := google.CredentialsFromJSON(ctx, data, scopes...) //nolint:staticcheck // no replacement available yet
 	if err != nil {
 		return nil, shared.NewAuthError(
 			"failed to parse service account JSON",

@@ -84,25 +84,17 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 
 // detectInstallMethod determines how gplay was installed based on the executable path.
 func detectInstallMethod(path string) string {
-	path = filepath.ToSlash(path)
 	if strings.Contains(path, "homebrew") || strings.Contains(path, "Cellar") || strings.Contains(path, "linuxbrew") {
 		return "homebrew"
 	}
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		homeDir := os.Getenv("HOME")
-		if homeDir == "" {
-			var err error
-			homeDir, err = os.UserHomeDir()
-			if err != nil {
-				return "binary"
-			}
+		home, err := os.UserHomeDir()
+		if err == nil {
+			gopath = filepath.Join(home, "go")
 		}
-		gopath = filepath.Join(homeDir, "go")
 	}
-	gopath = filepath.ToSlash(gopath)
-	gopathBin := gopath + "/bin"
-	if strings.HasPrefix(path, gopathBin) {
+	if gopath != "" && strings.HasPrefix(path, filepath.Join(gopath, "bin")) {
 		return "goinstall"
 	}
 	return "binary"

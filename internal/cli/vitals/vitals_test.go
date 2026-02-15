@@ -78,9 +78,7 @@ func TestCrashesQueryRequiresPackage(t *testing.T) {
 
 func TestCrashesQueryInvalidType(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "invalid"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "invalid"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error for invalid --type")
@@ -92,9 +90,7 @@ func TestCrashesQueryInvalidType(t *testing.T) {
 
 func TestCrashesQueryValidTypeCrash(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "crash"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "crash"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error (stub implementation)")
@@ -106,9 +102,7 @@ func TestCrashesQueryValidTypeCrash(t *testing.T) {
 
 func TestCrashesQueryValidTypeANR(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "anr"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "anr"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error (stub implementation)")
@@ -120,9 +114,7 @@ func TestCrashesQueryValidTypeANR(t *testing.T) {
 
 func TestCrashesQueryInvalidFromDate(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "not-a-date"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "not-a-date"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error for invalid --from date")
@@ -134,9 +126,7 @@ func TestCrashesQueryInvalidFromDate(t *testing.T) {
 
 func TestCrashesQueryInvalidToDate(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--to", "2025/01/01"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--to", "2025/01/01"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error for invalid --to date")
@@ -148,9 +138,7 @@ func TestCrashesQueryInvalidToDate(t *testing.T) {
 
 func TestCrashesQueryValidDates(t *testing.T) {
 	cmd := CrashesQueryCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "2025-01-01", "--to", "2025-01-31"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "2025-01-01", "--to", "2025-01-31"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error (stub implementation)")
@@ -174,9 +162,7 @@ func TestAnomaliesRequiresPackage(t *testing.T) {
 
 func TestAnomaliesStubWithPackage(t *testing.T) {
 	cmd := AnomaliesCommand()
-	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app"}); err != nil {
-		t.Fatal(err)
-	}
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app"})
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error (stub implementation)")

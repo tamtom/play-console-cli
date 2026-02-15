@@ -22,7 +22,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
 	"github.com/tamtom/play-console-cli/internal/cli/generatedapks"
-	// "github.com/tamtom/play-console-cli/internal/cli/grants" // Grants API methods not fully available
+	"github.com/tamtom/play-console-cli/internal/cli/grants"
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
 	"github.com/tamtom/play-console-cli/internal/cli/images"
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
@@ -44,8 +44,10 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
 	"github.com/tamtom/play-console-cli/internal/cli/testers"
 	"github.com/tamtom/play-console-cli/internal/cli/tracks"
-	// "github.com/tamtom/play-console-cli/internal/cli/users" // Users API methods not fully available
+	"github.com/tamtom/play-console-cli/internal/cli/updatecmd"
+	"github.com/tamtom/play-console-cli/internal/cli/users"
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
+	"github.com/tamtom/play-console-cli/internal/cli/vitals"
 )
 
 // VersionCommand returns a version subcommand.
@@ -71,8 +73,10 @@ func Subcommands(version string) []*ffcli.Command {
 		bundles.BundlesCommand(),
 		apks.APKsCommand(),
 		tracks.TracksCommand(),
+		users.UsersCommand(),
 		listings.ListingsCommand(),
 		images.ImagesCommand(),
+		initcmd.InitCommand(),
 		reviews.ReviewsCommand(),
 		details.DetailsCommand(),
 		testers.TestersCommand(),
@@ -83,6 +87,7 @@ func Subcommands(version string) []*ffcli.Command {
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		vitals.VitalsCommand(),
 		iap.IAPCommand(),
 		subscriptions.SubscriptionsCommand(),
 		baseplans.BasePlansCommand(),
@@ -93,6 +98,7 @@ func Subcommands(version string) []*ffcli.Command {
 		purchases.PurchasesCommand(),
 		externaltx.ExternalTxCommand(),
 		generatedapks.GeneratedAPKsCommand(),
+		grants.GrantsCommand(),
 		internalsharing.InternalSharingCommand(),
 		systemapks.SystemAPKsCommand(),
 		expansion.ExpansionCommand(),
@@ -100,7 +106,7 @@ func Subcommands(version string) []*ffcli.Command {
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
 		docs.DocsCommand(),
-		initcmd.InitCommand(),
+		updatecmd.UpdateCommand(),
 		completion.CompletionCommand(),
 		VersionCommand(version),
 	}
