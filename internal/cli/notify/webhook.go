@@ -61,7 +61,9 @@ func PostWebhook(ctx context.Context, client HTTPDoer, webhookURL string, payloa
 		return nil, fmt.Errorf("webhook request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	result := &WebhookResult{
 		Status:     resp.Status,

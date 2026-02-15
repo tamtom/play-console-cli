@@ -194,7 +194,9 @@ func TestPostWebhook_Success(t *testing.T) {
 			t.Errorf("invalid JSON body: %v", err)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		if _, err := w.Write([]byte("ok")); err != nil {
+			t.Logf("write error: %v", err)
+		}
 	}))
 	defer srv.Close()
 
@@ -211,7 +213,9 @@ func TestPostWebhook_Success(t *testing.T) {
 func TestPostWebhook_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		if _, err := w.Write([]byte("internal error")); err != nil {
+			t.Logf("write error: %v", err)
+		}
 	}))
 	defer srv.Close()
 
@@ -525,7 +529,9 @@ func TestNotifyCommand_NoArgsReturnsHelp(t *testing.T) {
 func TestSendEndToEnd_SlackWebhook(t *testing.T) {
 	var receivedPayload bytes.Buffer
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.Copy(&receivedPayload, r.Body)
+		if _, err := io.Copy(&receivedPayload, r.Body); err != nil {
+			t.Logf("copy error: %v", err)
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -562,7 +568,9 @@ func TestSendEndToEnd_SlackWebhook(t *testing.T) {
 func TestSendEndToEnd_GenericWebhook(t *testing.T) {
 	var receivedPayload bytes.Buffer
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.Copy(&receivedPayload, r.Body)
+		if _, err := io.Copy(&receivedPayload, r.Body); err != nil {
+			t.Logf("copy error: %v", err)
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
