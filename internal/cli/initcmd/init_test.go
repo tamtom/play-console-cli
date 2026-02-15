@@ -11,8 +11,14 @@ import (
 func TestInitCommand_CreatesConfig(t *testing.T) {
 	dir := t.TempDir()
 	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	cmd := InitCommand()
 	var buf bytes.Buffer
@@ -36,11 +42,21 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 func TestInitCommand_ExistingConfig(t *testing.T) {
 	dir := t.TempDir()
 	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
-	os.MkdirAll(".gplay", 0700)
-	os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600)
+	if err := os.MkdirAll(".gplay", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cmd := InitCommand()
 	err := cmd.ParseAndRun(context.Background(), []string{})
@@ -52,11 +68,21 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 func TestInitCommand_Force(t *testing.T) {
 	dir := t.TempDir()
 	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
-	os.MkdirAll(".gplay", 0700)
-	os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600)
+	if err := os.MkdirAll(".gplay", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cmd := InitCommand()
 	err := cmd.ParseAndRun(context.Background(), []string{"--force"})
