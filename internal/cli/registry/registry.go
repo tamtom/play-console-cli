@@ -28,6 +28,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
+	"github.com/tamtom/play-console-cli/internal/cli/migrate"
+	"github.com/tamtom/play-console-cli/internal/cli/notify"
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
 	"github.com/tamtom/play-console-cli/internal/cli/onetimeproducts"
 	"github.com/tamtom/play-console-cli/internal/cli/orders"
@@ -36,6 +38,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
 	"github.com/tamtom/play-console-cli/internal/cli/release"
+	"github.com/tamtom/play-console-cli/internal/cli/reports"
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -105,6 +108,9 @@ func Subcommands(version string) []*ffcli.Command {
 		recovery.RecoveryCommand(),
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
+		notify.NotifyCommand(),
+		migrate.MigrateCommand(),
+		reports.ReportsCommand(),
 		docs.DocsCommand(),
 		updatecmd.UpdateCommand(),
 		completion.CompletionCommand(),

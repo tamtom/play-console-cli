@@ -44,6 +44,7 @@ func TestListingsCommand_SubcommandNames(t *testing.T) {
 		"patch":      false,
 		"delete":     false,
 		"delete-all": false,
+		"locales":    false,
 	}
 	for _, sub := range cmd.Subcommands {
 		if _, ok := expected[sub.Name]; ok {

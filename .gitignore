@@ -40,3 +40,6 @@ credentials*.json
 # Temp files
 *.tmp
 *.log
+
+# Internal tracking
+ROADMAP.md
