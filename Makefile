@@ -206,6 +206,19 @@ security:
 		echo "$(YELLOW)govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest$(NC)"; \
 	fi
 
+# Git hooks
+.PHONY: install-hooks uninstall-hooks
+
+## Install git pre-commit hooks
+install-hooks:
+	git config core.hooksPath .githooks
+	@echo "$(GREEN)✓ Git hooks installed. Pre-commit hook is now active.$(NC)"
+
+## Uninstall git hooks
+uninstall-hooks:
+	git config --unset core.hooksPath
+	@echo "$(GREEN)✓ Git hooks uninstalled.$(NC)"
+
 # Help
 .PHONY: help
 help:
@@ -243,6 +256,8 @@ help:
 	@echo "  run             Build and run (use ARGS= for arguments)"
 	@echo "  completions     Generate shell completion scripts"
 	@echo "  dev             format + lint + test + build"
+	@echo "  install-hooks   Install git pre-commit hooks"
+	@echo "  uninstall-hooks Uninstall git hooks"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
