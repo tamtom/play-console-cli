@@ -7,6 +7,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/apks"
+	"github.com/tamtom/play-console-cli/internal/cli/apps"
 	"github.com/tamtom/play-console-cli/internal/cli/auth"
 	"github.com/tamtom/play-console-cli/internal/cli/availability"
 	"github.com/tamtom/play-console-cli/internal/cli/baseplans"
@@ -16,6 +17,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/deobfuscation"
 	"github.com/tamtom/play-console-cli/internal/cli/details"
 	"github.com/tamtom/play-console-cli/internal/cli/devicetiers"
+	"github.com/tamtom/play-console-cli/internal/cli/docs"
 	"github.com/tamtom/play-console-cli/internal/cli/edits"
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
@@ -23,6 +25,7 @@ import (
 	// "github.com/tamtom/play-console-cli/internal/cli/grants" // Grants API methods not fully available
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
 	"github.com/tamtom/play-console-cli/internal/cli/images"
+	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
@@ -63,6 +66,7 @@ func VersionCommand(version string) *ffcli.Command {
 func Subcommands(version string) []*ffcli.Command {
 	return []*ffcli.Command{
 		auth.AuthCommand(),
+		apps.AppsCommand(),
 		edits.EditsCommand(),
 		bundles.BundlesCommand(),
 		apks.APKsCommand(),
@@ -95,6 +99,8 @@ func Subcommands(version string) []*ffcli.Command {
 		recovery.RecoveryCommand(),
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
+		docs.DocsCommand(),
+		initcmd.InitCommand(),
 		completion.CompletionCommand(),
 		VersionCommand(version),
 	}

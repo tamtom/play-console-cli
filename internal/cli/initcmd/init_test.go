@@ -6,21 +6,24 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestInitCommand_CreatesConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
+	origDir, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	cmd := InitCommand()
 	var buf bytes.Buffer
 
-	err = cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
+	err := cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
 	if err != nil {
 		t.Fatalf("init failed: %v", err)
 	}
@@ -38,16 +41,25 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 
 func TestInitCommand_ExistingConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
+	origDir, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
-	require.NoError(t, os.MkdirAll(".gplay", 0700))
-	require.NoError(t, os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600))
+	if err := os.MkdirAll(".gplay", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cmd := InitCommand()
-	err = cmd.ParseAndRun(context.Background(), []string{})
+	err := cmd.ParseAndRun(context.Background(), []string{})
 	if err == nil {
 		t.Error("expected error for existing config")
 	}
@@ -55,16 +67,25 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 
 func TestInitCommand_Force(t *testing.T) {
 	dir := t.TempDir()
-	origDir, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
+	origDir, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Log(err)
+		}
+	}()
 
-	require.NoError(t, os.MkdirAll(".gplay", 0700))
-	require.NoError(t, os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600))
+	if err := os.MkdirAll(".gplay", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cmd := InitCommand()
-	err = cmd.ParseAndRun(context.Background(), []string{"--force"})
+	err := cmd.ParseAndRun(context.Background(), []string{"--force"})
 	if err != nil {
 		t.Fatalf("init --force failed: %v", err)
 	}
