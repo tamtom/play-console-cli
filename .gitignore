@@ -43,3 +43,4 @@ credentials*.json
 
 # Internal tracking
 ROADMAP.md
+.worktrees/
