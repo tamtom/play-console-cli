@@ -30,6 +30,11 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
   - [Purchase Management](#purchase-management)
   - [Reviews](#reviews)
   - [Testing](#testing)
+  - [App Management](#app-management)
+  - [Vitals & Quality](#vitals--quality)
+  - [User & Permission Management](#user--permission-management)
+  - [Reports](#reports)
+  - [Notifications](#notifications)
   - [FastLane Integration](#fastlane-integration)
 - [Output Formats](#output-formats)
 - [Design Philosophy](#design-philosophy)
@@ -147,6 +152,75 @@ gplay rollout update --package com.example.app --track production --rollout 50
 gplay rollout halt --package com.example.app --track production
 gplay rollout resume --package com.example.app --track production
 gplay rollout complete --package com.example.app --track production
+
+# Release with metadata and screenshots
+gplay release --package com.example.app --track production --bundle app.aab \
+  --listings-dir ./metadata --screenshots-dir ./screenshots
+
+# Dry-run any command (intercepts write operations)
+gplay --dry-run release --package com.example.app --track internal --bundle app.aab
+```
+
+### App Management
+
+```bash
+# List apps accessible by your service account
+gplay apps list
+
+# Initialize project configuration
+gplay init
+gplay init --package com.example.app --service-account /path/to/sa.json
+```
+
+### Vitals & Quality
+
+```bash
+# Crash reports
+gplay vitals crashes clusters --package com.example.app
+gplay vitals crashes reports --package com.example.app
+
+# Performance metrics
+gplay vitals performance startup --package com.example.app
+gplay vitals performance rendering --package com.example.app
+gplay vitals performance battery --package com.example.app
+
+# Error tracking
+gplay vitals errors issues --package com.example.app
+gplay vitals errors reports --package com.example.app
+```
+
+### User & Permission Management
+
+```bash
+# Manage developer account users
+gplay users list --developer <id>
+gplay users create --developer <id> --email user@example.com --json @permissions.json
+gplay users delete --developer <id> --email user@example.com --confirm
+
+# Manage per-app grants
+gplay grants create --developer <id> --email user@example.com --package com.example.app --json @grant.json
+gplay grants update --developer <id> --email user@example.com --package com.example.app --json @grant.json
+gplay grants delete --developer <id> --email user@example.com --package com.example.app --confirm
+```
+
+### Reports
+
+```bash
+# Financial reports
+gplay reports financial list --developer <id>
+gplay reports financial download --developer <id> --from 2026-01 --type earnings
+
+# Statistics reports
+gplay reports stats list --package com.example.app
+gplay reports stats download --package com.example.app --from 2026-01 --type installs
+```
+
+### Notifications
+
+```bash
+# Send webhook notifications (Slack, Discord, generic)
+gplay notify send --webhook-url https://hooks.slack.com/... --message "Deploy complete" --format slack
+gplay notify send --webhook-url https://discord.com/... --message "New release" --format discord
 ```
 
 ### Store Listing
@@ -397,6 +471,7 @@ gplay auth doctor
 | `GPLAY_DEBUG` | Enable debug logging (`1` or `api`) |
 | `GPLAY_MAX_RETRIES` | Max retries for failed requests |
 | `GPLAY_RETRY_DELAY` | Base delay between retries |
+| `GPLAY_DEFAULT_OUTPUT` | Default output format (`json`, `table`, `markdown`) |
 
 ## Configuration
 
@@ -535,6 +610,9 @@ npx add-skill tamtom/gplay-cli-skills
 | `gplay-purchase-verification` | Server-side purchase verification |
 | `gplay-testers-orchestration` | Beta testing groups and tester management |
 | `gplay-signing-setup` | Android app signing, keystores, and Play App Signing |
+| `gplay-vitals-monitoring` | App vitals monitoring for crashes, errors, and performance |
+| `gplay-user-management` | Developer account user and permission grant management |
+| `gplay-migrate-fastlane` | Migration from Fastlane metadata to gplay format |
 
 Skills repository: [github.com/tamtom/gplay-cli-skills](https://github.com/tamtom/gplay-cli-skills)
 
