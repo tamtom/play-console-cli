@@ -7,6 +7,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/apks"
+	"github.com/tamtom/play-console-cli/internal/cli/apps"
 	"github.com/tamtom/play-console-cli/internal/cli/auth"
 	"github.com/tamtom/play-console-cli/internal/cli/availability"
 	"github.com/tamtom/play-console-cli/internal/cli/baseplans"
@@ -16,13 +17,15 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/deobfuscation"
 	"github.com/tamtom/play-console-cli/internal/cli/details"
 	"github.com/tamtom/play-console-cli/internal/cli/devicetiers"
+	"github.com/tamtom/play-console-cli/internal/cli/docs"
 	"github.com/tamtom/play-console-cli/internal/cli/edits"
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
 	"github.com/tamtom/play-console-cli/internal/cli/generatedapks"
-	// "github.com/tamtom/play-console-cli/internal/cli/grants" // Grants API methods not fully available
+	"github.com/tamtom/play-console-cli/internal/cli/grants"
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
 	"github.com/tamtom/play-console-cli/internal/cli/images"
+	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
@@ -41,8 +44,10 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
 	"github.com/tamtom/play-console-cli/internal/cli/testers"
 	"github.com/tamtom/play-console-cli/internal/cli/tracks"
-	// "github.com/tamtom/play-console-cli/internal/cli/users" // Users API methods not fully available
+	"github.com/tamtom/play-console-cli/internal/cli/updatecmd"
+	"github.com/tamtom/play-console-cli/internal/cli/users"
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
+	"github.com/tamtom/play-console-cli/internal/cli/vitals"
 )
 
 // VersionCommand returns a version subcommand.
@@ -63,12 +68,15 @@ func VersionCommand(version string) *ffcli.Command {
 func Subcommands(version string) []*ffcli.Command {
 	return []*ffcli.Command{
 		auth.AuthCommand(),
+		apps.AppsCommand(),
 		edits.EditsCommand(),
 		bundles.BundlesCommand(),
 		apks.APKsCommand(),
 		tracks.TracksCommand(),
+		users.UsersCommand(),
 		listings.ListingsCommand(),
 		images.ImagesCommand(),
+		initcmd.InitCommand(),
 		reviews.ReviewsCommand(),
 		details.DetailsCommand(),
 		testers.TestersCommand(),
@@ -79,6 +87,7 @@ func Subcommands(version string) []*ffcli.Command {
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		vitals.VitalsCommand(),
 		iap.IAPCommand(),
 		subscriptions.SubscriptionsCommand(),
 		baseplans.BasePlansCommand(),
@@ -89,12 +98,15 @@ func Subcommands(version string) []*ffcli.Command {
 		purchases.PurchasesCommand(),
 		externaltx.ExternalTxCommand(),
 		generatedapks.GeneratedAPKsCommand(),
+		grants.GrantsCommand(),
 		internalsharing.InternalSharingCommand(),
 		systemapks.SystemAPKsCommand(),
 		expansion.ExpansionCommand(),
 		recovery.RecoveryCommand(),
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
+		docs.DocsCommand(),
+		updatecmd.UpdateCommand(),
 		completion.CompletionCommand(),
 		VersionCommand(version),
 	}
