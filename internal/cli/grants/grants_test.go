@@ -127,7 +127,9 @@ func TestCreateCommand_UsageFunc(t *testing.T) {
 
 func TestCreateCommand_RequiresDeveloper(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--json", `{"appLevelPermissions":[]}`})
+	if err := cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--json", `{"appLevelPermissions":[]}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --developer")
@@ -139,7 +141,9 @@ func TestCreateCommand_RequiresDeveloper(t *testing.T) {
 
 func TestCreateCommand_RequiresEmail(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--json", `{"appLevelPermissions":[]}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--json", `{"appLevelPermissions":[]}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --email")
@@ -151,7 +155,9 @@ func TestCreateCommand_RequiresEmail(t *testing.T) {
 
 func TestCreateCommand_RequiresJSON(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --json")
@@ -174,7 +180,9 @@ func TestCreateCommand_HasExpectedFlags(t *testing.T) {
 
 func TestCreateCommand_DeveloperEmptyString(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--json", `{}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --developer")
@@ -186,7 +194,9 @@ func TestCreateCommand_DeveloperEmptyString(t *testing.T) {
 
 func TestCreateCommand_EmailEmptyString(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--json", `{}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --email")
@@ -198,7 +208,9 @@ func TestCreateCommand_EmailEmptyString(t *testing.T) {
 
 func TestCreateCommand_JSONEmptyString(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", "  "})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", "  "}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --json")
@@ -210,7 +222,9 @@ func TestCreateCommand_JSONEmptyString(t *testing.T) {
 
 func TestCreateCommand_InvalidOutputFormat(t *testing.T) {
 	cmd := CreateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", `{}`, "--output", "table", "--pretty"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", `{}`, "--output", "table", "--pretty"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with --pretty and --output table")
@@ -243,7 +257,9 @@ func TestUpdateCommand_UsageFunc(t *testing.T) {
 
 func TestUpdateCommand_RequiresDeveloper(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--json", `{"appLevelPermissions":[]}`})
+	if err := cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--json", `{"appLevelPermissions":[]}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --developer")
@@ -255,7 +271,9 @@ func TestUpdateCommand_RequiresDeveloper(t *testing.T) {
 
 func TestUpdateCommand_RequiresEmail(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--json", `{"appLevelPermissions":[]}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--json", `{"appLevelPermissions":[]}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --email")
@@ -267,7 +285,9 @@ func TestUpdateCommand_RequiresEmail(t *testing.T) {
 
 func TestUpdateCommand_RequiresJSON(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --json")
@@ -290,7 +310,9 @@ func TestUpdateCommand_HasExpectedFlags(t *testing.T) {
 
 func TestUpdateCommand_DeveloperEmptyString(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--json", `{}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --developer")
@@ -302,7 +324,9 @@ func TestUpdateCommand_DeveloperEmptyString(t *testing.T) {
 
 func TestUpdateCommand_EmailEmptyString(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--json", `{}`})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --email")
@@ -314,7 +338,9 @@ func TestUpdateCommand_EmailEmptyString(t *testing.T) {
 
 func TestUpdateCommand_JSONEmptyString(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", "  "})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", "  "}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --json")
@@ -326,7 +352,9 @@ func TestUpdateCommand_JSONEmptyString(t *testing.T) {
 
 func TestUpdateCommand_InvalidOutputFormat(t *testing.T) {
 	cmd := UpdateCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", `{}`, "--output", "markdown", "--pretty"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--json", `{}`, "--output", "markdown", "--pretty"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with --pretty and --output markdown")
@@ -359,7 +387,9 @@ func TestDeleteCommand_UsageFunc(t *testing.T) {
 
 func TestDeleteCommand_RequiresConfirm(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--package", "com.test"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--package", "com.test"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --confirm")
@@ -371,7 +401,9 @@ func TestDeleteCommand_RequiresConfirm(t *testing.T) {
 
 func TestDeleteCommand_RequiresDeveloper(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--confirm"})
+	if err := cmd.FlagSet.Parse([]string{"--email", "test@example.com", "--confirm"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --developer")
@@ -383,7 +415,9 @@ func TestDeleteCommand_RequiresDeveloper(t *testing.T) {
 
 func TestDeleteCommand_RequiresEmail(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--confirm"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--confirm"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error without --email")
@@ -406,7 +440,9 @@ func TestDeleteCommand_HasExpectedFlags(t *testing.T) {
 
 func TestDeleteCommand_DeveloperEmptyString(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--confirm"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "  ", "--email", "test@example.com", "--confirm"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --developer")
@@ -418,7 +454,9 @@ func TestDeleteCommand_DeveloperEmptyString(t *testing.T) {
 
 func TestDeleteCommand_EmailEmptyString(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--confirm"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "  ", "--confirm"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with whitespace-only --email")
@@ -430,7 +468,9 @@ func TestDeleteCommand_EmailEmptyString(t *testing.T) {
 
 func TestDeleteCommand_InvalidOutputFormat(t *testing.T) {
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--confirm", "--output", "table", "--pretty"})
+	if err := cmd.FlagSet.Parse([]string{"--developer", "123", "--email", "test@example.com", "--confirm", "--output", "table", "--pretty"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error with --pretty and --output table")
@@ -443,7 +483,9 @@ func TestDeleteCommand_InvalidOutputFormat(t *testing.T) {
 func TestDeleteCommand_DeveloperValidatedBeforeConfirm(t *testing.T) {
 	// Without --developer and without --confirm, --developer should be validated first
 	cmd := DeleteCommand()
-	cmd.FlagSet.Parse([]string{"--email", "test@example.com"})
+	if err := cmd.FlagSet.Parse([]string{"--email", "test@example.com"}); err != nil {
+		t.Fatal(err)
+	}
 	err := cmd.Exec(context.Background(), []string{})
 	if err == nil {
 		t.Fatal("expected error")
@@ -486,7 +528,9 @@ func TestCreateCommand_ValidationOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := CreateCommand()
-			cmd.FlagSet.Parse(tt.args)
+			if err := cmd.FlagSet.Parse(tt.args); err != nil {
+				t.Fatal(err)
+			}
 			err := cmd.Exec(context.Background(), []string{})
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tt.wantErr)
@@ -528,7 +572,9 @@ func TestUpdateCommand_ValidationOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := UpdateCommand()
-			cmd.FlagSet.Parse(tt.args)
+			if err := cmd.FlagSet.Parse(tt.args); err != nil {
+				t.Fatal(err)
+			}
 			err := cmd.Exec(context.Background(), []string{})
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tt.wantErr)
@@ -570,7 +616,9 @@ func TestDeleteCommand_ValidationOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := DeleteCommand()
-			cmd.FlagSet.Parse(tt.args)
+			if err := cmd.FlagSet.Parse(tt.args); err != nil {
+				t.Fatal(err)
+			}
 			err := cmd.Exec(context.Background(), []string{})
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tt.wantErr)
