@@ -232,6 +232,20 @@ install-hooks:
 uninstall-hooks:
 	git config --unset core.hooksPath
 	@echo "$(GREEN)✓ Git hooks uninstalled.$(NC)"
+# Generate command reference documentation
+.PHONY: docs check-docs
+
+docs:
+	@echo "$(BLUE)Generating GPLAY.md...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md
+	@echo "$(GREEN)✓ GPLAY.md generated$(NC)"
+
+check-docs:
+	@echo "$(BLUE)Checking GPLAY.md is up to date...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md.tmp
+	@diff GPLAY.md GPLAY.md.tmp > /dev/null 2>&1 || (echo "$(RED)GPLAY.md is out of date. Run 'make docs'$(NC)" && rm GPLAY.md.tmp && exit 1)
+	@rm -f GPLAY.md.tmp
+	@echo "$(GREEN)✓ GPLAY.md is up to date$(NC)"
 
 # Help
 .PHONY: help
@@ -274,6 +288,8 @@ help:
 	@echo "  dev             format + lint + test + build"
 	@echo "  install-hooks   Install git pre-commit hooks"
 	@echo "  uninstall-hooks Uninstall git hooks"
+	@echo "  docs            Generate GPLAY.md command reference"
+	@echo "  check-docs      Verify GPLAY.md is up to date"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
