@@ -94,7 +94,13 @@ test-coverage:
 .PHONY: test-integration
 test-integration:
 	@echo "$(BLUE)Running integration tests (requires GPLAY_* env vars)...$(NC)"
-	$(GO) test -tags=integration -v ./internal/playclient -run Integration
+	$(GO) test -tags=integration -v -race ./...
+
+## Run all tests (unit + integration)
+.PHONY: test-all
+test-all:
+	@echo "$(BLUE)Running all tests...$(NC)"
+	$(GO) test -tags=integration -v -race ./...
 
 # Lint the code
 .PHONY: lint
@@ -230,6 +236,7 @@ help:
 	@echo "  test            Run tests"
 	@echo "  test-coverage   Run tests with coverage report"
 	@echo "  test-integration Run integration tests (requires credentials)"
+	@echo "  test-all         Run all tests (unit + integration)"
 	@echo ""
 	@echo "$(BLUE)Quality:$(NC)"
 	@echo "  lint            Lint the code"
