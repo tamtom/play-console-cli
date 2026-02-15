@@ -101,7 +101,8 @@ func detectInstallMethod(path string) string {
 		gopath = filepath.Join(homeDir, "go")
 	}
 	gopath = filepath.ToSlash(gopath)
-	if strings.HasPrefix(path, filepath.Join(gopath, "bin")) {
+	gopathBin := gopath + "/bin"
+	if strings.HasPrefix(path, gopathBin) {
 		return "goinstall"
 	}
 	return "binary"
