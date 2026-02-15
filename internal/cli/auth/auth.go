@@ -289,6 +289,8 @@ func AuthDoctorCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("auth doctor", flag.ExitOnError)
 	outputFlag := fs.String("output", "text", "Output format: text (default), json")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+	fix := fs.Bool("fix", false, "Attempt to auto-fix detected issues")
+	confirm := fs.Bool("confirm", false, "Required with --fix to apply changes (without it, --fix does a dry run)")
 
 	return &ffcli.Command{
 		Name:       "doctor",
@@ -304,15 +306,36 @@ func AuthDoctorCommand() *ffcli.Command {
 			if normalized != "json" && *pretty {
 				return fmt.Errorf("--pretty is only valid with JSON output")
 			}
+			if *confirm && !*fix {
+				return fmt.Errorf("--confirm requires --fix")
+			}
 
 			report := buildAuthReport()
 			if normalized == "json" {
+				if *fix {
+					fixes := attemptFixes(report, *confirm)
+					result := struct {
+						Report authReport  `json:"report"`
+						Fixes  []fixResult `json:"fixes"`
+					}{Report: report, Fixes: fixes}
+					if *pretty {
+						return output.PrintPrettyJSON(result)
+					}
+					return output.PrintJSON(result)
+				}
 				if *pretty {
 					return output.PrintPrettyJSON(report)
 				}
 				return output.PrintJSON(report)
 			}
+
 			printAuthReport(report)
+
+			if *fix {
+				fixes := attemptFixes(report, *confirm)
+				printFixes(fixes)
+			}
+
 			if report.Errors > 0 {
 				return shared.NewReportedError(fmt.Errorf("auth doctor: found %d error(s)", report.Errors))
 			}
