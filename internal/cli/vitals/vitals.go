@@ -9,11 +9,13 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/cli/vitals/performance"
 )
 
 // VitalsCommand returns the "gplay vitals" parent command group.
 func VitalsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("vitals", flag.ExitOnError)
+
 	return &ffcli.Command{
 		Name:       "vitals",
 		ShortUsage: "gplay vitals <subcommand> [flags]",
@@ -22,6 +24,7 @@ func VitalsCommand() *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			CrashesCommand(),
+			performance.PerformanceCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
