@@ -90,9 +90,13 @@ func detectInstallMethod(path string) string {
 	}
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return "binary"
+		homeDir := os.Getenv("HOME")
+		if homeDir == "" {
+			var err error
+			homeDir, err = os.UserHomeDir()
+			if err != nil {
+				return "binary"
+			}
 		}
 		gopath = filepath.Join(homeDir, "go")
 	}
