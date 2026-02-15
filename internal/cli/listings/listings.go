@@ -28,6 +28,7 @@ func ListingsCommand() *ffcli.Command {
 			PatchCommand(),
 			DeleteCommand(),
 			DeleteAllCommand(),
+			LocalesCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -133,7 +134,7 @@ func UpdateCommand() *ffcli.Command {
 	title := fs.String("title", "", "Listing title")
 	fullDescription := fs.String("full-description", "", "Full description")
 	shortDescription := fs.String("short-description", "", "Short description")
-	video := fs.String("video", "", "Promo video URL")
+	video := fs.String("video", "", "YouTube promotional video URL (empty to clear)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -157,7 +158,7 @@ func PatchCommand() *ffcli.Command {
 	title := fs.String("title", "", "Listing title")
 	fullDescription := fs.String("full-description", "", "Full description")
 	shortDescription := fs.String("short-description", "", "Short description")
-	video := fs.String("video", "", "Promo video URL")
+	video := fs.String("video", "", "YouTube promotional video URL (empty to clear)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -280,6 +281,10 @@ func updateListing(ctx context.Context, packageName, editID, locale, title, full
 	}
 	if strings.TrimSpace(editID) == "" {
 		return fmt.Errorf("--edit is required")
+	}
+
+	if err := ValidateVideoURL(video); err != nil {
+		return err
 	}
 
 	listing := &androidpublisher.Listing{

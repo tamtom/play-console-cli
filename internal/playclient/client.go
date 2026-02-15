@@ -48,6 +48,15 @@ func NewService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap transport with DryRunTransport when dry-run is active.
+	if shared.IsDryRun(ctx) {
+		client.Transport = &shared.DryRunTransport{
+			Base:   client.Transport,
+			Writer: os.Stderr,
+		}
+	}
+
 	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
@@ -222,7 +231,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 			fmt.Sprintf("Check that %s exists and is readable (configured via profile key_path or %s).", keyPath, serviceAccountEnvVar),
 		)
 	}
-	creds, err := google.CredentialsFromJSON(ctx, data, scopes...)
+	creds, err := google.CredentialsFromJSON(ctx, data, scopes...) //nolint:staticcheck // no replacement available yet
 	if err != nil {
 		return nil, shared.NewAuthError(
 			"failed to parse service account JSON",

@@ -94,7 +94,13 @@ test-coverage:
 .PHONY: test-integration
 test-integration:
 	@echo "$(BLUE)Running integration tests (requires GPLAY_* env vars)...$(NC)"
-	$(GO) test -tags=integration -v ./internal/playclient -run Integration
+	$(GO) test -tags=integration -v -race ./...
+
+## Run all tests (unit + integration)
+.PHONY: test-all
+test-all:
+	@echo "$(BLUE)Running all tests...$(NC)"
+	$(GO) test -tags=integration -v -race ./...
 
 # Lint the code
 .PHONY: lint
@@ -134,6 +140,14 @@ tools:
 tidy:
 	@echo "$(BLUE)Tidying dependencies...$(NC)"
 	$(GO) mod tidy
+
+## Download and verify dependencies
+.PHONY: deps
+deps:
+	@echo "$(BLUE)Downloading dependencies...$(NC)"
+	$(GO) mod download
+	$(GO) mod verify
+	@echo "$(GREEN)✓ Dependencies downloaded and verified.$(NC)"
 
 # Update dependencies
 .PHONY: update-deps
@@ -206,6 +220,33 @@ security:
 		echo "$(YELLOW)govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest$(NC)"; \
 	fi
 
+# Git hooks
+.PHONY: install-hooks uninstall-hooks
+
+## Install git pre-commit hooks
+install-hooks:
+	git config core.hooksPath .githooks
+	@echo "$(GREEN)✓ Git hooks installed. Pre-commit hook is now active.$(NC)"
+
+## Uninstall git hooks
+uninstall-hooks:
+	git config --unset core.hooksPath
+	@echo "$(GREEN)✓ Git hooks uninstalled.$(NC)"
+# Generate command reference documentation
+.PHONY: docs check-docs
+
+docs:
+	@echo "$(BLUE)Generating GPLAY.md...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md
+	@echo "$(GREEN)✓ GPLAY.md generated$(NC)"
+
+check-docs:
+	@echo "$(BLUE)Checking GPLAY.md is up to date...$(NC)"
+	$(GO) run tools/gendocs/main.go > GPLAY.md.tmp
+	@diff GPLAY.md GPLAY.md.tmp > /dev/null 2>&1 || (echo "$(RED)GPLAY.md is out of date. Run 'make docs'$(NC)" && rm GPLAY.md.tmp && exit 1)
+	@rm -f GPLAY.md.tmp
+	@echo "$(GREEN)✓ GPLAY.md is up to date$(NC)"
+
 # Help
 .PHONY: help
 help:
@@ -222,6 +263,7 @@ help:
 	@echo "  test            Run tests"
 	@echo "  test-coverage   Run tests with coverage report"
 	@echo "  test-integration Run integration tests (requires credentials)"
+	@echo "  test-all         Run all tests (unit + integration)"
 	@echo ""
 	@echo "$(BLUE)Quality:$(NC)"
 	@echo "  lint            Lint the code"
@@ -230,6 +272,7 @@ help:
 	@echo ""
 	@echo "$(BLUE)Dependencies:$(NC)"
 	@echo "  tidy            Tidy go.mod dependencies"
+	@echo "  deps            Download and verify dependencies"
 	@echo "  update-deps     Update all dependencies"
 	@echo "  tools           Install dev tools (gofumpt, golangci-lint)"
 	@echo ""
@@ -243,9 +286,24 @@ help:
 	@echo "  run             Build and run (use ARGS= for arguments)"
 	@echo "  completions     Generate shell completion scripts"
 	@echo "  dev             format + lint + test + build"
+	@echo "  install-hooks   Install git pre-commit hooks"
+	@echo "  uninstall-hooks Uninstall git hooks"
+	@echo "  docs            Generate GPLAY.md command reference"
+	@echo "  check-docs      Verify GPLAY.md is up to date"
+	@echo "  update-api-spec Update Google Play API discovery document"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
 	@echo "  VERSION         Override version (default: git tag)"
 	@echo "  INSTALL_PREFIX  Install location (default: /usr/local/bin)"
 	@echo ""
+
+# Update Google Play API discovery document and endpoints index
+.PHONY: update-api-spec
+update-api-spec:
+	@echo "$(BLUE)Downloading Google Play Android Publisher API v3 discovery document...$(NC)"
+	@curl -s 'https://androidpublisher.googleapis.com/$$discovery/rest?version=v3' | \
+		python3 -m json.tool > docs/api/discovery.json
+	@echo "$(BLUE)Generating endpoints index...$(NC)"
+	@python3 scripts/gen-endpoints.py
+	@echo "$(GREEN)✓ API spec updated. Review changes with: git diff docs/api/$(NC)"
