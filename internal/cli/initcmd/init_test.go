@@ -6,18 +6,21 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitCommand_CreatesConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	origDir, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
 
 	cmd := InitCommand()
 	var buf bytes.Buffer
 
-	err := cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
+	err = cmd.ParseAndRun(context.Background(), []string{"--package", "com.test.app"})
 	if err != nil {
 		t.Fatalf("init failed: %v", err)
 	}
@@ -35,15 +38,16 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 
 func TestInitCommand_ExistingConfig(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	origDir, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
 
-	os.MkdirAll(".gplay", 0700)
-	os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600)
+	require.NoError(t, os.MkdirAll(".gplay", 0700))
+	require.NoError(t, os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600))
 
 	cmd := InitCommand()
-	err := cmd.ParseAndRun(context.Background(), []string{})
+	err = cmd.ParseAndRun(context.Background(), []string{})
 	if err == nil {
 		t.Error("expected error for existing config")
 	}
@@ -51,15 +55,16 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 
 func TestInitCommand_Force(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	origDir, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() { require.NoError(t, os.Chdir(origDir)) })
 
-	os.MkdirAll(".gplay", 0700)
-	os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600)
+	require.NoError(t, os.MkdirAll(".gplay", 0700))
+	require.NoError(t, os.WriteFile(".gplay/config.yaml", []byte("existing"), 0600))
 
 	cmd := InitCommand()
-	err := cmd.ParseAndRun(context.Background(), []string{"--force"})
+	err = cmd.ParseAndRun(context.Background(), []string{"--force"})
 	if err != nil {
 		t.Fatalf("init --force failed: %v", err)
 	}
