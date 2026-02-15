@@ -51,8 +51,13 @@ func attemptFixes(report authReport, apply bool) []fixResult {
 		if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
 			if apply {
 				dir := filepath.Dir(configPath)
-				os.MkdirAll(dir, 0700)
-				if saveErr := config.SaveAt(configPath, &config.Config{}); saveErr == nil {
+				if mkErr := os.MkdirAll(dir, 0700); mkErr != nil {
+					fixes = append(fixes, fixResult{
+						Name:    "config_file",
+						Status:  "failed",
+						Message: fmt.Sprintf("Failed to create directory %s: %v", dir, mkErr),
+					})
+				} else if saveErr := config.SaveAt(configPath, &config.Config{}); saveErr == nil {
 					fixes = append(fixes, fixResult{
 						Name:    "config_file",
 						Status:  "fixed",
