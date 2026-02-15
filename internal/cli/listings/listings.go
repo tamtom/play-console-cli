@@ -28,6 +28,7 @@ func ListingsCommand() *ffcli.Command {
 			PatchCommand(),
 			DeleteCommand(),
 			DeleteAllCommand(),
+			LocalesCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
