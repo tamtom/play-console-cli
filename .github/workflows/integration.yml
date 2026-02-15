@@ -1,0 +1,61 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package name override'
+        required: false
+        type: string
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Mondays at 6am UTC
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.repository == 'tamtom/play-console-cli'
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Check secrets availability
+        id: secrets-check
+        run: |
+          if [ -z "${{ secrets.GPLAY_SERVICE_ACCOUNT }}" ]; then
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "::warning::Service account secret not configured, skipping integration tests"
+          else
+            echo "available=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup service account
+        if: steps.secrets-check.outputs.available == 'true'
+        run: |
+          echo "${{ secrets.GPLAY_SERVICE_ACCOUNT }}" | base64 -d > /tmp/sa-key.json
+          echo "GPLAY_SERVICE_ACCOUNT=/tmp/sa-key.json" >> $GITHUB_ENV
+          PACKAGE="${{ inputs.package }}"
+          if [ -z "$PACKAGE" ]; then
+            PACKAGE="${{ secrets.GPLAY_PACKAGE }}"
+          fi
+          echo "GPLAY_PACKAGE=$PACKAGE" >> $GITHUB_ENV
+
+      - name: Run integration tests
+        if: steps.secrets-check.outputs.available == 'true'
+        run: make test-integration
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/sa-key.json
+
+      - name: Summary
+        if: steps.secrets-check.outputs.available == 'true'
+        run: echo "Integration tests completed successfully" >> $GITHUB_STEP_SUMMARY
