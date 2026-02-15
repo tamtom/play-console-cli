@@ -593,7 +593,7 @@ Use `gplay` with AI coding agents for assisted Android publishing workflows. Com
 ### Install Skills
 
 ```bash
-npx add-skill tamtom/gplay-cli-skills
+npx skills add tamtom/gplay-cli-skills
 ```
 
 ### Available Skills
