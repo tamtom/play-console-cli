@@ -8,6 +8,7 @@ A fast, lightweight, AI-agent-friendly CLI for Google Play Console. Built in Go 
 - **JSON-first**: Minified JSON by default (saves tokens), `--output table/markdown` for humans
 - **No interactive prompts**: Use `--confirm` flags for destructive operations
 - **Pagination**: `--paginate` fetches all pages automatically
+- **Dry run**: `--dry-run` intercepts write HTTP methods and logs to stderr
 
 ## Discovering Commands
 
@@ -20,6 +21,33 @@ gplay tracks list --help        # Show all flags for a command
 ```
 
 Do not memorize commands. Always check `--help` for the current interface.
+
+### Command Reference
+
+```bash
+gplay apps list                 # List apps accessible by service account
+gplay init                      # Initialize project configuration
+gplay docs generate             # Generate markdown command reference
+gplay vitals crashes            # Crash clusters and reports
+gplay vitals performance        # Performance metrics (startup, rendering, battery)
+gplay vitals errors             # Error issues and reports
+gplay users                     # Manage developer account users (list, create, update, delete)
+gplay grants                    # Manage per-app permission grants (create, update, delete)
+gplay update                    # Self-update the CLI binary
+gplay notify send               # Send webhook notifications (Slack, Discord, generic)
+gplay migrate fastlane          # Migrate from Fastlane metadata
+gplay reports financial         # Financial reports (list/download)
+gplay reports stats             # Statistics reports (list/download)
+gplay listings locales          # List available locales with validation
+```
+
+### Notable Flags
+
+- `--dry-run` (global): Intercepts write HTTP methods, logs requests to stderr without executing
+- `--video`: Attach video URL when updating listings
+- `--fix` / `--confirm`: Auto-fix issues found by `auth doctor`
+- `--listings-dir`, `--screenshots-dir`, `--skip-metadata`, `--skip-screenshots`: Control release metadata bundling
+- Plain text release notes (no JSON): Auto-assigned to `en-US`
 
 ## Documentation
 
@@ -62,6 +90,9 @@ gplay auth login --service-account /path/to/key.json
 
 # Validate setup
 gplay auth doctor
+
+# Auto-fix issues (with confirmation)
+gplay auth doctor --fix --confirm
 ```
 
 ## Environment Variables
@@ -78,6 +109,7 @@ gplay auth doctor
 | `GPLAY_NO_UPDATE` | Disable update checks |
 | `GPLAY_MAX_RETRIES` | Max retries for failed requests (default: 3) |
 | `GPLAY_RETRY_DELAY` | Base delay between retries (default: `1s`) |
+| `GPLAY_DEFAULT_OUTPUT` | Default output format (`json`, `table`, `markdown`) |
 
 ## Config File
 
@@ -99,12 +131,26 @@ play-console-cli/
 ├── cmd/                    # Main entry point
 ├── internal/
 │   ├── cli/               # Command implementations
+│   │   ├── apps/          # App listing commands
+│   │   ├── docs/          # Documentation generation
+│   │   ├── initcmd/       # Project initialization
+│   │   ├── migrate/       # Fastlane migration
+│   │   ├── notify/        # Webhook notifications
 │   │   ├── registry/      # Command registration
+│   │   ├── reports/       # Financial & stats reports
 │   │   ├── shared/        # Shared utilities
-│   │   └── */             # Individual command packages
+│   │   ├── updatecmd/     # Self-update command
+│   │   ├── users/         # User management
+│   │   ├── vitals/        # Vitals command group
+│   │   │   ├── errors/    # ANR and error reports
+│   │   │   └── performance/ # Startup, rendering, battery
+│   │   └── */             # Other command packages
+│   ├── cmdtest/           # Black-box CLI testing
 │   ├── config/            # Configuration management
-│   ├── output/            # Output formatting
+│   ├── output/            # Output formatting (table, ANSI colors)
 │   ├── playclient/        # Google Play API client
+│   ├── reportingclient/   # Play Developer Reporting API client
+│   ├── testutil/          # Shared test helpers
 │   ├── update/            # Self-update functionality
 │   └── version/           # Version information
 ├── .github/workflows/     # CI/CD workflows
@@ -119,5 +165,15 @@ For detailed workflow guidance, install the gplay skills:
 ```bash
 npx add-skill tamtom/gplay-cli-skills
 ```
+
+Available skills:
+
+- `gplay-cli-skills` - Core CLI workflows
+- `gplay-vitals-monitoring` - Crash, ANR, and performance monitoring
+- `gplay-user-management` - Developer account user and grant management
+- `gplay-migrate-fastlane` - Fastlane metadata migration
+- `gplay-submission-checks` - Pre-submission validation
+- `gplay-screenshot-automation` - Screenshot management workflows
+- `gplay-subscription-localization` - Subscription and in-app product localization
 
 Skills repository: https://github.com/tamtom/gplay-cli-skills
