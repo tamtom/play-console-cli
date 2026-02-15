@@ -30,8 +30,9 @@ var scopes = []string{"https://www.googleapis.com/auth/androidpublisher"}
 
 // Service wraps the Android Publisher service and config.
 type Service struct {
-	API *androidpublisher.Service
-	Cfg *config.Config
+	API     *androidpublisher.Service
+	Cfg     *config.Config
+	BaseURL string // When set, overrides API.BasePath (used for testing).
 }
 
 // NewService creates an authenticated Android Publisher service.
@@ -53,6 +54,22 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	return &Service{API: api, Cfg: cfg}, nil
+}
+
+// NewTestService creates a Service that targets the given base URL using a
+// plain (unauthenticated) HTTP client. This is intended for use with
+// httptest.Server in tests.
+func NewTestService(baseURL string) (*Service, error) {
+	ctx := context.Background()
+	api, err := androidpublisher.NewService(ctx,
+		option.WithHTTPClient(http.DefaultClient),
+		option.WithoutAuthentication(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	api.BasePath = baseURL
+	return &Service{API: api, BaseURL: baseURL}, nil
 }
 
 func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {
