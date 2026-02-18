@@ -27,6 +27,7 @@ vendor/
 # Credentials (NEVER commit these)
 *.json
 !docs/api/discovery.json
+!docs/wall-of-apps.json
 !go.mod
 !go.sum
 service-account*.json
