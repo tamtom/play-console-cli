@@ -10,12 +10,71 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
 
 ## Why gplay?
 
-| Problem | Solution |
-|---------|----------|
-| Manual Play Console work | Automate everything from CLI |
-| Slow, heavy tooling | Single Go binary, instant startup |
-| Poor scripting support | JSON output, explicit flags, clean exit codes |
-| Complex release workflows | High-level commands like `release`, `promote`, `rollout` |
+Stop clicking through Play Console. Ship your Android apps with a single command.
+
+**Publish & Release**
+- One-command releases: upload, configure track, and go live in a single step
+- Staged rollouts with pause, resume, and percentage control
+- Promote builds between tracks (internal → beta → production)
+- Generate release notes automatically from your git history
+- Upload bundles (AAB) or APKs, manage edits, and commit changes
+
+**Store Presence**
+- Update store listings, screenshots, and app details across all locales
+- Manage images: phone screenshots, tablet screenshots, feature graphics, and more
+- Sync metadata with your local directory — export, import, and diff
+- Migrate from Fastlane metadata format with a single command
+- Validate listings, screenshots, and bundles before you submit
+- Manage data safety declarations
+
+**Monetization**
+- In-app products: create, update, and batch-manage managed products
+- One-time products for single purchases
+- Subscriptions with base plans and promotional offers
+- Price conversion across regions
+- External transaction reporting (EU compliance)
+
+**Purchases & Orders**
+- Verify in-app purchases and subscription tokens server-side
+- Look up and refund orders
+- Acknowledge purchases programmatically
+
+**Monitor Your App**
+- Crash clusters and detailed crash reports
+- ANR and error issue tracking
+- Performance metrics: startup time, rendering jank, and battery drain
+- Read and reply to user reviews without opening a browser
+
+**Testing & Distribution**
+- Manage testers for closed testing tracks
+- Internal app sharing for quick testing without review
+- Check country availability for your tracks
+- Download device-specific APKs generated from your app bundle
+- Upload deobfuscation files (ProGuard/R8 mapping) for readable crash reports
+- System APK creation and expansion file (OBB) management
+- App recovery actions
+
+**Team & Permissions**
+- Manage developer account users: invite, update roles, or remove
+- Fine-grained per-app permission grants
+- Multiple profiles for different accounts or apps
+
+**Reports & Notifications**
+- Download financial reports (earnings, sales, payouts) from Google Cloud Storage
+- Download statistics reports (installs, ratings, crashes, store performance)
+- Send release notifications to Slack, Discord, or any webhook
+
+**Built for Automation**
+- Works in any CI/CD pipeline — GitHub Actions, GitLab CI, Jenkins, and more
+- JSON output by default — pipe to `jq`, scripts, or dashboards
+- Table and Markdown output for human-friendly views
+- Dry-run mode to preview changes before they go live
+- Shell completions for Bash, Zsh, Fish, and PowerShell
+- Self-updating: checks for new versions and upgrades in place
+- Instant startup: single binary, no dependencies, no runtime
+- Project initialization and auth diagnostics (`init`, `auth doctor`)
+- Auto-generated command documentation (`docs generate`)
+- Device tier configuration management
 
 ## Table of Contents
 
