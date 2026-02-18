@@ -2,6 +2,7 @@ package rollout
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -78,7 +79,7 @@ func TestRolloutCommand_SubcommandsHaveShortHelp(t *testing.T) {
 func TestRolloutCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := RolloutCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

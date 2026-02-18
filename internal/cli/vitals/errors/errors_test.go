@@ -3,6 +3,7 @@ package errors
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"strings"
@@ -54,7 +55,7 @@ func TestErrorsCommand_Structure(t *testing.T) {
 func TestErrorsCommand_NoSubcommand(t *testing.T) {
 	cmd := ErrorsCommand()
 	err := runCommand(t, cmd, []string{})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp with no subcommand, got %v", err)
 	}
 }
@@ -62,7 +63,7 @@ func TestErrorsCommand_NoSubcommand(t *testing.T) {
 func TestErrorsCommand_UnknownSubcommand(t *testing.T) {
 	cmd := ErrorsCommand()
 	err := runCommand(t, cmd, []string{"unknown"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for unknown subcommand, got %v", err)
 	}
 }

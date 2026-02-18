@@ -23,8 +23,7 @@ type spinner struct {
 	writer io.Writer // nil disables output
 	tick   time.Duration
 	delay  time.Duration // if > 0, wait this long before showing spinner
-	mu     sync.Mutex
-	active bool
+	mu sync.Mutex
 }
 
 // newSpinner creates a spinner. If the env var GPLAY_SPINNER_DISABLED is set

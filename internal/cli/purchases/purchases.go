@@ -423,7 +423,7 @@ billing period, then will not renew.`,
 			}
 
 			result := map[string]interface{}{
-				"cancelled":      true,
+				"canceled":       true,
 				"subscriptionId": *subscriptionID,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)

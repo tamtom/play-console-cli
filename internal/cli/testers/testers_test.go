@@ -2,6 +2,7 @@ package testers
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -77,7 +78,7 @@ func TestTestersCommand_SubcommandsHaveShortHelp(t *testing.T) {
 func TestTestersCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := TestersCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

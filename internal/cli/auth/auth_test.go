@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -82,7 +83,7 @@ func TestAuthCommand_SubcommandsHaveShortHelp(t *testing.T) {
 func TestAuthCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := AuthCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -90,7 +91,7 @@ func TestAuthCommand_NoArgs_ReturnsHelp(t *testing.T) {
 func TestAuthCommand_UnknownSubcommand_ReturnsHelp(t *testing.T) {
 	cmd := AuthCommand()
 	err := cmd.Exec(context.Background(), []string{"nonexistent"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -359,7 +360,7 @@ func TestRemoveProfile_NotFound(t *testing.T) {
 
 func TestFindProfile_Found(t *testing.T) {
 	existing := []config.Profile{{Name: "a"}, {Name: "b"}}
-	_, found := findProfile(existing, "b")
+	found := findProfile(existing, "b")
 	if !found {
 		t.Error("expected to find profile")
 	}
@@ -367,7 +368,7 @@ func TestFindProfile_Found(t *testing.T) {
 
 func TestFindProfile_NotFound(t *testing.T) {
 	existing := []config.Profile{{Name: "a"}}
-	_, found := findProfile(existing, "z")
+	found := findProfile(existing, "z")
 	if found {
 		t.Error("expected not to find profile")
 	}

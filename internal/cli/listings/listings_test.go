@@ -2,6 +2,7 @@ package listings
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func TestListingsCommand_SubcommandsHaveUsageFunc(t *testing.T) {
 func TestListingsCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := ListingsCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

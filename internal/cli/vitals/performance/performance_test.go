@@ -3,6 +3,7 @@ package performance
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -144,7 +145,7 @@ func TestPerformanceCommand_HelpOutput(t *testing.T) {
 func TestPerformanceCommand_NoArgsReturnsHelp(t *testing.T) {
 	cmd := PerformanceCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp with no args, got: %v", err)
 	}
 }
@@ -156,7 +157,7 @@ func TestPerformanceCommand_UnknownSubcommand(t *testing.T) {
 	// but we can at least verify the error type.
 	_ = stderr
 	err := cmd.Exec(context.Background(), []string{"unknown"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for unknown subcommand, got: %v", err)
 	}
 }

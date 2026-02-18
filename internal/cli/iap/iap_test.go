@@ -2,6 +2,7 @@ package iap
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -80,7 +81,7 @@ func TestIAPCommand_SubcommandsHaveUsageFunc(t *testing.T) {
 func TestIAPCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := IAPCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

@@ -2,6 +2,7 @@ package releasenotes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -24,7 +25,8 @@ func GitLog(ctx context.Context, sinceRef, untilRef string) ([]GitCommit, error)
 	cmd := exec.CommandContext(ctx, "git", "log", "--no-merges", "--format=%h%x00%s", refRange)
 	out, err := cmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			return nil, fmt.Errorf("git log failed: %s", strings.TrimSpace(string(exitErr.Stderr)))
 		}
 		return nil, fmt.Errorf("git log failed: %w", err)

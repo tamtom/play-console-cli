@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -176,7 +177,7 @@ func AuthSwitchCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			if _, ok := findProfile(cfg.Profiles, *profile); !ok {
+			if !findProfile(cfg.Profiles, *profile) {
 				return fmt.Errorf("profile not found: %s", *profile)
 			}
 			cfg.DefaultProfile = *profile
@@ -353,7 +354,7 @@ type authReport struct {
 func buildAuthReport() authReport {
 	var report authReport
 	cfg, err := config.Load()
-	if err != nil && err != config.ErrNotFound {
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		report.Errors++
 		report.Checks = append(report.Checks, fmt.Sprintf("failed to load config: %v", err))
 		return report
@@ -431,13 +432,13 @@ func removeProfile(existing []config.Profile, name string) ([]config.Profile, bo
 	return out, removed
 }
 
-func findProfile(existing []config.Profile, name string) (config.Profile, bool) {
+func findProfile(existing []config.Profile, name string) bool {
 	for _, p := range existing {
 		if p.Name == name {
-			return p, true
+			return true
 		}
 	}
-	return config.Profile{}, false
+	return false
 }
 
 func envAuthPresent() bool {

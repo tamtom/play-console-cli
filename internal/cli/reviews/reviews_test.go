@@ -2,6 +2,7 @@ package reviews
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -68,7 +69,7 @@ func TestReviewsCommand_SubcommandsHaveUsageFunc(t *testing.T) {
 func TestReviewsCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := ReviewsCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

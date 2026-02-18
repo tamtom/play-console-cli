@@ -2,6 +2,7 @@ package releasenotes
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -34,7 +35,7 @@ func TestReleaseNotesCommand_HasSubcommands(t *testing.T) {
 func TestReleaseNotesCommand_NoArgsReturnsHelp(t *testing.T) {
 	cmd := ReleaseNotesCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -76,7 +77,7 @@ func TestRunGenerate_MutuallyExclusiveFlags(t *testing.T) {
 		maxChars:   500,
 		outputFlag: "json",
 	})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for mutually exclusive flags, got %v", err)
 	}
 }
@@ -89,7 +90,7 @@ func TestRunGenerate_NeitherFlagProvided(t *testing.T) {
 		maxChars:   500,
 		outputFlag: "json",
 	})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp when neither flag provided, got %v", err)
 	}
 }
@@ -102,7 +103,7 @@ func TestRunGenerate_WhitespaceOnlyFlags(t *testing.T) {
 		maxChars:   500,
 		outputFlag: "json",
 	})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for whitespace-only flags, got %v", err)
 	}
 }
@@ -118,7 +119,7 @@ func TestRunGenerate_SinceTagOnly(t *testing.T) {
 		outputFlag: "json",
 	})
 	// Should get a git error, not a flag validation error
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		t.Error("did not expect flag.ErrHelp when --since-tag is provided")
 	}
 	if err != nil && !strings.Contains(err.Error(), "git") {
@@ -135,7 +136,7 @@ func TestRunGenerate_SinceRefOnly(t *testing.T) {
 		outputFlag: "json",
 	})
 	// Should get a git error, not a flag validation error
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		t.Error("did not expect flag.ErrHelp when --since-ref is provided")
 	}
 	if err != nil && !strings.Contains(err.Error(), "git") {

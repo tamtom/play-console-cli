@@ -2,6 +2,7 @@ package vitals
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func TestCrashesCommandHasSubcommands(t *testing.T) {
 func TestVitalsNoArgsReturnsHelp(t *testing.T) {
 	cmd := VitalsCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -60,7 +61,7 @@ func TestVitalsNoArgsReturnsHelp(t *testing.T) {
 func TestCrashesNoArgsReturnsHelp(t *testing.T) {
 	cmd := CrashesCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -222,7 +223,7 @@ func TestAnomaliesHelpOutput(t *testing.T) {
 func TestVitalsUnknownSubcommand(t *testing.T) {
 	cmd := VitalsCommand()
 	err := cmd.Exec(context.Background(), []string{"unknown"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for unknown subcommand, got %v", err)
 	}
 }
@@ -230,7 +231,7 @@ func TestVitalsUnknownSubcommand(t *testing.T) {
 func TestCrashesUnknownSubcommand(t *testing.T) {
 	cmd := CrashesCommand()
 	err := cmd.Exec(context.Background(), []string{"unknown"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp for unknown subcommand, got %v", err)
 	}
 }
