@@ -1,0 +1,68 @@
+# gplay
+
+> A fast, lightweight CLI for Google Play Console, built in Go. Designed for CI/CD pipelines and AI agents.
+
+## Install
+
+- Homebrew: `brew install tamtom/tap/gplay`
+- Script: `curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash`
+- Self-update: `gplay update`
+
+## Authentication
+
+- Requires a Google Cloud service account with Play Console access
+- `gplay auth login --service-account /path/to/key.json`
+- `gplay auth doctor` validates credentials and permissions
+- `gplay auth doctor --fix --confirm` auto-fixes issues
+- Environment variable: `GPLAY_SERVICE_ACCOUNT=/path/to/key.json`
+
+## Usage Patterns
+
+- JSON-first: minified JSON output by default (token-efficient for agents)
+- `--output table` or `--output markdown` for human-readable output
+- `--paginate` fetches all pages automatically
+- `--dry-run` intercepts write HTTP methods and logs to stderr without executing
+- `--package com.example.app` specifies the target app (or set `GPLAY_PACKAGE`)
+- `--help` on any command to discover flags and subcommands
+
+## Key Commands
+
+- `gplay apps list` — list apps accessible by the service account
+- `gplay tracks list` — list release tracks (production, beta, alpha, internal)
+- `gplay tracks get` — get track details including releases and version codes
+- `gplay tracks update` — promote or update a release on a track
+- `gplay listings get` — get store listing metadata for a locale
+- `gplay listings update` — update store listing (title, descriptions, etc.)
+- `gplay listings locales` — list available locales with validation
+- `gplay vitals crashes` — crash clusters and reports
+- `gplay vitals errors` — ANR and error issues and reports
+- `gplay vitals performance` — startup time, rendering, and battery metrics
+- `gplay users list/create/update/delete` — manage developer account users
+- `gplay grants create/update/delete` — manage per-app permission grants
+- `gplay reports financial` — list and download financial reports from GCS
+- `gplay reports stats` — list and download statistics reports from GCS
+- `gplay notify send` — send webhook notifications (Slack, Discord, generic)
+- `gplay migrate fastlane` — migrate metadata from Fastlane directory structure
+- `gplay release-notes set` — set release notes (plain text auto-assigned to en-US)
+- `gplay validate` — pre-submission validation checks
+- `gplay init` — initialize project configuration
+- `gplay docs generate` — generate markdown command reference
+
+## Configuration
+
+- Global config: `~/.gplay/config.yaml`
+- Local config: `./.gplay/config.yaml` (takes precedence)
+- Key env vars: `GPLAY_PACKAGE`, `GPLAY_TIMEOUT`, `GPLAY_DEBUG`, `GPLAY_MAX_RETRIES`
+
+## Development
+
+- See `AGENTS.md` for full contribution guide and project structure
+- `make dev` runs format + lint + test + build
+- `make test` runs the test suite
+- TDD is required: start with a failing test, then implement
+
+## Links
+
+- Repository: https://github.com/tamtom/play-console-cli
+- Google Play API: https://developers.google.com/android-publisher
+- API Reference: https://developers.google.com/android-publisher/api-ref/rest
