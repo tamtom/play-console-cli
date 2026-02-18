@@ -100,7 +100,7 @@ func TestSecureOpen_NonexistentFile(t *testing.T) {
 func TestSecureOpen_DirectoryPath(t *testing.T) {
 	dir := t.TempDir()
 	subdir := filepath.Join(dir, "subdir")
-	if err := os.Mkdir(subdir, 0755); err != nil {
+	if err := os.Mkdir(subdir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -194,7 +194,7 @@ func TestSecureOpen_FileOutsideAllowedDir(t *testing.T) {
 func TestSecureOpen_NestedSubdirectory(t *testing.T) {
 	dir := t.TempDir()
 	nested := filepath.Join(dir, "a", "b", "c")
-	if err := os.MkdirAll(nested, 0755); err != nil {
+	if err := os.MkdirAll(nested, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
