@@ -27,14 +27,15 @@ type spinner struct {
 	active bool
 }
 
-// newSpinner creates a spinner. If the env var GPLAY_SPINNER_DISABLED is set,
-// the writer is forced to nil (no output).
+// newSpinner creates a spinner. If the env var GPLAY_SPINNER_DISABLED is set
+// or GPLAY_DEBUG is set (debug/retry logs would collide), the writer is forced
+// to nil (no output).
 func newSpinner(label string, w io.Writer, delay time.Duration) *spinner {
-	if os.Getenv(spinnerEnvVar) != "" {
+	if os.Getenv(spinnerEnvVar) != "" || os.Getenv("GPLAY_DEBUG") != "" {
 		w = nil
 	}
 	return &spinner{
-		label: label,
+		label:  label,
 		writer: w,
 		tick:   spinnerTickRate,
 		delay:  delay,

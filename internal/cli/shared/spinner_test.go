@@ -129,6 +129,16 @@ func TestSpinner_EnvVarDisabled(t *testing.T) {
 	}
 }
 
+func TestSpinner_DebugModeDisabled(t *testing.T) {
+	t.Setenv("GPLAY_DEBUG", "api")
+
+	var buf bytes.Buffer
+	s := newSpinner("loading", &buf, 0)
+	if s.writer != nil {
+		t.Error("spinner writer should be nil when GPLAY_DEBUG is set")
+	}
+}
+
 func TestSpinner_EnvVarNotSet(t *testing.T) {
 	os.Unsetenv("GPLAY_SPINNER_DISABLED")
 
