@@ -38,6 +38,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
 	"github.com/tamtom/play-console-cli/internal/cli/release"
+	releasenotes "github.com/tamtom/play-console-cli/internal/cli/releasenotes"
 	"github.com/tamtom/play-console-cli/internal/cli/reports"
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
@@ -110,6 +111,7 @@ func Subcommands(version string) []*ffcli.Command {
 		devicetiers.DeviceTiersCommand(),
 		notify.NotifyCommand(),
 		migrate.MigrateCommand(),
+		releasenotes.ReleaseNotesCommand(),
 		reports.ReportsCommand(),
 		docs.DocsCommand(),
 		updatecmd.UpdateCommand(),
