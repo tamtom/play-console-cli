@@ -359,7 +359,7 @@ func TestRemoveProfile_NotFound(t *testing.T) {
 
 func TestFindProfile_Found(t *testing.T) {
 	existing := []config.Profile{{Name: "a"}, {Name: "b"}}
-	_, found := findProfile(existing, "b")
+	found := findProfile(existing, "b")
 	if !found {
 		t.Error("expected to find profile")
 	}
@@ -367,7 +367,7 @@ func TestFindProfile_Found(t *testing.T) {
 
 func TestFindProfile_NotFound(t *testing.T) {
 	existing := []config.Profile{{Name: "a"}}
-	_, found := findProfile(existing, "z")
+	found := findProfile(existing, "z")
 	if found {
 		t.Error("expected not to find profile")
 	}

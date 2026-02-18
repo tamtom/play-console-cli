@@ -100,7 +100,7 @@ func detectInstallMethod(path string) string {
 	return "binary"
 }
 
-func selfUpdate(ctx context.Context, execPath string, info *update.UpdateInfo) error {
+func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
 	fmt.Fprintf(os.Stderr, "Updating %s -> %s...\n", version.Version, info.LatestVersion)
 
 	if info.DownloadURL == "" {

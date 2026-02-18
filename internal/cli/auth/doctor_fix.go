@@ -14,7 +14,7 @@ type fixResult struct {
 	Message string `json:"message"`
 }
 
-func attemptFixes(report authReport, apply bool) []fixResult {
+func attemptFixes(_ authReport, apply bool) []fixResult {
 	var fixes []fixResult
 
 	// Fix 1: Missing config directory

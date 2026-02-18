@@ -176,7 +176,7 @@ func AuthSwitchCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			if _, ok := findProfile(cfg.Profiles, *profile); !ok {
+			if !findProfile(cfg.Profiles, *profile) {
 				return fmt.Errorf("profile not found: %s", *profile)
 			}
 			cfg.DefaultProfile = *profile
@@ -431,13 +431,13 @@ func removeProfile(existing []config.Profile, name string) ([]config.Profile, bo
 	return out, removed
 }
 
-func findProfile(existing []config.Profile, name string) (config.Profile, bool) {
+func findProfile(existing []config.Profile, name string) bool {
 	for _, p := range existing {
 		if p.Name == name {
-			return p, true
+			return true
 		}
 	}
-	return config.Profile{}, false
+	return false
 }
 
 func envAuthPresent() bool {
