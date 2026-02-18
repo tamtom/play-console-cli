@@ -68,10 +68,10 @@ type generateOpts struct {
 
 // generateResult is the JSON-serializable output.
 type generateResult struct {
-	ReleaseNotes string          `json:"release_notes"`
-	CommitCount  int             `json:"commit_count"`
-	Truncated    bool            `json:"truncated"`
-	Commits      []rn.GitCommit  `json:"commits"`
+	ReleaseNotes string         `json:"release_notes"`
+	CommitCount  int            `json:"commit_count"`
+	Truncated    bool           `json:"truncated"`
+	Commits      []rn.GitCommit `json:"commits"`
 }
 
 func runGenerate(ctx context.Context, opts generateOpts) error {

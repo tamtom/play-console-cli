@@ -39,6 +39,7 @@ gplay migrate fastlane          # Migrate from Fastlane metadata
 gplay reports financial         # Financial reports (list/download from GCS)
 gplay reports stats             # Statistics reports (list/download from GCS)
 gplay listings locales          # List available locales with validation
+gplay release-notes generate    # Generate release notes from git history
 ```
 
 ### Notable Flags

@@ -48,7 +48,7 @@ func WriteJUnitReport(suites *JUnitTestSuites, filePath string) error {
 
 	content := xml.Header + string(data) + "\n"
 
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("write JUnit report: %w", err)
 	}
 

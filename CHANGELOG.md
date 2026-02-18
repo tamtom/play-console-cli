@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.4] - 2026-02-18
+
+### Added
+
+#### New Commands
+- `gplay release-notes generate` — Generate release notes from git history with `--since-tag`/`--since-ref`, auto-truncation to Google Play's 500-char limit
+
+#### New Packages & Utilities
+- **Spinner** (`internal/cli/shared/spinner.go`) — Braille spinner on stderr during API calls; TTY-gated, disabled when `GPLAY_DEBUG` or `GPLAY_SPINNER_DISABLED` is set
+- **JUnit CI reports** (`internal/cli/shared/junit_report.go`) — `--report junit --report-file results.xml` flags for CI integration
+- **Error classification** (`internal/cli/shared/errfmt/`) — `Classify(err)` auto-detects 401/403/404/timeout errors with actionable hints
+- **SanitizeTerminal** (`internal/output/sanitize.go`) — Strips ANSI escapes and control chars from table output
+- **SecureOpen** (`internal/secureopen/`) — Path-validated file opening with symlink resolution and directory boundary checks
+- **OptionalBool** (`internal/cli/shared/optionalbool.go`) — Tri-state boolean flag type (`unset`/`true`/`false`) implementing `flag.Value`
+
+#### Documentation & Tooling
+- `llms.txt` — LLM-friendly project summary at repo root
+- `.golangci.yml` — Curated linter config with `govet`, `staticcheck`, `unused`, `ineffassign`, `misspell`, `unparam`, `errorlint`
+
+### Fixed
+- Use `errors.Is`/`errors.As` throughout codebase (errorlint compliance)
+- Octal literal format (`0o644`) for Go 1.13+ compatibility
+
 ## [0.4.3] - 2026-02-15
 
 ### Changed

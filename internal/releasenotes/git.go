@@ -22,7 +22,7 @@ func GitLog(ctx context.Context, sinceRef, untilRef string) ([]GitCommit, error)
 		refRange = sinceRef + ".." + untilRef
 	}
 
-	cmd := exec.CommandContext(ctx, "git", "log", "--no-merges", "--format=%h%x00%s", refRange)
+	cmd := exec.CommandContext(ctx, "git", "log", "--no-merges", "--format=%h%x00%s", refRange) // #nosec G204 -- args are ref names, not user shell input
 	out, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError

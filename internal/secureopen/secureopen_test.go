@@ -12,7 +12,7 @@ import (
 func TestSecureOpen_RegularFileInAllowedDir(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.txt")
-	if err := os.WriteFile(path, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("hello"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -35,7 +35,7 @@ func TestSecureOpen_RegularFileInAllowedDir(t *testing.T) {
 func TestSecureOpen_SymlinkWithinAllowedDir(t *testing.T) {
 	dir := t.TempDir()
 	realFile := filepath.Join(dir, "real.txt")
-	if err := os.WriteFile(realFile, []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(realFile, []byte("data"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,7 +56,7 @@ func TestSecureOpen_SymlinkOutsideAllowedDir(t *testing.T) {
 	outsideDir := t.TempDir()
 
 	outsideFile := filepath.Join(outsideDir, "secret.txt")
-	if err := os.WriteFile(outsideFile, []byte("secret"), 0644); err != nil {
+	if err := os.WriteFile(outsideFile, []byte("secret"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,7 +116,7 @@ func TestSecureOpen_DirectoryPath(t *testing.T) {
 func TestSecureOpen_NoAllowedDirs(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.txt")
-	if err := os.WriteFile(path, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("hello"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -135,7 +135,7 @@ func TestSecureOpen_MultipleAllowedDirs(t *testing.T) {
 	dir3 := t.TempDir()
 
 	path := filepath.Join(dir2, "test.txt")
-	if err := os.WriteFile(path, []byte("found"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("found"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -149,11 +149,11 @@ func TestSecureOpen_MultipleAllowedDirs(t *testing.T) {
 func TestSecureOpenFile_CustomFlags(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "writable.txt")
-	if err := os.WriteFile(path, []byte(""), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := secureopen.SecureOpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644, dir)
+	f, err := secureopen.SecureOpenFile(path, os.O_WRONLY|os.O_TRUNC, 0o644, dir)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -178,7 +178,7 @@ func TestSecureOpen_FileOutsideAllowedDir(t *testing.T) {
 	outsideDir := t.TempDir()
 
 	path := filepath.Join(outsideDir, "outside.txt")
-	if err := os.WriteFile(path, []byte("nope"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("nope"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -199,7 +199,7 @@ func TestSecureOpen_NestedSubdirectory(t *testing.T) {
 	}
 
 	path := filepath.Join(nested, "deep.txt")
-	if err := os.WriteFile(path, []byte("deep"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("deep"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -159,6 +160,9 @@ func TestJUnitXMLGeneration(t *testing.T) {
 	})
 
 	t.Run("file has 0644 permissions", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("file permissions are not supported on Windows")
+		}
 		suites := &JUnitTestSuites{}
 
 		dir := t.TempDir()
@@ -172,7 +176,7 @@ func TestJUnitXMLGeneration(t *testing.T) {
 			t.Fatalf("failed to stat file: %v", err)
 		}
 		perm := info.Mode().Perm()
-		if perm != 0644 {
+		if perm != 0o644 {
 			t.Fatalf("expected permissions 0644, got %o", perm)
 		}
 	})

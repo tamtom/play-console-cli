@@ -47,10 +47,10 @@ func TestFormat_NoTruncationWhenUnderLimit(t *testing.T) {
 
 func TestFormat_TruncationAtLineBoundary(t *testing.T) {
 	commits := []GitCommit{
-		{Hash: "a", Subject: "First commit message"},    // "- First commit message" = 22 chars
-		{Hash: "b", Subject: "Second commit message"},   // "- Second commit message" = 23 chars
-		{Hash: "c", Subject: "Third commit message"},    // "- Third commit message" = 22 chars
-		{Hash: "d", Subject: "Fourth commit message"},   // "- Fourth commit message" = 23 chars
+		{Hash: "a", Subject: "First commit message"},  // "- First commit message" = 22 chars
+		{Hash: "b", Subject: "Second commit message"}, // "- Second commit message" = 23 chars
+		{Hash: "c", Subject: "Third commit message"},  // "- Third commit message" = 22 chars
+		{Hash: "d", Subject: "Fourth commit message"}, // "- Fourth commit message" = 23 chars
 	}
 
 	// "- First commit message\n- Second commit message" = 46 chars
