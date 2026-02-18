@@ -207,6 +207,8 @@ gplay grants delete --developer <id> --email user@example.com --package com.exam
 
 Reports are stored as CSV/ZIP files in Google Cloud Storage buckets (`pubsite_prod_rev_<developer_id>`). The service account must have access to the GCS bucket (granted automatically when added to Play Console).
 
+> **Important:** The `--developer` ID for reports is **not** the developer ID in your Play Console URL. To find the correct ID, go to **Play Console > Download reports > Copy Cloud Storage URI**. The URI looks like `gs://pubsite_prod_rev_XXXX/` — the number after `pubsite_prod_rev_` is your developer ID.
+
 ```bash
 # Financial reports (earnings, sales, payouts)
 gplay reports financial list --developer <id>

@@ -80,7 +80,7 @@ func StatsCommand() *ffcli.Command {
 // StatsListCommand returns the stats list subcommand.
 func StatsListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("stats list", flag.ExitOnError)
-	developer := fs.String("developer", "", "Developer ID (required)")
+	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
 	pkg := fs.String("package", "", "Package name (filters results by package)")
 	from := fs.String("from", "", "Start month in YYYY-MM format")
 	to := fs.String("to", "", "End month in YYYY-MM format")
@@ -153,7 +153,7 @@ func StatsListCommand() *ffcli.Command {
 // StatsDownloadCommand returns the stats download subcommand.
 func StatsDownloadCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("stats download", flag.ExitOnError)
-	developer := fs.String("developer", "", "Developer ID (required)")
+	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
 	pkg := fs.String("package", "", "Package name (required)")
 	from := fs.String("from", "", "Start month in YYYY-MM format (required)")
 	to := fs.String("to", "", "End month in YYYY-MM format (defaults to --from)")

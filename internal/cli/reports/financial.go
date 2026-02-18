@@ -114,7 +114,7 @@ func FinancialCommand() *ffcli.Command {
 // FinancialListCommand returns the financial list subcommand.
 func FinancialListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("financial list", flag.ExitOnError)
-	developer := fs.String("developer", "", "Developer ID (required)")
+	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format")
 	to := fs.String("to", "", "End month in YYYY-MM format")
 	reportType := fs.String("type", "all", "Report type: earnings, sales, payouts, all")
@@ -182,7 +182,7 @@ func FinancialListCommand() *ffcli.Command {
 // FinancialDownloadCommand returns the financial download subcommand.
 func FinancialDownloadCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("financial download", flag.ExitOnError)
-	developer := fs.String("developer", "", "Developer ID (required)")
+	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format (required)")
 	to := fs.String("to", "", "End month in YYYY-MM format (defaults to --from)")
 	reportType := fs.String("type", "earnings", "Report type: earnings, sales, payouts")
