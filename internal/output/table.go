@@ -27,6 +27,13 @@ func RenderTableTo(w io.Writer, headers []string, rows [][]string) {
 	}
 	fmt.Fprintln(tw, strings.Join(seps, "\t"))
 
+	// Sanitize row cell values
+	for i, row := range rows {
+		for j, cell := range row {
+			rows[i][j] = SanitizeTerminal(cell)
+		}
+	}
+
 	// Print rows
 	if len(rows) == 0 {
 		fmt.Fprintln(tw, "No results found.")
