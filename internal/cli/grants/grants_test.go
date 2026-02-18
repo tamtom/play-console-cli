@@ -2,6 +2,7 @@ package grants
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func TestGrantsCommand_UsageFunc(t *testing.T) {
 func TestGrantsCommand_ExecNoArgs(t *testing.T) {
 	cmd := GrantsCommand()
 	err := cmd.Exec(context.Background(), []string{})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("Exec() = %v, want flag.ErrHelp", err)
 	}
 }
@@ -60,7 +61,7 @@ func TestGrantsCommand_ExecNoArgs(t *testing.T) {
 func TestGrantsCommand_ExecWithArgs(t *testing.T) {
 	cmd := GrantsCommand()
 	err := cmd.Exec(context.Background(), []string{"unknown"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("Exec() = %v, want flag.ErrHelp", err)
 	}
 }

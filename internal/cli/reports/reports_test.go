@@ -3,6 +3,7 @@ package reports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -119,14 +120,14 @@ func execCommand(t *testing.T, args []string) error {
 
 func TestReportsCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	err := execCommand(t, []string{})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
 
 func TestReportsCommand_Financial_NoArgs_ReturnsHelp(t *testing.T) {
 	err := execCommand(t, []string{"financial"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

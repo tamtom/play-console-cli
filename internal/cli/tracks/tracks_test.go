@@ -2,6 +2,7 @@ package tracks
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -79,7 +80,7 @@ func TestTracksCommand_SubcommandsHaveShortHelp(t *testing.T) {
 func TestTracksCommand_NoArgs_ReturnsHelp(t *testing.T) {
 	cmd := TracksCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

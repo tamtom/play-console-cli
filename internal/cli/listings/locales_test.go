@@ -2,6 +2,7 @@ package listings
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"testing"
 )
@@ -79,7 +80,7 @@ func TestLocalesResponse_Fields(t *testing.T) {
 func TestListingsCommand_NoArgs(t *testing.T) {
 	cmd := ListingsCommand()
 	err := cmd.ParseAndRun(context.Background(), []string{})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

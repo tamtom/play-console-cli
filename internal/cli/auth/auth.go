@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -353,7 +354,7 @@ type authReport struct {
 func buildAuthReport() authReport {
 	var report authReport
 	cfg, err := config.Load()
-	if err != nil && err != config.ErrNotFound {
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		report.Errors++
 		report.Checks = append(report.Checks, fmt.Sprintf("failed to load config: %v", err))
 		return report

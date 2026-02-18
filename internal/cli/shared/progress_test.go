@@ -2,6 +2,7 @@ package shared
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -21,7 +22,7 @@ func TestProgressReaderCountsBytes(t *testing.T) {
 	for {
 		n, err := pr.Read(buf)
 		total += n
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
