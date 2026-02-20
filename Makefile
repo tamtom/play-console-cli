@@ -82,13 +82,19 @@ test:
 	@echo "$(BLUE)Running tests...$(NC)"
 	$(GO) test -v -race ./...
 
-# Run tests with coverage
-.PHONY: test-coverage
+# Test coverage
+.PHONY: test-coverage test-coverage-view
+
 test-coverage:
 	@echo "$(BLUE)Running tests with coverage...$(NC)"
-	$(GO) test -v -race -coverprofile=coverage.out ./...
+	$(GO) test -coverprofile=coverage.out -covermode=atomic ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html
-	@echo "$(GREEN)✓ Coverage report: coverage.html$(NC)"
+	@echo "$(GREEN)✓ Coverage report generated$(NC)"
+	$(GO) tool cover -func=coverage.out
+
+test-coverage-view: test-coverage
+	@echo "$(BLUE)Opening coverage report...$(NC)"
+	open coverage.html
 
 # Run integration tests (opt-in, requires credentials)
 .PHONY: test-integration
@@ -262,6 +268,7 @@ help:
 	@echo "$(BLUE)Test:$(NC)"
 	@echo "  test            Run tests"
 	@echo "  test-coverage   Run tests with coverage report"
+	@echo "  test-coverage-view  Run tests with coverage and open report in browser"
 	@echo "  test-integration Run integration tests (requires credentials)"
 	@echo "  test-all         Run all tests (unit + integration)"
 	@echo ""
