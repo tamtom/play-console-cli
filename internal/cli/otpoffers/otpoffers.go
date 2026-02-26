@@ -1,4 +1,4 @@
-package onetimeproducts
+package otpoffers
 
 import (
 	"context"
@@ -13,26 +13,26 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
-func OneTimeProductsCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts", flag.ExitOnError)
+func OTPOffersCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("otp-offers", flag.ExitOnError)
 	return &ffcli.Command{
-		Name:       "onetimeproducts",
-		ShortUsage: "gplay onetimeproducts <subcommand> [flags]",
-		ShortHelp:  "Manage one-time products (monetization).",
-		LongHelp: `Manage one-time products in the monetization system.
+		Name:       "otp-offers",
+		ShortUsage: "gplay otp-offers <subcommand> [flags]",
+		ShortHelp:  "Manage one-time product purchase option offers.",
+		LongHelp: `Manage offers within one-time product purchase options.
 
-One-time products are non-subscription purchases that users buy once.
-This includes consumables (can be purchased again) and non-consumables.`,
+Offers provide promotional pricing or special terms for purchase options.
+Each offer is scoped to a specific purchase option within a one-time product.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			ListCommand(),
-			GetCommand(),
-			CreateCommand(),
-			PatchCommand(),
-			DeleteCommand(),
+			ActivateCommand(),
+			DeactivateCommand(),
+			CancelCommand(),
 			BatchGetCommand(),
 			BatchUpdateCommand(),
+			BatchUpdateStatesCommand(),
 			BatchDeleteCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
@@ -45,8 +45,10 @@ This includes consumables (can be purchased again) and non-consumables.`,
 }
 
 func ListCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts list", flag.ExitOnError)
+	fs := flag.NewFlagSet("otp-offers list", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
 	pageSize := fs.Int("page-size", 100, "Page size")
 	paginate := fs.Bool("paginate", false, "Fetch all pages")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
@@ -54,13 +56,19 @@ func ListCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "list",
-		ShortUsage: "gplay onetimeproducts list --package <name>",
-		ShortHelp:  "List all one-time products.",
+		ShortUsage: "gplay otp-offers list --package <name> --product-id <id> --purchase-option-id <id>",
+		ShortHelp:  "List all offers for a purchase option.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
+			}
+			if strings.TrimSpace(*productID) == "" {
+				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
 			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -74,10 +82,10 @@ func ListCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			var all []*androidpublisher.OneTimeProduct
+			var all []*androidpublisher.OneTimeProductOffer
 			pageToken := ""
 			for {
-				call := service.API.Monetization.Onetimeproducts.List(pkg).Context(ctx).PageSize(int64(*pageSize))
+				call := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.List(pkg, *productID, *purchaseOptionID).Context(ctx).PageSize(int64(*pageSize))
 				if pageToken != "" {
 					call = call.PageToken(pageToken)
 				}
@@ -88,7 +96,7 @@ func ListCommand() *ffcli.Command {
 				if !*paginate {
 					return shared.PrintOutput(resp, *outputFlag, *pretty)
 				}
-				all = append(all, resp.OneTimeProducts...)
+				all = append(all, resp.OneTimeProductOffers...)
 				if resp.NextPageToken == "" {
 					break
 				}
@@ -99,17 +107,19 @@ func ListCommand() *ffcli.Command {
 	}
 }
 
-func GetCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts get", flag.ExitOnError)
+func ActivateCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("otp-offers activate", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	productID := fs.String("product-id", "", "Product ID")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	offerID := fs.String("offer-id", "", "Offer ID")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
-		Name:       "get",
-		ShortUsage: "gplay onetimeproducts get --package <name> --product-id <id>",
-		ShortHelp:  "Get a one-time product.",
+		Name:       "activate",
+		ShortUsage: "gplay otp-offers activate --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>",
+		ShortHelp:  "Activate an OTP offer.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -118,6 +128,12 @@ func GetCommand() *ffcli.Command {
 			}
 			if strings.TrimSpace(*productID) == "" {
 				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
+			}
+			if strings.TrimSpace(*offerID) == "" {
+				return fmt.Errorf("--offer-id is required")
 			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -131,7 +147,8 @@ func GetCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Monetization.Onetimeproducts.Get(pkg, *productID).Context(ctx).Do()
+			req := &androidpublisher.ActivateOneTimeProductOfferRequest{}
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.Activate(pkg, *productID, *purchaseOptionID, *offerID, req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -140,19 +157,19 @@ func GetCommand() *ffcli.Command {
 	}
 }
 
-func CreateCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts create", flag.ExitOnError)
+func DeactivateCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("otp-offers deactivate", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	productID := fs.String("product-id", "", "Product ID")
-	jsonFlag := fs.String("json", "", "OneTimeProduct JSON (or @file)")
-	regionsVersion := fs.String("regions-version", "", "Regions version for price migration")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	offerID := fs.String("offer-id", "", "Offer ID")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
-		Name:       "create",
-		ShortUsage: "gplay onetimeproducts create --package <name> --product-id <id> --json <json>",
-		ShortHelp:  "Create a one-time product.",
+		Name:       "deactivate",
+		ShortUsage: "gplay otp-offers deactivate --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>",
+		ShortHelp:  "Deactivate an OTP offer.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -162,8 +179,11 @@ func CreateCommand() *ffcli.Command {
 			if strings.TrimSpace(*productID) == "" {
 				return fmt.Errorf("--product-id is required")
 			}
-			if strings.TrimSpace(*jsonFlag) == "" {
-				return fmt.Errorf("--json is required")
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
+			}
+			if strings.TrimSpace(*offerID) == "" {
+				return fmt.Errorf("--offer-id is required")
 			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -174,19 +194,11 @@ func CreateCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var product androidpublisher.OneTimeProduct
-			if err := shared.LoadJSONArg(*jsonFlag, &product); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
-
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true)
-			if strings.TrimSpace(*regionsVersion) != "" {
-				call = call.RegionsVersionVersion(*regionsVersion)
-			}
-			resp, err := call.Do()
+			req := &androidpublisher.DeactivateOneTimeProductOfferRequest{}
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.Deactivate(pkg, *productID, *purchaseOptionID, *offerID, req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -195,21 +207,19 @@ func CreateCommand() *ffcli.Command {
 	}
 }
 
-func PatchCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts patch", flag.ExitOnError)
+func CancelCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("otp-offers cancel", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	productID := fs.String("product-id", "", "Product ID")
-	jsonFlag := fs.String("json", "", "OneTimeProduct JSON (or @file)")
-	updateMask := fs.String("update-mask", "", "Fields to update (comma-separated)")
-	regionsVersion := fs.String("regions-version", "", "Regions version for price migration")
-	allowMissing := fs.Bool("allow-missing", false, "Create if not exists")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	offerID := fs.String("offer-id", "", "Offer ID")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
-		Name:       "patch",
-		ShortUsage: "gplay onetimeproducts patch --package <name> --product-id <id> --json <json>",
-		ShortHelp:  "Patch a one-time product.",
+		Name:       "cancel",
+		ShortUsage: "gplay otp-offers cancel --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>",
+		ShortHelp:  "Cancel an OTP offer.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -219,8 +229,11 @@ func PatchCommand() *ffcli.Command {
 			if strings.TrimSpace(*productID) == "" {
 				return fmt.Errorf("--product-id is required")
 			}
-			if strings.TrimSpace(*jsonFlag) == "" {
-				return fmt.Errorf("--json is required")
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
+			}
+			if strings.TrimSpace(*offerID) == "" {
+				return fmt.Errorf("--offer-id is required")
 			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -231,102 +244,46 @@ func PatchCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var product androidpublisher.OneTimeProduct
-			if err := shared.LoadJSONArg(*jsonFlag, &product); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
-
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx)
-			if strings.TrimSpace(*updateMask) != "" {
-				call = call.UpdateMask(*updateMask)
-			}
-			if strings.TrimSpace(*regionsVersion) != "" {
-				call = call.RegionsVersionVersion(*regionsVersion)
-			}
-			if *allowMissing {
-				call = call.AllowMissing(true)
-			}
-			resp, err := call.Do()
+			req := &androidpublisher.CancelOneTimeProductOfferRequest{}
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.Cancel(pkg, *productID, *purchaseOptionID, *offerID, req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
 			return shared.PrintOutput(resp, *outputFlag, *pretty)
-		},
-	}
-}
-
-func DeleteCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts delete", flag.ExitOnError)
-	packageName := fs.String("package", "", "Package name (applicationId)")
-	productID := fs.String("product-id", "", "Product ID")
-	confirm := fs.Bool("confirm", false, "Confirm deletion")
-	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
-	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
-
-	return &ffcli.Command{
-		Name:       "delete",
-		ShortUsage: "gplay onetimeproducts delete --package <name> --product-id <id> --confirm",
-		ShortHelp:  "Delete a one-time product.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
-		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
-				return err
-			}
-			if strings.TrimSpace(*productID) == "" {
-				return fmt.Errorf("--product-id is required")
-			}
-			if !*confirm {
-				return fmt.Errorf("--confirm is required")
-			}
-			service, err := playclient.NewService(ctx)
-			if err != nil {
-				return err
-			}
-			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
-			if strings.TrimSpace(pkg) == "" {
-				return fmt.Errorf("--package is required")
-			}
-
-			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
-			defer cancel()
-
-			err = service.API.Monetization.Onetimeproducts.Delete(pkg, *productID).Context(ctx).Do()
-			if err != nil {
-				return err
-			}
-
-			result := map[string]interface{}{
-				"deleted":   true,
-				"productId": *productID,
-			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
 	}
 }
 
 func BatchGetCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts batch-get", flag.ExitOnError)
+	fs := flag.NewFlagSet("otp-offers batch-get", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	productIDs := fs.String("product-ids", "", "Comma-separated product IDs")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	jsonFlag := fs.String("json", "", "BatchGetOneTimeProductOffersRequest JSON (or @file)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
 		Name:       "batch-get",
-		ShortUsage: "gplay onetimeproducts batch-get --package <name> --product-ids <ids>",
-		ShortHelp:  "Get multiple one-time products.",
+		ShortUsage: "gplay otp-offers batch-get --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
+		ShortHelp:  "Get multiple OTP offers.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			if strings.TrimSpace(*productIDs) == "" {
-				return fmt.Errorf("--product-ids is required")
+			if strings.TrimSpace(*productID) == "" {
+				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
 			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -337,11 +294,15 @@ func BatchGetCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
+			var req androidpublisher.BatchGetOneTimeProductOffersRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			ids := strings.Split(*productIDs, ",")
-			resp, err := service.API.Monetization.Onetimeproducts.BatchGet(pkg).ProductIds(ids...).Context(ctx).Do()
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.BatchGet(pkg, *productID, *purchaseOptionID, &req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -351,21 +312,29 @@ func BatchGetCommand() *ffcli.Command {
 }
 
 func BatchUpdateCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts batch-update", flag.ExitOnError)
+	fs := flag.NewFlagSet("otp-offers batch-update", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	jsonFlag := fs.String("json", "", "BatchUpdateRequest JSON (or @file)")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	jsonFlag := fs.String("json", "", "BatchUpdateOneTimeProductOffersRequest JSON (or @file)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
 		Name:       "batch-update",
-		ShortUsage: "gplay onetimeproducts batch-update --package <name> --json <json>",
-		ShortHelp:  "Create or update multiple one-time products.",
+		ShortUsage: "gplay otp-offers batch-update --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
+		ShortHelp:  "Batch update multiple OTP offers.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
+			}
+			if strings.TrimSpace(*productID) == "" {
+				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
 			}
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
@@ -379,7 +348,7 @@ func BatchUpdateCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var req androidpublisher.BatchUpdateOneTimeProductsRequest
+			var req androidpublisher.BatchUpdateOneTimeProductOffersRequest
 			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
@@ -387,7 +356,61 @@ func BatchUpdateCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Monetization.Onetimeproducts.BatchUpdate(pkg, &req).Context(ctx).Do()
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.BatchUpdate(pkg, *productID, *purchaseOptionID, &req).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func BatchUpdateStatesCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("otp-offers batch-update-states", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	jsonFlag := fs.String("json", "", "BatchUpdateOneTimeProductOfferStatesRequest JSON (or @file)")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "batch-update-states",
+		ShortUsage: "gplay otp-offers batch-update-states --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
+		ShortHelp:  "Batch activate/deactivate/cancel multiple OTP offers.",
+		FlagSet:    fs,
+		UsageFunc:  shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*productID) == "" {
+				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			service, err := playclient.NewService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			var req androidpublisher.BatchUpdateOneTimeProductOfferStatesRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.BatchUpdateStates(pkg, *productID, *purchaseOptionID, &req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
@@ -397,22 +420,30 @@ func BatchUpdateCommand() *ffcli.Command {
 }
 
 func BatchDeleteCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("onetimeproducts batch-delete", flag.ExitOnError)
+	fs := flag.NewFlagSet("otp-offers batch-delete", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	jsonFlag := fs.String("json", "", "BatchDeleteRequest JSON (or @file)")
+	productID := fs.String("product-id", "", "One-time product ID")
+	purchaseOptionID := fs.String("purchase-option-id", "", "Purchase option ID")
+	jsonFlag := fs.String("json", "", "BatchDeleteOneTimeProductOffersRequest JSON (or @file)")
 	confirm := fs.Bool("confirm", false, "Confirm deletion")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
 		Name:       "batch-delete",
-		ShortUsage: "gplay onetimeproducts batch-delete --package <name> --json <json> --confirm",
-		ShortHelp:  "Delete multiple one-time products.",
+		ShortUsage: "gplay otp-offers batch-delete --package <name> --product-id <id> --purchase-option-id <id> --json <json> --confirm",
+		ShortHelp:  "Batch delete OTP offers.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
+			}
+			if strings.TrimSpace(*productID) == "" {
+				return fmt.Errorf("--product-id is required")
+			}
+			if strings.TrimSpace(*purchaseOptionID) == "" {
+				return fmt.Errorf("--purchase-option-id is required")
 			}
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
@@ -429,7 +460,7 @@ func BatchDeleteCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var req androidpublisher.BatchDeleteOneTimeProductsRequest
+			var req androidpublisher.BatchDeleteOneTimeProductOffersRequest
 			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
@@ -437,7 +468,7 @@ func BatchDeleteCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			err = service.API.Monetization.Onetimeproducts.BatchDelete(pkg, &req).Context(ctx).Do()
+			err = service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.BatchDelete(pkg, *productID, *purchaseOptionID, &req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}

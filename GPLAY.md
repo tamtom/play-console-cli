@@ -11,6 +11,8 @@
 - [auth logout](#auth-logout)
 - [auth status](#auth-status)
 - [auth doctor](#auth-doctor)
+- [apps](#apps)
+- [apps list](#apps-list)
 - [edits](#edits)
 - [edits create](#edits-create)
 - [edits get](#edits-get)
@@ -30,6 +32,11 @@
 - [tracks create](#tracks-create)
 - [tracks update](#tracks-update)
 - [tracks patch](#tracks-patch)
+- [users](#users)
+- [users list](#users-list)
+- [users create](#users-create)
+- [users update](#users-update)
+- [users delete](#users-delete)
 - [listings](#listings)
 - [listings list](#listings-list)
 - [listings get](#listings-get)
@@ -37,11 +44,13 @@
 - [listings patch](#listings-patch)
 - [listings delete](#listings-delete)
 - [listings delete-all](#listings-delete-all)
+- [listings locales](#listings-locales)
 - [images](#images)
 - [images list](#images-list)
 - [images upload](#images-upload)
 - [images delete](#images-delete)
 - [images delete-all](#images-delete-all)
+- [init](#init)
 - [reviews](#reviews)
 - [reviews list](#reviews-list)
 - [reviews get](#reviews-get)
@@ -75,6 +84,17 @@
 - [validate bundle](#validate-bundle)
 - [validate listing](#validate-listing)
 - [validate screenshots](#validate-screenshots)
+- [vitals](#vitals)
+- [vitals crashes](#vitals-crashes)
+- [vitals crashes query](#vitals-crashes-query)
+- [vitals crashes anomalies](#vitals-crashes-anomalies)
+- [vitals performance](#vitals-performance)
+- [vitals performance startup](#vitals-performance-startup)
+- [vitals performance rendering](#vitals-performance-rendering)
+- [vitals performance battery](#vitals-performance-battery)
+- [vitals errors](#vitals-errors)
+- [vitals errors issues](#vitals-errors-issues)
+- [vitals errors reports](#vitals-errors-reports)
 - [iap](#iap)
 - [iap list](#iap-list)
 - [iap get](#iap-get)
@@ -91,6 +111,8 @@
 - [subscriptions update](#subscriptions-update)
 - [subscriptions delete](#subscriptions-delete)
 - [subscriptions archive](#subscriptions-archive)
+- [subscriptions batch-get](#subscriptions-batch-get)
+- [subscriptions batch-update](#subscriptions-batch-update)
 - [baseplans](#baseplans)
 - [baseplans activate](#baseplans-activate)
 - [baseplans deactivate](#baseplans-deactivate)
@@ -118,6 +140,18 @@
 - [onetimeproducts batch-get](#onetimeproducts-batch-get)
 - [onetimeproducts batch-update](#onetimeproducts-batch-update)
 - [onetimeproducts batch-delete](#onetimeproducts-batch-delete)
+- [purchase-options](#purchase-options)
+- [purchase-options batch-update-states](#purchase-options-batch-update-states)
+- [purchase-options batch-delete](#purchase-options-batch-delete)
+- [otp-offers](#otp-offers)
+- [otp-offers list](#otp-offers-list)
+- [otp-offers activate](#otp-offers-activate)
+- [otp-offers deactivate](#otp-offers-deactivate)
+- [otp-offers cancel](#otp-offers-cancel)
+- [otp-offers batch-get](#otp-offers-batch-get)
+- [otp-offers batch-update](#otp-offers-batch-update)
+- [otp-offers batch-update-states](#otp-offers-batch-update-states)
+- [otp-offers batch-delete](#otp-offers-batch-delete)
 - [pricing](#pricing)
 - [pricing convert](#pricing-convert)
 - [orders](#orders)
@@ -145,6 +179,10 @@
 - [generated-apks](#generated-apks)
 - [generated-apks list](#generated-apks-list)
 - [generated-apks download](#generated-apks-download)
+- [grants](#grants)
+- [grants create](#grants-create)
+- [grants update](#grants-update)
+- [grants delete](#grants-delete)
 - [internal-sharing](#internal-sharing)
 - [internal-sharing upload-apk](#internal-sharing-upload-apk)
 - [internal-sharing upload-bundle](#internal-sharing-upload-bundle)
@@ -169,6 +207,22 @@
 - [device-tiers list](#device-tiers-list)
 - [device-tiers get](#device-tiers-get)
 - [device-tiers create](#device-tiers-create)
+- [notify](#notify)
+- [notify send](#notify-send)
+- [migrate](#migrate)
+- [migrate fastlane](#migrate-fastlane)
+- [release-notes](#release-notes)
+- [release-notes generate](#release-notes-generate)
+- [reports](#reports)
+- [reports financial](#reports-financial)
+- [reports financial list](#reports-financial-list)
+- [reports financial download](#reports-financial-download)
+- [reports stats](#reports-stats)
+- [reports stats list](#reports-stats-list)
+- [reports stats download](#reports-stats-download)
+- [docs](#docs)
+- [docs generate](#docs-generate)
+- [update](#update)
 - [completion](#completion)
 - [completion bash](#completion-bash)
 - [completion zsh](#completion-zsh)
@@ -274,7 +328,34 @@ gplay auth doctor [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--confirm` | Required with --fix to apply changes (without it, --fix does a dry run) | `false` |
+| `--fix` | Attempt to auto-fix detected issues | `false` |
 | `--output` | Output format: text (default), json | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay apps
+
+List and manage apps accessible by the service account.
+
+```
+gplay apps <subcommand> [flags]
+```
+
+---
+
+## gplay apps list
+
+List all apps accessible by the service account.
+
+```
+gplay apps list [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -584,6 +665,89 @@ gplay tracks patch --package <name> --edit <id> --track <name> --releases <json>
 
 ---
 
+## gplay users
+
+Manage developer account team members.
+
+```
+gplay users <subcommand> [flags]
+```
+
+---
+
+## gplay users list
+
+List all users in the developer account.
+
+```
+gplay users list --developer <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | Developer ID (from Play Console URL) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--page-size` | Page size | `100` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay users create
+
+Create a new user.
+
+```
+gplay users create --developer <id> --email <email> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--json` | User permissions JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay users update
+
+Update a user's permissions.
+
+```
+gplay users update --developer <id> --email <email> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--json` | Updated user permissions JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--update-mask` | Fields to update (comma-separated) | `` |
+
+---
+
+## gplay users delete
+
+Remove a user from the developer account.
+
+```
+gplay users delete --developer <id> --email <email> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm deletion | `false` |
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay listings
 
 Manage store listings in an edit.
@@ -647,7 +811,7 @@ gplay listings update --package <name> --edit <id> --locale <lang> [flags]
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--short-description` | Short description | `` |
 | `--title` | Listing title | `` |
-| `--video` | Promo video URL | `` |
+| `--video` | YouTube promotional video URL (empty to clear) | `` |
 
 ---
 
@@ -669,7 +833,7 @@ gplay listings patch --package <name> --edit <id> --locale <lang> [flags]
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--short-description` | Short description | `` |
 | `--title` | Listing title | `` |
-| `--video` | Promo video URL | `` |
+| `--video` | YouTube promotional video URL (empty to clear) | `` |
 
 ---
 
@@ -704,6 +868,23 @@ gplay listings delete-all --package <name> --edit <id> --confirm
 |------|-------------|---------|
 | `--confirm` | Confirm delete | `false` |
 | `--edit` | Edit ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay listings locales
+
+List supported locales for an app's store listings.
+
+```
+gplay listings locales --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--edit` | Edit ID (if omitted, creates a temporary edit) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -797,6 +978,23 @@ gplay images delete-all --package <name> --edit <id> --locale <lang> --type <typ
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--type` | Image type | `` |
+
+---
+
+## gplay init
+
+Initialize a .gplay/config.yaml in the current directory.
+
+```
+gplay init [--package <name>] [--service-account <path>] [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--force` | Overwrite existing config | `false` |
+| `--package` | Default package name (applicationId) | `` |
+| `--service-account` | Path to service account JSON file | `` |
+| `--timeout` | Default request timeout | `30s` |
 
 ---
 
@@ -1077,12 +1275,16 @@ gplay release --package <name> --track <track> --bundle <path> [--release-notes 
 | `--apk` | Path to .apk file (use --bundle or --apk, not both) | `` |
 | `--bundle` | Path to .aab bundle file | `` |
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
+| `--listings-dir` | Path to listings metadata directory (locale/title.txt, short_description.txt, etc.) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--poll-interval` | Polling interval when waiting | `10s` |
 | `--pretty` | Pretty-print JSON output | `false` |
-| `--release-notes` | Release notes JSON (or @file). Format: [{"language": "en-US", "text": "..."}] | `` |
+| `--release-notes` | Release notes: plain text (en-US), JSON array, or @file path | `` |
 | `--rollout` | Staged rollout fraction (0.0-1.0, default: 1.0 for full rollout) | `1` |
+| `--screenshots-dir` | Path to screenshots directory (locale/deviceType/files) | `` |
+| `--skip-metadata` | Skip listings metadata update even if --listings-dir is set | `false` |
+| `--skip-screenshots` | Skip screenshot uploads even if --screenshots-dir is set | `false` |
 | `--status` | Release status: draft, inProgress, halted, completed | `completed` |
 | `--track` | Target track (production, beta, alpha, internal) | `internal` |
 | `--version-name` | Version name (optional, defaults to versionName from bundle/apk) | `` |
@@ -1350,6 +1552,183 @@ gplay validate screenshots --dir <path> [--locale <lang>]
 | `--dir` | Directory containing screenshots | `./metadata` |
 | `--locale` | Specific locale to validate (optional) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals
+
+App vitals: crashes, performance, and error reports.
+
+```
+gplay vitals <subcommand> [flags]
+```
+
+---
+
+## gplay vitals crashes
+
+Query crash and ANR metrics.
+
+```
+gplay vitals crashes <subcommand> [flags]
+```
+
+---
+
+## gplay vitals crashes query
+
+Query crash or ANR rate metrics.
+
+```
+gplay vitals crashes query --package <pkg> [--from <date>] [--to <date>] [--dimension <dim>] [--type crash|anr]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dimension` | Dimension to group by (versionCode, deviceModel, etc.) | `` |
+| `--from` | Start date (ISO 8601, e.g. 2025-01-01) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date (ISO 8601, e.g. 2025-01-31) | `` |
+| `--type` | Metric type: crash (default) or anr | `crash` |
+
+---
+
+## gplay vitals crashes anomalies
+
+List detected anomalies for crash and ANR metrics.
+
+```
+gplay vitals crashes anomalies --package <pkg>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals performance
+
+App startup, rendering, and battery performance metrics.
+
+```
+gplay vitals performance <subcommand> [flags]
+```
+
+---
+
+## gplay vitals performance startup
+
+Get app startup time metrics.
+
+```
+gplay vitals performance startup --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dimension` | Breakdown dimension (e.g. apiLevel, deviceModel, country) | `` |
+| `--from` | Start date (YYYY-MM-DD) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date (YYYY-MM-DD) | `` |
+
+---
+
+## gplay vitals performance rendering
+
+Get slow rendering metrics.
+
+```
+gplay vitals performance rendering --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dimension` | Breakdown dimension (e.g. apiLevel, deviceModel, country) | `` |
+| `--from` | Start date (YYYY-MM-DD) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date (YYYY-MM-DD) | `` |
+
+---
+
+## gplay vitals performance battery
+
+Get battery usage metrics.
+
+```
+gplay vitals performance battery --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dimension` | Breakdown dimension (e.g. apiLevel, deviceModel, country) | `` |
+| `--from` | Start date (YYYY-MM-DD) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date (YYYY-MM-DD) | `` |
+| `--type` | Battery metric type: wakeup or wakelock | `` |
+
+---
+
+## gplay vitals errors
+
+Search error issues and reports.
+
+```
+gplay vitals errors <subcommand> [flags]
+```
+
+---
+
+## gplay vitals errors issues
+
+Search grouped error issues.
+
+```
+gplay vitals errors issues --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--filter` | AIP-160 filter expression (e.g. 'errorIssueType = CRASH') | `` |
+| `--order-by` | Order results (e.g. 'errorReportCount desc') | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--page-size` | Max results per page (1-1000) | `50` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals errors reports
+
+Search individual error reports.
+
+```
+gplay vitals errors reports --package <name> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--filter` | AIP-160 filter expression (e.g. 'errorIssueType = CRASH') | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--page-size` | Max results per page (1-100) | `50` |
+| `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -1627,6 +2006,40 @@ gplay subscriptions archive --package <name> --product-id <id>
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Subscription product ID | `` |
+
+---
+
+## gplay subscriptions batch-get
+
+Get multiple subscriptions.
+
+```
+gplay subscriptions batch-get --package <name> --product-ids <ids>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-ids` | Comma-separated subscription product IDs | `` |
+
+---
+
+## gplay subscriptions batch-update
+
+Batch update multiple subscriptions.
+
+```
+gplay subscriptions batch-update --package <name> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | BatchUpdateSubscriptionsRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 
@@ -2018,6 +2431,7 @@ gplay onetimeproducts create --package <name> --product-id <id> --json <json>
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Product ID | `` |
+| `--regions-version` | Regions version for price migration | `` |
 
 ---
 
@@ -2031,11 +2445,13 @@ gplay onetimeproducts patch --package <name> --product-id <id> --json <json>
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--allow-missing` | Create if not exists | `false` |
 | `--json` | OneTimeProduct JSON (or @file) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Product ID | `` |
+| `--regions-version` | Regions version for price migration | `` |
 | `--update-mask` | Fields to update (comma-separated) | `` |
 
 ---
@@ -2107,6 +2523,217 @@ gplay onetimeproducts batch-delete --package <name> --json <json> --confirm
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay purchase-options
+
+Manage one-time product purchase options.
+
+```
+gplay purchase-options <subcommand> [flags]
+```
+
+---
+
+## gplay purchase-options batch-update-states
+
+Batch activate/deactivate purchase options.
+
+```
+gplay purchase-options batch-update-states --package <name> --product-id <id> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | BatchUpdatePurchaseOptionStatesRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+
+---
+
+## gplay purchase-options batch-delete
+
+Batch delete purchase options.
+
+```
+gplay purchase-options batch-delete --package <name> --product-id <id> --json <json> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm deletion | `false` |
+| `--json` | BatchDeletePurchaseOptionsRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+
+---
+
+## gplay otp-offers
+
+Manage one-time product purchase option offers.
+
+```
+gplay otp-offers <subcommand> [flags]
+```
+
+---
+
+## gplay otp-offers list
+
+List all offers for a purchase option.
+
+```
+gplay otp-offers list --package <name> --product-id <id> --purchase-option-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--page-size` | Page size | `100` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers activate
+
+Activate an OTP offer.
+
+```
+gplay otp-offers activate --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--offer-id` | Offer ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers deactivate
+
+Deactivate an OTP offer.
+
+```
+gplay otp-offers deactivate --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--offer-id` | Offer ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers cancel
+
+Cancel an OTP offer.
+
+```
+gplay otp-offers cancel --package <name> --product-id <id> --purchase-option-id <id> --offer-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--offer-id` | Offer ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers batch-get
+
+Get multiple OTP offers.
+
+```
+gplay otp-offers batch-get --package <name> --product-id <id> --purchase-option-id <id> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | BatchGetOneTimeProductOffersRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers batch-update
+
+Batch update multiple OTP offers.
+
+```
+gplay otp-offers batch-update --package <name> --product-id <id> --purchase-option-id <id> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | BatchUpdateOneTimeProductOffersRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers batch-update-states
+
+Batch activate/deactivate/cancel multiple OTP offers.
+
+```
+gplay otp-offers batch-update-states --package <name> --product-id <id> --purchase-option-id <id> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | BatchUpdateOneTimeProductOfferStatesRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
+
+---
+
+## gplay otp-offers batch-delete
+
+Batch delete OTP offers.
+
+```
+gplay otp-offers batch-delete --package <name> --product-id <id> --purchase-option-id <id> --json <json> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm deletion | `false` |
+| `--json` | BatchDeleteOneTimeProductOffersRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--product-id` | One-time product ID | `` |
+| `--purchase-option-id` | Purchase option ID | `` |
 
 ---
 
@@ -2528,6 +3155,74 @@ gplay generated-apks download --package <name> --version-code <code> --download-
 
 ---
 
+## gplay grants
+
+Manage per-app permission grants.
+
+```
+gplay grants <subcommand> [flags]
+```
+
+---
+
+## gplay grants create
+
+Create a grant for a user on an app.
+
+```
+gplay grants create --developer <id> --email <email> --package <pkg> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--json` | Grant permissions JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay grants update
+
+Update a grant's permissions.
+
+```
+gplay grants update --developer <id> --email <email> --package <pkg> --json <json>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--json` | Updated grant permissions JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--update-mask` | Fields to update (comma-separated) | `` |
+
+---
+
+## gplay grants delete
+
+Remove a grant from a user.
+
+```
+gplay grants delete --developer <id> --email <email> --package <pkg> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm deletion | `false` |
+| `--developer` | Developer ID | `` |
+| `--email` | User email address | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay internal-sharing
 
 Quick internal testing without review.
@@ -2905,6 +3600,242 @@ gplay device-tiers create --package <name> --json <json>
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay notify
+
+Send notifications to Slack, Discord, or HTTP webhooks.
+
+```
+gplay notify <subcommand> [flags]
+```
+
+---
+
+## gplay notify send
+
+Send a notification to a webhook.
+
+```
+gplay notify send --webhook-url <url> --message <text> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--event-type` | Event tag (e.g., release, review, rollout) | `` |
+| `--format` | Payload format: slack (default), discord, generic | `slack` |
+| `--message` | Notification message text (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name for message context | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--webhook-url` | Webhook URL (required) | `` |
+
+---
+
+## gplay migrate
+
+Migrate metadata from other tools.
+
+```
+gplay migrate <subcommand> [flags]
+```
+
+---
+
+## gplay migrate fastlane
+
+Import metadata from Fastlane directory structure.
+
+```
+gplay migrate fastlane --source <path> [--output-dir <path>] [--dry-run] [--locales <list>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Preview what would be imported without writing files | `false` |
+| `--locales` | Comma-separated list of locales to import (default: all) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--output-dir` | Output directory for imported metadata | `.gplay/metadata/` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--source` | Path to Fastlane metadata/android/ directory (required) | `` |
+
+---
+
+## gplay release-notes
+
+Generate release notes from git history.
+
+```
+gplay release-notes <subcommand> [flags]
+```
+
+---
+
+## gplay release-notes generate
+
+Generate release notes from git commit history.
+
+```
+gplay release-notes generate --since-tag <tag> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--max-chars` | Maximum character count (Google Play limit: 500) | `500` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--since-ref` | Start from this git ref (exclusive, alternative to --since-tag) | `` |
+| `--since-tag` | Start from this git tag (exclusive) | `` |
+| `--until-ref` | End at this ref (inclusive, default: HEAD) | `HEAD` |
+
+---
+
+## gplay reports
+
+Download and manage Play Console reports.
+
+```
+gplay reports <subcommand> [flags]
+```
+
+---
+
+## gplay reports financial
+
+Manage financial reports (earnings, sales, payouts).
+
+```
+gplay reports financial <subcommand> [flags]
+```
+
+---
+
+## gplay reports financial list
+
+List available financial reports.
+
+```
+gplay reports financial list --developer <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--from` | Start month in YYYY-MM format | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End month in YYYY-MM format | `` |
+| `--type` | Report type: earnings, sales, payouts, all | `all` |
+
+---
+
+## gplay reports financial download
+
+Download financial reports.
+
+```
+gplay reports financial download --developer <id> --from <YYYY-MM> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--dir` | Output directory | `.` |
+| `--from` | Start month in YYYY-MM format (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End month in YYYY-MM format (defaults to --from) | `` |
+| `--type` | Report type: earnings, sales, payouts | `earnings` |
+
+---
+
+## gplay reports stats
+
+Download and list aggregated statistics reports (installs, ratings, crashes).
+
+```
+gplay reports stats <subcommand> [flags]
+```
+
+---
+
+## gplay reports stats list
+
+List available statistics reports.
+
+```
+gplay reports stats list --developer <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--from` | Start month in YYYY-MM format | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (filters results by package) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End month in YYYY-MM format | `` |
+| `--type` | Stats type: installs, ratings, crashes, store_performance, subscriptions, all | `all` |
+
+---
+
+## gplay reports stats download
+
+Download statistics reports.
+
+```
+gplay reports stats download --developer <id> --package <name> --from <YYYY-MM> --type <type> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--dir` | Output directory | `.` |
+| `--from` | Start month in YYYY-MM format (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (required) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End month in YYYY-MM format (defaults to --from) | `` |
+| `--type` | Stats type: installs, ratings, crashes, store_performance, subscriptions (required) | `` |
+
+---
+
+## gplay docs
+
+Documentation generation tools.
+
+```
+gplay docs <subcommand> [flags]
+```
+
+---
+
+## gplay docs generate
+
+Generate a markdown command reference from the CLI tree.
+
+```
+gplay docs generate [--output-file <path>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output-file` | Output file path (use - for stdout) | `GPLAY.md` |
+
+---
+
+## gplay update
+
+Update gplay to the latest version.
+
+```
+gplay update [--check] [--force]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--check` | Only check for updates, don't install | `false` |
+| `--force` | Force update even if already on latest | `false` |
 
 ---
 

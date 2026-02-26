@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.5] - 2026-02-26
+
+### Added
+
+#### New Commands
+- `gplay purchase-options batch-update-states` — Batch activate/deactivate one-time product purchase options
+- `gplay purchase-options batch-delete` — Batch delete one-time product purchase options
+- `gplay otp-offers list` — List offers for a purchase option
+- `gplay otp-offers activate` — Activate an OTP offer
+- `gplay otp-offers deactivate` — Deactivate an OTP offer
+- `gplay otp-offers cancel` — Cancel an OTP offer
+- `gplay otp-offers batch-get` — Get multiple OTP offers
+- `gplay otp-offers batch-update` — Batch update OTP offers
+- `gplay otp-offers batch-update-states` — Batch activate/deactivate/cancel OTP offers
+- `gplay otp-offers batch-delete` — Batch delete OTP offers
+- `gplay subscriptions batch-get` — Get multiple subscriptions by product IDs
+- `gplay subscriptions batch-update` — Batch update multiple subscriptions
+
+### Fixed
+- `onetimeproducts create` now sets `AllowMissing(true)` on the Patch call (required for creation) and supports `--regions-version`
+- `onetimeproducts patch` now supports `--regions-version` and `--allow-missing` flags
+
 ## [0.4.4] - 2026-02-18
 
 ### Added

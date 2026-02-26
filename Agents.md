@@ -33,6 +33,8 @@ gplay vitals performance        # Performance metrics (startup, rendering, batte
 gplay vitals errors             # Error issues and reports
 gplay users                     # Manage developer account users (list, create, update, delete)
 gplay grants                    # Manage per-app permission grants (create, update, delete)
+gplay purchase-options           # Manage OTP purchase options (batch-update-states, batch-delete)
+gplay otp-offers                # Manage OTP purchase option offers (list, activate, deactivate, cancel, batch ops)
 gplay update                    # Self-update the CLI binary
 gplay notify send               # Send webhook notifications (Slack, Discord, generic)
 gplay migrate fastlane          # Migrate from Fastlane metadata

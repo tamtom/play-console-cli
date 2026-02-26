@@ -33,8 +33,10 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
 	"github.com/tamtom/play-console-cli/internal/cli/onetimeproducts"
 	"github.com/tamtom/play-console-cli/internal/cli/orders"
+	"github.com/tamtom/play-console-cli/internal/cli/otpoffers"
 	"github.com/tamtom/play-console-cli/internal/cli/pricing"
 	"github.com/tamtom/play-console-cli/internal/cli/promote"
+	"github.com/tamtom/play-console-cli/internal/cli/purchaseoptions"
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
 	"github.com/tamtom/play-console-cli/internal/cli/release"
@@ -97,6 +99,8 @@ func Subcommands(version string) []*ffcli.Command {
 		baseplans.BasePlansCommand(),
 		offers.OffersCommand(),
 		onetimeproducts.OneTimeProductsCommand(),
+		purchaseoptions.PurchaseOptionsCommand(),
+		otpoffers.OTPOffersCommand(),
 		pricing.PricingCommand(),
 		orders.OrdersCommand(),
 		purchases.PurchasesCommand(),

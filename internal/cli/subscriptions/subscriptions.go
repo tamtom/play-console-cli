@@ -36,6 +36,8 @@ Use the "baseplans" and "offers" commands to manage those resources.`,
 			UpdateCommand(),
 			DeleteCommand(),
 			ArchiveCommand(),
+			BatchGetCommand(),
+			BatchUpdateCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -388,6 +390,94 @@ func ArchiveCommand() *ffcli.Command {
 
 			req := &androidpublisher.ArchiveSubscriptionRequest{}
 			resp, err := service.API.Monetization.Subscriptions.Archive(pkg, *productID, req).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func BatchGetCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("subscriptions batch-get", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	productIDs := fs.String("product-ids", "", "Comma-separated subscription product IDs")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "batch-get",
+		ShortUsage: "gplay subscriptions batch-get --package <name> --product-ids <ids>",
+		ShortHelp:  "Get multiple subscriptions.",
+		FlagSet:    fs,
+		UsageFunc:  shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*productIDs) == "" {
+				return fmt.Errorf("--product-ids is required")
+			}
+			service, err := playclient.NewService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			ids := strings.Split(*productIDs, ",")
+			resp, err := service.API.Monetization.Subscriptions.BatchGet(pkg).ProductIds(ids...).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func BatchUpdateCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("subscriptions batch-update", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	jsonFlag := fs.String("json", "", "BatchUpdateSubscriptionsRequest JSON (or @file)")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "batch-update",
+		ShortUsage: "gplay subscriptions batch-update --package <name> --json <json>",
+		ShortHelp:  "Batch update multiple subscriptions.",
+		FlagSet:    fs,
+		UsageFunc:  shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			service, err := playclient.NewService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			var req androidpublisher.BatchUpdateSubscriptionsRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Monetization.Subscriptions.BatchUpdate(pkg, &req).Context(ctx).Do()
 			if err != nil {
 				return err
 			}
