@@ -134,18 +134,18 @@ func TestReportsCommand_Financial_NoArgs_ReturnsHelp(t *testing.T) {
 
 // --- financial list ---
 
-func TestFinancialList_MissingDeveloper(t *testing.T) {
+func TestFinancialList_MissingBucketID(t *testing.T) {
 	err := execCommand(t, []string{"financial", "list"})
 	if err == nil {
-		t.Fatal("expected error for missing --developer")
+		t.Fatal("expected error for missing --bucket-id")
 	}
-	if !strings.Contains(err.Error(), "--developer is required") {
+	if !strings.Contains(err.Error(), "--bucket-id is required") {
 		t.Errorf("expected '--developer is required' error, got: %v", err)
 	}
 }
 
 func TestFinancialList_InvalidFromMonth(t *testing.T) {
-	err := execCommand(t, []string{"financial", "list", "--developer", "12345", "--from", "2024-13"})
+	err := execCommand(t, []string{"financial", "list", "--bucket-id", "12345", "--from", "2024-13"})
 	if err == nil {
 		t.Fatal("expected error for invalid --from month")
 	}
@@ -155,7 +155,7 @@ func TestFinancialList_InvalidFromMonth(t *testing.T) {
 }
 
 func TestFinancialList_InvalidToMonth(t *testing.T) {
-	err := execCommand(t, []string{"financial", "list", "--developer", "12345", "--to", "bad"})
+	err := execCommand(t, []string{"financial", "list", "--bucket-id", "12345", "--to", "bad"})
 	if err == nil {
 		t.Fatal("expected error for invalid --to month")
 	}
@@ -165,7 +165,7 @@ func TestFinancialList_InvalidToMonth(t *testing.T) {
 }
 
 func TestFinancialList_InvalidType(t *testing.T) {
-	err := execCommand(t, []string{"financial", "list", "--developer", "12345", "--type", "unknown"})
+	err := execCommand(t, []string{"financial", "list", "--bucket-id", "12345", "--type", "unknown"})
 	if err == nil {
 		t.Fatal("expected error for invalid --type")
 	}
@@ -176,7 +176,7 @@ func TestFinancialList_InvalidType(t *testing.T) {
 
 func TestFinancialList_ValidMinimalFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
-	err := execCommand(t, []string{"financial", "list", "--developer", "12345"})
+	err := execCommand(t, []string{"financial", "list", "--bucket-id", "12345"})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -186,7 +186,7 @@ func TestFinancialList_ValidAllFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"financial", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--from", "2024-01",
 		"--to", "2024-06",
 		"--type", "earnings",
@@ -200,7 +200,7 @@ func TestFinancialList_TypeAll(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"financial", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--type", "all",
 	})
 	if err != nil {
@@ -211,7 +211,7 @@ func TestFinancialList_TypeAll(t *testing.T) {
 func TestFinancialList_PrettyWithTable(t *testing.T) {
 	err := execCommand(t, []string{
 		"financial", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--output", "table",
 		"--pretty",
 	})
@@ -225,18 +225,18 @@ func TestFinancialList_PrettyWithTable(t *testing.T) {
 
 // --- financial download ---
 
-func TestFinancialDownload_MissingDeveloper(t *testing.T) {
+func TestFinancialDownload_MissingBucketID(t *testing.T) {
 	err := execCommand(t, []string{"financial", "download", "--from", "2024-01"})
 	if err == nil {
-		t.Fatal("expected error for missing --developer")
+		t.Fatal("expected error for missing --bucket-id")
 	}
-	if !strings.Contains(err.Error(), "--developer is required") {
+	if !strings.Contains(err.Error(), "--bucket-id is required") {
 		t.Errorf("expected '--developer is required' error, got: %v", err)
 	}
 }
 
 func TestFinancialDownload_MissingFrom(t *testing.T) {
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345"})
 	if err == nil {
 		t.Fatal("expected error for missing --from")
 	}
@@ -246,7 +246,7 @@ func TestFinancialDownload_MissingFrom(t *testing.T) {
 }
 
 func TestFinancialDownload_InvalidFromMonth(t *testing.T) {
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345", "--from", "2024-00"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345", "--from", "2024-00"})
 	if err == nil {
 		t.Fatal("expected error for invalid --from month")
 	}
@@ -256,7 +256,7 @@ func TestFinancialDownload_InvalidFromMonth(t *testing.T) {
 }
 
 func TestFinancialDownload_InvalidToMonth(t *testing.T) {
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345", "--from", "2024-01", "--to", "2024-13"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345", "--from", "2024-01", "--to", "2024-13"})
 	if err == nil {
 		t.Fatal("expected error for invalid --to month")
 	}
@@ -266,7 +266,7 @@ func TestFinancialDownload_InvalidToMonth(t *testing.T) {
 }
 
 func TestFinancialDownload_InvalidType(t *testing.T) {
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345", "--from", "2024-01", "--type", "bogus"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345", "--from", "2024-01", "--type", "bogus"})
 	if err == nil {
 		t.Fatal("expected error for invalid --type")
 	}
@@ -276,7 +276,7 @@ func TestFinancialDownload_InvalidType(t *testing.T) {
 }
 
 func TestFinancialDownload_TypeAllNotAllowed(t *testing.T) {
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345", "--from", "2024-01", "--type", "all"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345", "--from", "2024-01", "--type", "all"})
 	if err == nil {
 		t.Fatal("expected error for --type all on download")
 	}
@@ -287,7 +287,7 @@ func TestFinancialDownload_TypeAllNotAllowed(t *testing.T) {
 
 func TestFinancialDownload_ValidMinimalFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
-	err := execCommand(t, []string{"financial", "download", "--developer", "12345", "--from", "2024-01"})
+	err := execCommand(t, []string{"financial", "download", "--bucket-id", "12345", "--from", "2024-01"})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestFinancialDownload_ValidAllFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"financial", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--from", "2024-01",
 		"--to", "2024-06",
 		"--type", "sales",
@@ -312,7 +312,7 @@ func TestFinancialDownload_ToDefaultsToFrom(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"financial", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--from", "2024-03",
 		"--type", "payouts",
 	})
@@ -324,7 +324,7 @@ func TestFinancialDownload_ToDefaultsToFrom(t *testing.T) {
 func TestFinancialDownload_PrettyWithMarkdown(t *testing.T) {
 	err := execCommand(t, []string{
 		"financial", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--from", "2024-01",
 		"--output", "markdown",
 		"--pretty",
@@ -394,7 +394,7 @@ func TestFinancialList_ReturnsObjects(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"financial", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--type", "earnings",
 		"--from", "2024-01",
 		"--to", "2024-03",
@@ -442,7 +442,7 @@ func TestFinancialList_AllTypes(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"financial", "list",
-		"--developer", "99",
+		"--bucket-id", "99",
 		"--type", "all",
 	})
 
@@ -482,7 +482,7 @@ func TestFinancialDownload_WritesFiles(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"financial", "download",
-		"--developer", "42",
+		"--bucket-id", "42",
 		"--from", "2024-01",
 		"--type", "earnings",
 		"--dir", dir,
@@ -536,7 +536,7 @@ func TestFinancialDownload_DateRangeFilters(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"financial", "download",
-		"--developer", "10",
+		"--bucket-id", "10",
 		"--from", "2024-04",
 		"--to", "2024-09",
 		"--type", "sales",
@@ -558,6 +558,29 @@ func TestFinancialDownload_DateRangeFilters(t *testing.T) {
 	files := result["files"].([]interface{})
 	if len(files) != 1 {
 		t.Errorf("expected 1 file (only 202406 in range), got %d: %s", len(files), out)
+	}
+}
+
+// --- parseBucketID unit tests ---
+
+func TestParseBucketID(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"12345", "12345"},
+		{"  12345  ", "12345"},
+		{"gs://pubsite_prod_rev_12345/", "12345"},
+		{"gs://pubsite_prod_rev_12345/earnings/", "12345"},
+		{"gs://pubsite_prod_rev_99887766/", "99887766"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := parseBucketID(tt.input)
+			if got != tt.want {
+				t.Errorf("parseBucketID(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
 	}
 }
 

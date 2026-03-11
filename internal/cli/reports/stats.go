@@ -80,7 +80,7 @@ func StatsCommand() *ffcli.Command {
 // StatsListCommand returns the stats list subcommand.
 func StatsListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("stats list", flag.ExitOnError)
-	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
+	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	pkg := fs.String("package", "", "Package name (filters results by package)")
 	from := fs.String("from", "", "Start month in YYYY-MM format")
 	to := fs.String("to", "", "End month in YYYY-MM format")
@@ -90,7 +90,7 @@ func StatsListCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "list",
-		ShortUsage: "gplay reports stats list --developer <id> [flags]",
+		ShortUsage: "gplay reports stats list --bucket-id <id> [flags]",
 		ShortHelp:  "List available statistics reports.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
@@ -98,8 +98,8 @@ func StatsListCommand() *ffcli.Command {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			if strings.TrimSpace(*developer) == "" {
-				return fmt.Errorf("--developer is required")
+			if strings.TrimSpace(*bucketID) == "" {
+				return fmt.Errorf("--bucket-id is required")
 			}
 			if *from != "" {
 				if err := validateMonth(*from, "from"); err != nil {
@@ -120,7 +120,8 @@ func StatsListCommand() *ffcli.Command {
 				return err
 			}
 
-			bucket := bucketName(*developer)
+			id := parseBucketID(*bucketID)
+			bucket := bucketName(id)
 			prefixes := statsPrefixesForType(*statsType)
 
 			var reports []gcsclient.ObjectInfo
@@ -141,7 +142,7 @@ func StatsListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"developer": *developer,
+				"bucket_id": id,
 				"bucket":    bucket,
 				"reports":   reports,
 			}
@@ -153,7 +154,7 @@ func StatsListCommand() *ffcli.Command {
 // StatsDownloadCommand returns the stats download subcommand.
 func StatsDownloadCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("stats download", flag.ExitOnError)
-	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
+	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	pkg := fs.String("package", "", "Package name (required)")
 	from := fs.String("from", "", "Start month in YYYY-MM format (required)")
 	to := fs.String("to", "", "End month in YYYY-MM format (defaults to --from)")
@@ -164,7 +165,7 @@ func StatsDownloadCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "download",
-		ShortUsage: "gplay reports stats download --developer <id> --package <name> --from <YYYY-MM> --type <type> [flags]",
+		ShortUsage: "gplay reports stats download --bucket-id <id> --package <name> --from <YYYY-MM> --type <type> [flags]",
 		ShortHelp:  "Download statistics reports.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
@@ -172,8 +173,8 @@ func StatsDownloadCommand() *ffcli.Command {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			if strings.TrimSpace(*developer) == "" {
-				return fmt.Errorf("--developer is required")
+			if strings.TrimSpace(*bucketID) == "" {
+				return fmt.Errorf("--bucket-id is required")
 			}
 			if strings.TrimSpace(*pkg) == "" {
 				return fmt.Errorf("--package is required")
@@ -207,7 +208,8 @@ func StatsDownloadCommand() *ffcli.Command {
 				return err
 			}
 
-			bucket := bucketName(*developer)
+			id := parseBucketID(*bucketID)
+			bucket := bucketName(id)
 			prefix := statsPrefixes[*statsType]
 
 			objects, err := svc.ListObjects(ctx, bucket, prefix)
@@ -235,7 +237,7 @@ func StatsDownloadCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"developer": *developer,
+				"bucket_id": id,
 				"package":   *pkg,
 				"type":      *statsType,
 				"from":      *from,

@@ -22,18 +22,18 @@ func TestStatsCommand_NoArgs_ReturnsHelp(t *testing.T) {
 
 // --- stats list ---
 
-func TestStatsList_MissingDeveloper(t *testing.T) {
+func TestStatsList_MissingBucketID(t *testing.T) {
 	err := execCommand(t, []string{"stats", "list"})
 	if err == nil {
-		t.Fatal("expected error for missing --developer")
+		t.Fatal("expected error for missing --bucket-id")
 	}
-	if !strings.Contains(err.Error(), "--developer is required") {
+	if !strings.Contains(err.Error(), "--bucket-id is required") {
 		t.Errorf("expected '--developer is required' error, got: %v", err)
 	}
 }
 
 func TestStatsList_InvalidFromMonth(t *testing.T) {
-	err := execCommand(t, []string{"stats", "list", "--developer", "12345", "--from", "2024-13"})
+	err := execCommand(t, []string{"stats", "list", "--bucket-id", "12345", "--from", "2024-13"})
 	if err == nil {
 		t.Fatal("expected error for invalid --from month")
 	}
@@ -43,7 +43,7 @@ func TestStatsList_InvalidFromMonth(t *testing.T) {
 }
 
 func TestStatsList_InvalidToMonth(t *testing.T) {
-	err := execCommand(t, []string{"stats", "list", "--developer", "12345", "--to", "bad"})
+	err := execCommand(t, []string{"stats", "list", "--bucket-id", "12345", "--to", "bad"})
 	if err == nil {
 		t.Fatal("expected error for invalid --to month")
 	}
@@ -53,7 +53,7 @@ func TestStatsList_InvalidToMonth(t *testing.T) {
 }
 
 func TestStatsList_InvalidType(t *testing.T) {
-	err := execCommand(t, []string{"stats", "list", "--developer", "12345", "--type", "unknown"})
+	err := execCommand(t, []string{"stats", "list", "--bucket-id", "12345", "--type", "unknown"})
 	if err == nil {
 		t.Fatal("expected error for invalid --type")
 	}
@@ -64,7 +64,7 @@ func TestStatsList_InvalidType(t *testing.T) {
 
 func TestStatsList_ValidMinimalFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
-	err := execCommand(t, []string{"stats", "list", "--developer", "12345"})
+	err := execCommand(t, []string{"stats", "list", "--bucket-id", "12345"})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestStatsList_ValidAllFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"stats", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--package", "com.example.app",
 		"--from", "2025-01",
 		"--to", "2025-06",
@@ -89,7 +89,7 @@ func TestStatsList_TypeAll(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"stats", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--type", "all",
 	})
 	if err != nil {
@@ -103,7 +103,7 @@ func TestStatsList_AllStatsTypes(t *testing.T) {
 	for _, st := range types {
 		err := execCommand(t, []string{
 			"stats", "list",
-			"--developer", "12345",
+			"--bucket-id", "12345",
 			"--type", st,
 		})
 		if err != nil {
@@ -115,7 +115,7 @@ func TestStatsList_AllStatsTypes(t *testing.T) {
 func TestStatsList_PrettyWithTable(t *testing.T) {
 	err := execCommand(t, []string{
 		"stats", "list",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--output", "table",
 		"--pretty",
 	})
@@ -129,18 +129,18 @@ func TestStatsList_PrettyWithTable(t *testing.T) {
 
 // --- stats download ---
 
-func TestStatsDownload_MissingDeveloper(t *testing.T) {
+func TestStatsDownload_MissingBucketID(t *testing.T) {
 	err := execCommand(t, []string{"stats", "download", "--package", "com.example.app", "--from", "2025-01", "--type", "installs"})
 	if err == nil {
-		t.Fatal("expected error for missing --developer")
+		t.Fatal("expected error for missing --bucket-id")
 	}
-	if !strings.Contains(err.Error(), "--developer is required") {
+	if !strings.Contains(err.Error(), "--bucket-id is required") {
 		t.Errorf("expected '--developer is required' error, got: %v", err)
 	}
 }
 
 func TestStatsDownload_MissingPackage(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--from", "2025-01", "--type", "installs"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--from", "2025-01", "--type", "installs"})
 	if err == nil {
 		t.Fatal("expected error for missing --package")
 	}
@@ -150,7 +150,7 @@ func TestStatsDownload_MissingPackage(t *testing.T) {
 }
 
 func TestStatsDownload_MissingFrom(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--type", "installs"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--type", "installs"})
 	if err == nil {
 		t.Fatal("expected error for missing --from")
 	}
@@ -160,7 +160,7 @@ func TestStatsDownload_MissingFrom(t *testing.T) {
 }
 
 func TestStatsDownload_MissingType(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-01"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-01"})
 	if err == nil {
 		t.Fatal("expected error for missing --type")
 	}
@@ -170,7 +170,7 @@ func TestStatsDownload_MissingType(t *testing.T) {
 }
 
 func TestStatsDownload_InvalidFromMonth(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-00", "--type", "installs"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-00", "--type", "installs"})
 	if err == nil {
 		t.Fatal("expected error for invalid --from month")
 	}
@@ -180,7 +180,7 @@ func TestStatsDownload_InvalidFromMonth(t *testing.T) {
 }
 
 func TestStatsDownload_InvalidToMonth(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-01", "--to", "2025-13", "--type", "installs"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-01", "--to", "2025-13", "--type", "installs"})
 	if err == nil {
 		t.Fatal("expected error for invalid --to month")
 	}
@@ -190,7 +190,7 @@ func TestStatsDownload_InvalidToMonth(t *testing.T) {
 }
 
 func TestStatsDownload_InvalidType(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "bogus"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "bogus"})
 	if err == nil {
 		t.Fatal("expected error for invalid --type")
 	}
@@ -200,7 +200,7 @@ func TestStatsDownload_InvalidType(t *testing.T) {
 }
 
 func TestStatsDownload_TypeAllNotAllowed(t *testing.T) {
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "all"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "all"})
 	if err == nil {
 		t.Fatal("expected error for --type all on download")
 	}
@@ -211,7 +211,7 @@ func TestStatsDownload_TypeAllNotAllowed(t *testing.T) {
 
 func TestStatsDownload_ValidMinimalFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
-	err := execCommand(t, []string{"stats", "download", "--developer", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "installs"})
+	err := execCommand(t, []string{"stats", "download", "--bucket-id", "12345", "--package", "com.example.app", "--from", "2025-01", "--type", "installs"})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestStatsDownload_ValidAllFlags(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"stats", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--package", "com.example.app",
 		"--from", "2025-01",
 		"--to", "2025-06",
@@ -237,7 +237,7 @@ func TestStatsDownload_ToDefaultsToFrom(t *testing.T) {
 	setupMockGCSEmpty(t)
 	err := execCommand(t, []string{
 		"stats", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--package", "com.example.app",
 		"--from", "2025-03",
 		"--type", "ratings",
@@ -253,7 +253,7 @@ func TestStatsDownload_AllValidTypes(t *testing.T) {
 	for _, st := range types {
 		err := execCommand(t, []string{
 			"stats", "download",
-			"--developer", "12345",
+			"--bucket-id", "12345",
 			"--package", "com.example.app",
 			"--from", "2025-01",
 			"--type", st,
@@ -267,7 +267,7 @@ func TestStatsDownload_AllValidTypes(t *testing.T) {
 func TestStatsDownload_PrettyWithMarkdown(t *testing.T) {
 	err := execCommand(t, []string{
 		"stats", "download",
-		"--developer", "12345",
+		"--bucket-id", "12345",
 		"--package", "com.example.app",
 		"--from", "2025-01",
 		"--type", "installs",
@@ -318,7 +318,7 @@ func TestStatsList_ReturnsObjects(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"stats", "list",
-		"--developer", "55",
+		"--bucket-id", "55",
 		"--package", "com.example.app",
 		"--type", "installs",
 	})
@@ -358,7 +358,7 @@ func TestStatsList_FiltersByDateRange(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"stats", "list",
-		"--developer", "55",
+		"--bucket-id", "55",
 		"--type", "ratings",
 		"--from", "2025-04",
 		"--to", "2025-09",
@@ -400,7 +400,7 @@ func TestStatsDownload_WritesFiles(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"stats", "download",
-		"--developer", "77",
+		"--bucket-id", "77",
 		"--package", "com.example.app",
 		"--from", "2025-01",
 		"--type", "crashes",
@@ -454,7 +454,7 @@ func TestStatsDownload_FiltersByPackage(t *testing.T) {
 
 	err := execCommand(t, []string{
 		"stats", "download",
-		"--developer", "88",
+		"--bucket-id", "88",
 		"--package", "com.example.app",
 		"--from", "2025-01",
 		"--type", "installs",

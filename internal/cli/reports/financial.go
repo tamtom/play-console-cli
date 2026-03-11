@@ -62,9 +62,22 @@ func validateReportType(value string) error {
 	return nil
 }
 
-// bucketName constructs the GCS bucket name from a developer ID.
-func bucketName(developerID string) string {
-	return "pubsite_prod_rev_" + developerID
+// bucketName constructs the GCS bucket name from a bucket ID.
+func bucketName(bucketID string) string {
+	return "pubsite_prod_rev_" + bucketID
+}
+
+// parseBucketID extracts the bucket ID from a raw flag value.
+// Accepts a plain ID ("12345") or a full GCS URI ("gs://pubsite_prod_rev_12345/" or "gs://pubsite_prod_rev_12345/earnings/").
+func parseBucketID(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if strings.HasPrefix(raw, "gs://pubsite_prod_rev_") {
+		raw = strings.TrimPrefix(raw, "gs://pubsite_prod_rev_")
+		if idx := strings.Index(raw, "/"); idx >= 0 {
+			raw = raw[:idx]
+		}
+	}
+	return raw
 }
 
 // monthToCompact converts "2024-01" to "202401" for filename matching.
@@ -114,7 +127,7 @@ func FinancialCommand() *ffcli.Command {
 // FinancialListCommand returns the financial list subcommand.
 func FinancialListCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("financial list", flag.ExitOnError)
-	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
+	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format")
 	to := fs.String("to", "", "End month in YYYY-MM format")
 	reportType := fs.String("type", "all", "Report type: earnings, sales, payouts, all")
@@ -123,7 +136,7 @@ func FinancialListCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "list",
-		ShortUsage: "gplay reports financial list --developer <id> [flags]",
+		ShortUsage: "gplay reports financial list --bucket-id <id> [flags]",
 		ShortHelp:  "List available financial reports.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
@@ -131,8 +144,8 @@ func FinancialListCommand() *ffcli.Command {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			if strings.TrimSpace(*developer) == "" {
-				return fmt.Errorf("--developer is required")
+			if strings.TrimSpace(*bucketID) == "" {
+				return fmt.Errorf("--bucket-id is required")
 			}
 			if *from != "" {
 				if err := validateMonth(*from, "from"); err != nil {
@@ -153,7 +166,8 @@ func FinancialListCommand() *ffcli.Command {
 				return err
 			}
 
-			bucket := bucketName(*developer)
+			id := parseBucketID(*bucketID)
+			bucket := bucketName(id)
 			prefixes := financialPrefixesForType(*reportType)
 
 			var reports []gcsclient.ObjectInfo
@@ -170,7 +184,7 @@ func FinancialListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"developer": *developer,
+				"bucket_id": id,
 				"bucket":    bucket,
 				"reports":   reports,
 			}
@@ -182,7 +196,7 @@ func FinancialListCommand() *ffcli.Command {
 // FinancialDownloadCommand returns the financial download subcommand.
 func FinancialDownloadCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("financial download", flag.ExitOnError)
-	developer := fs.String("developer", "", "GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI)")
+	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format (required)")
 	to := fs.String("to", "", "End month in YYYY-MM format (defaults to --from)")
 	reportType := fs.String("type", "earnings", "Report type: earnings, sales, payouts")
@@ -192,7 +206,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "download",
-		ShortUsage: "gplay reports financial download --developer <id> --from <YYYY-MM> [flags]",
+		ShortUsage: "gplay reports financial download --bucket-id <id> --from <YYYY-MM> [flags]",
 		ShortHelp:  "Download financial reports.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
@@ -200,8 +214,8 @@ func FinancialDownloadCommand() *ffcli.Command {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			if strings.TrimSpace(*developer) == "" {
-				return fmt.Errorf("--developer is required")
+			if strings.TrimSpace(*bucketID) == "" {
+				return fmt.Errorf("--bucket-id is required")
 			}
 			if strings.TrimSpace(*from) == "" {
 				return fmt.Errorf("--from is required")
@@ -229,7 +243,8 @@ func FinancialDownloadCommand() *ffcli.Command {
 				return err
 			}
 
-			bucket := bucketName(*developer)
+			id := parseBucketID(*bucketID)
+			bucket := bucketName(id)
 			prefix := financialPrefixes[*reportType]
 
 			objects, err := svc.ListObjects(ctx, bucket, prefix)
@@ -254,7 +269,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"developer": *developer,
+				"bucket_id": id,
 				"type":      *reportType,
 				"from":      *from,
 				"to":        effectiveTo,
