@@ -126,7 +126,7 @@ func ContextWithTimeout(ctx context.Context, cfg *config.Config) (context.Contex
 	if requestTimeout <= 0 {
 		return ctx, func() {}
 	}
-	return context.WithTimeout(ctx, requestTimeout)
+	return context.WithTimeout(ctx, requestTimeout) // #nosec G118 -- cancel is returned to caller
 }
 
 // ContextWithUploadTimeout applies upload timeouts.
@@ -135,7 +135,7 @@ func ContextWithUploadTimeout(ctx context.Context, cfg *config.Config) (context.
 	if uploadTimeout <= 0 {
 		return ctx, func() {}
 	}
-	return context.WithTimeout(ctx, uploadTimeout)
+	return context.WithTimeout(ctx, uploadTimeout) // #nosec G118 -- cancel is returned to caller
 }
 
 // RequireFlags ensures the required flags are provided.
