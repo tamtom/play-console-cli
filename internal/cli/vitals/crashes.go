@@ -69,8 +69,8 @@ separate from the Android Publisher API used by other commands.`,
 			}
 
 			return fmt.Errorf(
-				"Play Developer Reporting API client is not yet connected. "+
-					"Would call POST apps/%s/%s:query with the provided parameters",
+				"play Developer Reporting API client is not yet connected, "+
+					"would call POST apps/%s/%s:query with the provided parameters",
 				*packageName, metricSet,
 			)
 		},

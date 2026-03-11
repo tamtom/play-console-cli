@@ -37,8 +37,8 @@ separate from the Android Publisher API used by other commands.`,
 			}
 
 			return fmt.Errorf(
-				"Play Developer Reporting API client is not yet connected. "+
-					"Would list anomalies for app %s",
+				"play Developer Reporting API client is not yet connected, "+
+					"would list anomalies for app %s",
 				*packageName,
 			)
 		},

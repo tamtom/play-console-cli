@@ -16,6 +16,3 @@ linters:
   settings:
     misspell:
       locale: US
-  exclusions:
-    max-issues-per-linter: 0
-    max-same-issues: 0
