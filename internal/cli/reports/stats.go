@@ -141,8 +141,8 @@ func StatsListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket": bucket,
-				"reports":   reports,
+				"bucket":  bucket,
+				"reports": reports,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
@@ -236,11 +236,11 @@ func StatsDownloadCommand() *ffcli.Command {
 			result := map[string]interface{}{
 				"bucket":  bucket,
 				"package": *pkg,
-				"type":      *statsType,
-				"from":      *from,
-				"to":        effectiveTo,
-				"dir":       *dir,
-				"files":     downloaded,
+				"type":    *statsType,
+				"from":    *from,
+				"to":      effectiveTo,
+				"dir":     *dir,
+				"files":   downloaded,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},

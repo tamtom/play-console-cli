@@ -186,8 +186,8 @@ func FinancialListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket": bucket,
-				"reports":   reports,
+				"bucket":  bucket,
+				"reports": reports,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
@@ -271,10 +271,10 @@ func FinancialDownloadCommand() *ffcli.Command {
 			result := map[string]interface{}{
 				"bucket": bucket,
 				"type":   *reportType,
-				"from":      *from,
-				"to":        effectiveTo,
-				"dir":       *dir,
-				"files":     downloaded,
+				"from":   *from,
+				"to":     effectiveTo,
+				"dir":    *dir,
+				"files":  downloaded,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
