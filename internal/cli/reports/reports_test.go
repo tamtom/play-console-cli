@@ -280,7 +280,7 @@ func TestFinancialDownload_TypeAllNotAllowed(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for --type all on download")
 	}
-	if !strings.Contains(err.Error(), "--type must be one of: earnings, sales, payouts") {
+	if !strings.Contains(err.Error(), "--type must be one of: earnings, sales, payouts, play_balance, wht_statements") {
 		t.Errorf("expected type error for 'all', got: %v", err)
 	}
 }
@@ -360,7 +360,7 @@ func TestValidateMonth_Invalid(t *testing.T) {
 // --- report type validation unit tests ---
 
 func TestValidateReportType_Valid(t *testing.T) {
-	for _, rt := range []string{"earnings", "sales", "payouts", "all"} {
+	for _, rt := range []string{"earnings", "sales", "payouts", "play_balance", "wht_statements", "all"} {
 		if err := validateReportType(rt); err != nil {
 			t.Errorf("expected %q to be valid, got: %v", rt, err)
 		}

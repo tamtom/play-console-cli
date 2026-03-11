@@ -23,16 +23,20 @@ var monthRegex = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
 var monthFromFilenameRegex = regexp.MustCompile(`(20\d{4})`)
 
 var validReportTypes = map[string]bool{
-	"earnings": true,
-	"sales":    true,
-	"payouts":  true,
+	"earnings":       true,
+	"sales":          true,
+	"payouts":        true,
+	"play_balance":   true,
+	"wht_statements": true,
 }
 
 // financialPrefixes maps report types to their GCS prefix in the bucket.
 var financialPrefixes = map[string]string{
-	"earnings": "earnings/",
-	"sales":    "sales/",
-	"payouts":  "payouts/",
+	"earnings":       "earnings/",
+	"sales":          "sales/",
+	"payouts":        "payouts/",
+	"play_balance":   "play_balance_krw/",
+	"wht_statements": "wht_statements/",
 }
 
 // newGCSServiceFunc is the factory for creating GCS services.
@@ -57,7 +61,7 @@ func validateReportType(value string) error {
 		return nil
 	}
 	if !validReportTypes[value] {
-		return fmt.Errorf("--type must be one of: earnings, sales, payouts, all (got %q)", value)
+		return fmt.Errorf("--type must be one of: earnings, sales, payouts, play_balance, wht_statements, all (got %q)", value)
 	}
 	return nil
 }
@@ -110,7 +114,7 @@ func FinancialCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "financial",
 		ShortUsage: "gplay reports financial <subcommand> [flags]",
-		ShortHelp:  "Manage financial reports (earnings, sales, payouts).",
+		ShortHelp:  "Manage financial reports (earnings, sales, payouts, play_balance, wht_statements).",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
@@ -129,7 +133,7 @@ func FinancialListCommand() *ffcli.Command {
 	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format")
 	to := fs.String("to", "", "End month in YYYY-MM format")
-	reportType := fs.String("type", "all", "Report type: earnings, sales, payouts, all")
+	reportType := fs.String("type", "all", "Report type: earnings, sales, payouts, play_balance, wht_statements, all")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -196,7 +200,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 	bucketID := fs.String("bucket-id", "", "GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI)")
 	from := fs.String("from", "", "Start month in YYYY-MM format (required)")
 	to := fs.String("to", "", "End month in YYYY-MM format (defaults to --from)")
-	reportType := fs.String("type", "earnings", "Report type: earnings, sales, payouts")
+	reportType := fs.String("type", "earnings", "Report type: earnings, sales, payouts, play_balance, wht_statements")
 	dir := fs.String("dir", ".", "Output directory")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
@@ -232,7 +236,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 				return err
 			}
 			if *reportType == "all" {
-				return fmt.Errorf("--type must be one of: earnings, sales, payouts (got \"all\")")
+				return fmt.Errorf("--type must be one of: earnings, sales, payouts, play_balance, wht_statements (got \"all\")")
 			}
 
 			svc, err := newGCSServiceFunc(ctx)
@@ -280,7 +284,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 // financialPrefixesForType returns the GCS prefixes to search for a given report type.
 func financialPrefixesForType(reportType string) []string {
 	if reportType == "all" {
-		return []string{"earnings/", "sales/", "payouts/"}
+		return []string{"earnings/", "sales/", "payouts/", "play_balance_krw/", "wht_statements/"}
 	}
 	if p, ok := financialPrefixes[reportType]; ok {
 		return []string{p}

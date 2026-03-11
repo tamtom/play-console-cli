@@ -27,7 +27,7 @@ var statsPrefixes = map[string]string{
 	"ratings":           "stats/ratings/",
 	"crashes":           "stats/crashes/",
 	"store_performance": "stats/store_performance/",
-	"subscriptions":     "stats/subscriptions/",
+	"subscriptions":     "financial-stats/subscriptions/",
 }
 
 // validateStatsType checks that a stats type is valid.
@@ -49,7 +49,7 @@ func statsPrefixesForType(statsType string) []string {
 			"stats/ratings/",
 			"stats/crashes/",
 			"stats/store_performance/",
-			"stats/subscriptions/",
+			"financial-stats/subscriptions/",
 		}
 	}
 	if p, ok := statsPrefixes[statsType]; ok {
