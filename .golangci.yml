@@ -1,8 +1,10 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - govet
     - ineffassign
@@ -11,12 +13,9 @@ linters:
     - misspell
     - unparam
     - errorlint
-
-linters-settings:
-  misspell:
-    locale: US
-
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  settings:
+    misspell:
+      locale: US
+  exclusions:
+    max-issues-per-linter: 0
+    max-same-issues: 0
