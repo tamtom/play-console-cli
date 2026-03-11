@@ -12,6 +12,29 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
 
 Stop clicking through Play Console. Ship your Android apps with a single command.
 
+### gplay vs Fastlane vs Raw API
+
+| Capability | gplay | Fastlane (`supply`) | Raw API + Agent |
+|---|:---:|:---:|:---:|
+| **Setup** | Single binary, zero dependencies | Ruby runtime + gems + bundler | OAuth2 + HTTP client + custom code |
+| **Agent-friendly output** | JSON by default (minified, saves tokens) | Human-oriented, colorized text | Raw HTTP responses, must parse |
+| **No interactive prompts** | `--confirm` flags, never blocks | Interactive by default | N/A |
+| **Dry-run mode** | Built-in `--dry-run` | No | Must implement manually |
+| **Releases & tracks** | Upload, promote, staged rollout | Upload only | Full (manual implementation) |
+| **Store listings & screenshots** | Full CRUD + sync + validation | Metadata upload only | Full (manual implementation) |
+| **Monetization** | Subscriptions, base plans, offers, IAPs | No | Full (manual implementation) |
+| **Purchase verification** | Built-in | No | Full (manual implementation) |
+| **Vitals (crashes, ANRs, perf)** | Built-in | No | Separate Reporting API |
+| **Review management** | Read + reply | No | Full (manual implementation) |
+| **Financial & stats reports** | GCS download built-in | No | Not available via API |
+| **User & permission management** | Built-in | No | Full (manual implementation) |
+| **Fastlane migration** | `gplay migrate fastlane` | N/A | No |
+| **CI/CD ready** | Works everywhere, no runtime | Needs Ruby in CI | Custom per-pipeline |
+| **Retries & timeouts** | Configurable (`GPLAY_MAX_RETRIES`) | Basic | Must implement manually |
+| **Self-documenting** | `--help` on every command | `fastlane actions` | Read API docs (1000s of tokens) |
+| **Startup time** | Instant (compiled Go) | Slow (Ruby + gem loading) | Depends on implementation |
+| **Self-update** | `gplay update` | `gem update fastlane` | N/A |
+
 **Publish & Release**
 - One-command releases: upload, configure track, and go live in a single step
 - Staged rollouts with pause, resume, and percentage control
