@@ -120,8 +120,7 @@ func StatsListCommand() *ffcli.Command {
 				return err
 			}
 
-			id := parseBucketID(*bucketID)
-			bucket := bucketName(id)
+			bucket := parseBucket(*bucketID)
 			prefixes := statsPrefixesForType(*statsType)
 
 			var reports []gcsclient.ObjectInfo
@@ -142,8 +141,7 @@ func StatsListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket_id": id,
-				"bucket":    bucket,
+				"bucket": bucket,
 				"reports":   reports,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
@@ -208,8 +206,7 @@ func StatsDownloadCommand() *ffcli.Command {
 				return err
 			}
 
-			id := parseBucketID(*bucketID)
-			bucket := bucketName(id)
+			bucket := parseBucket(*bucketID)
 			prefix := statsPrefixes[*statsType]
 
 			objects, err := svc.ListObjects(ctx, bucket, prefix)
@@ -237,8 +234,8 @@ func StatsDownloadCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket_id": id,
-				"package":   *pkg,
+				"bucket":  bucket,
+				"package": *pkg,
 				"type":      *statsType,
 				"from":      *from,
 				"to":        effectiveTo,

@@ -62,22 +62,21 @@ func validateReportType(value string) error {
 	return nil
 }
 
-// bucketName constructs the GCS bucket name from a bucket ID.
-func bucketName(bucketID string) string {
-	return "pubsite_prod_rev_" + bucketID
-}
-
-// parseBucketID extracts the bucket ID from a raw flag value.
-// Accepts a plain ID ("12345") or a full GCS URI ("gs://pubsite_prod_rev_12345/" or "gs://pubsite_prod_rev_12345/earnings/").
-func parseBucketID(raw string) string {
+// parseBucket resolves the --bucket-id flag into a GCS bucket name.
+// Accepts:
+//   - Full GCS URI: "gs://pubsite_prod_rev_12345/earnings/" → "pubsite_prod_rev_12345"
+//   - Full GCS URI: "gs://pubsite_prod_12345/" → "pubsite_prod_12345"
+//   - Plain numeric ID: "12345" → "pubsite_prod_rev_12345" (default prefix)
+func parseBucket(raw string) string {
 	raw = strings.TrimSpace(raw)
-	if strings.HasPrefix(raw, "gs://pubsite_prod_rev_") {
-		raw = strings.TrimPrefix(raw, "gs://pubsite_prod_rev_")
+	if strings.HasPrefix(raw, "gs://") {
+		raw = strings.TrimPrefix(raw, "gs://")
 		if idx := strings.Index(raw, "/"); idx >= 0 {
 			raw = raw[:idx]
 		}
+		return raw
 	}
-	return raw
+	return "pubsite_prod_rev_" + raw
 }
 
 // monthToCompact converts "2024-01" to "202401" for filename matching.
@@ -166,8 +165,7 @@ func FinancialListCommand() *ffcli.Command {
 				return err
 			}
 
-			id := parseBucketID(*bucketID)
-			bucket := bucketName(id)
+			bucket := parseBucket(*bucketID)
 			prefixes := financialPrefixesForType(*reportType)
 
 			var reports []gcsclient.ObjectInfo
@@ -184,8 +182,7 @@ func FinancialListCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket_id": id,
-				"bucket":    bucket,
+				"bucket": bucket,
 				"reports":   reports,
 			}
 			return shared.PrintOutput(result, *outputFlag, *pretty)
@@ -243,8 +240,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 				return err
 			}
 
-			id := parseBucketID(*bucketID)
-			bucket := bucketName(id)
+			bucket := parseBucket(*bucketID)
 			prefix := financialPrefixes[*reportType]
 
 			objects, err := svc.ListObjects(ctx, bucket, prefix)
@@ -269,8 +265,8 @@ func FinancialDownloadCommand() *ffcli.Command {
 			}
 
 			result := map[string]interface{}{
-				"bucket_id": id,
-				"type":      *reportType,
+				"bucket": bucket,
+				"type":   *reportType,
 				"from":      *from,
 				"to":        effectiveTo,
 				"dir":       *dir,

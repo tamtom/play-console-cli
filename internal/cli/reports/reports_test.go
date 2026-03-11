@@ -561,24 +561,25 @@ func TestFinancialDownload_DateRangeFilters(t *testing.T) {
 	}
 }
 
-// --- parseBucketID unit tests ---
+// --- parseBucket unit tests ---
 
-func TestParseBucketID(t *testing.T) {
+func TestParseBucket(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
 	}{
-		{"12345", "12345"},
-		{"  12345  ", "12345"},
-		{"gs://pubsite_prod_rev_12345/", "12345"},
-		{"gs://pubsite_prod_rev_12345/earnings/", "12345"},
-		{"gs://pubsite_prod_rev_99887766/", "99887766"},
+		{"12345", "pubsite_prod_rev_12345"},
+		{"  12345  ", "pubsite_prod_rev_12345"},
+		{"gs://pubsite_prod_rev_12345/", "pubsite_prod_rev_12345"},
+		{"gs://pubsite_prod_rev_12345/earnings/", "pubsite_prod_rev_12345"},
+		{"gs://pubsite_prod_99887766/", "pubsite_prod_99887766"},
+		{"gs://pubsite_prod_99887766/stats/installs/", "pubsite_prod_99887766"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got := parseBucketID(tt.input)
+			got := parseBucket(tt.input)
 			if got != tt.want {
-				t.Errorf("parseBucketID(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("parseBucket(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
