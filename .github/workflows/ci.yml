@@ -30,7 +30,12 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: go test -v -race -coverprofile=coverage.out ./...
+        run: |
+          COVER_FLAGS=""
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.go-version }}" = "1.25" ]; then
+            COVER_FLAGS="-coverprofile=coverage.out"
+          fi
+          go test -v -race $COVER_FLAGS ./...
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25'
