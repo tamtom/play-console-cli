@@ -1,9 +1,10 @@
+version: "2"
+
 run:
   timeout: 5m
-  tests: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - govet
     - staticcheck
@@ -13,18 +14,17 @@ linters:
     - misspell
     - unparam
     - errorlint
-
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (io.Closer).Close
-      - (io.ReadCloser).Close
-      - (*os.File).Close
-      - fmt.Fprint
-      - fmt.Fprintf
-      - fmt.Fprintln
-      - os.Setenv
-      - os.Unsetenv
-      - (*text/tabwriter.Writer).Flush
-  misspell:
-    locale: US
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (*os.File).Close
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - os.Setenv
+        - os.Unsetenv
+        - (*text/tabwriter.Writer).Flush
+    misspell:
+      locale: US
