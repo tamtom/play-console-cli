@@ -177,3 +177,76 @@ func TestClassify_WrappedGoogleAPIError(t *testing.T) {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryPermission)
 	}
 }
+
+func TestClassify_GoogleAPI429_RateLimit(t *testing.T) {
+	err := &googleapi.Error{Code: 429, Message: "rate limit exceeded"}
+	c := Classify(err)
+	if c == nil {
+		t.Fatal("Classify returned nil for 429")
+	}
+	if c.Category != CategoryPermission {
+		t.Errorf("Category = %q; want %q", c.Category, CategoryPermission)
+	}
+	if !strings.Contains(c.Hint, "rate limit") {
+		t.Errorf("Hint = %q; want it to contain 'rate limit'", c.Hint)
+	}
+	if !strings.Contains(c.Hint, "GPLAY_RETRY_DELAY") {
+		t.Errorf("Hint = %q; want it to contain 'GPLAY_RETRY_DELAY'", c.Hint)
+	}
+}
+
+func TestClassify_GoogleAPI409_Conflict(t *testing.T) {
+	err := &googleapi.Error{Code: 409, Message: "conflict"}
+	c := Classify(err)
+	if c == nil {
+		t.Fatal("Classify returned nil for 409")
+	}
+	if c.Category != CategoryConflict {
+		t.Errorf("Category = %q; want %q", c.Category, CategoryConflict)
+	}
+	if !strings.Contains(c.Hint, "edit") {
+		t.Errorf("Hint = %q; want it to contain 'edit'", c.Hint)
+	}
+	if !strings.Contains(c.Hint, "gplay edits delete") {
+		t.Errorf("Hint = %q; want it to contain 'gplay edits delete'", c.Hint)
+	}
+}
+
+func TestClassify_GoogleAPI400_PackageError(t *testing.T) {
+	err := &googleapi.Error{Code: 400, Message: "Invalid package name"}
+	c := Classify(err)
+	if c == nil {
+		t.Fatal("Classify returned nil for 400 with package message")
+	}
+	if c.Category != CategoryNotFound {
+		t.Errorf("Category = %q; want %q", c.Category, CategoryNotFound)
+	}
+	if !strings.Contains(c.Hint, "--package") {
+		t.Errorf("Hint = %q; want it to contain '--package'", c.Hint)
+	}
+}
+
+func TestClassify_GoogleAPI400_PackageLowerCase(t *testing.T) {
+	err := &googleapi.Error{Code: 400, Message: "package not found"}
+	c := Classify(err)
+	if c == nil {
+		t.Fatal("Classify returned nil for 400 with lowercase package message")
+	}
+	if c.Category != CategoryNotFound {
+		t.Errorf("Category = %q; want %q", c.Category, CategoryNotFound)
+	}
+}
+
+func TestClassify_GoogleAPI400_GenericBadRequest(t *testing.T) {
+	err := &googleapi.Error{Code: 400, Message: "invalid argument"}
+	c := Classify(err)
+	if c == nil {
+		t.Fatal("Classify returned nil for 400 generic")
+	}
+	if c.Category != CategoryGeneric {
+		t.Errorf("Category = %q; want %q", c.Category, CategoryGeneric)
+	}
+	if !strings.Contains(c.Hint, "Bad request") {
+		t.Errorf("Hint = %q; want it to contain 'Bad request'", c.Hint)
+	}
+}

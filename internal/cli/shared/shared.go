@@ -83,6 +83,15 @@ func ResolvePackageName(flagValue string, cfg *config.Config) string {
 	return ""
 }
 
+// RequirePackageName resolves the package name and returns an error if not found.
+func RequirePackageName(flagValue string, cfg *config.Config) (string, error) {
+	pkg := ResolvePackageName(flagValue, cfg)
+	if pkg == "" {
+		return "", fmt.Errorf("package name required: specify --package, set GPLAY_PACKAGE_NAME, or add package_name to config")
+	}
+	return pkg, nil
+}
+
 func StrictAuthEnabled() bool {
 	value := strings.TrimSpace(os.Getenv(strictAuthEnvVar))
 	if value == "" {
