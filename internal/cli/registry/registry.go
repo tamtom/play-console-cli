@@ -57,6 +57,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
 	"github.com/tamtom/play-console-cli/internal/cli/vitals"
 	"github.com/tamtom/play-console-cli/internal/cli/web"
+	"github.com/tamtom/play-console-cli/internal/cli/workflow"
 )
 
 // VersionCommand returns a version subcommand.
@@ -122,6 +123,7 @@ func Subcommands(version string) []*ffcli.Command {
 		migrate.MigrateCommand(),
 		releasenotes.ReleaseNotesCommand(),
 		reports.ReportsCommand(),
+		workflow.WorkflowCommand(),
 		docs.DocsCommand(),
 		web.WebCommand(),
 		updatecmd.UpdateCommand(),
