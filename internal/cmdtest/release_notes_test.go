@@ -9,8 +9,8 @@ import (
 func TestReleaseNotes_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"release-notes"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"release-notes"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "release-notes") {

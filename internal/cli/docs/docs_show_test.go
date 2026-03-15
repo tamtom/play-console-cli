@@ -117,7 +117,7 @@ func TestShowCommand_UnknownTopic(t *testing.T) {
 	defer func() { os.Stderr = old }()
 
 	err := cmd.Exec(context.Background(), []string{"nonexistent"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -140,7 +140,9 @@ func TestShowCommand_ValidTopic(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading pipe: %v", err)
+	}
 	output := buf.String()
 
 	if !strings.Contains(output, "Authentication Setup") {

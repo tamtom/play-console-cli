@@ -44,7 +44,7 @@ func TestCompletionCommand_NoArgs_PrintsSetup(t *testing.T) {
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	if !errors.Is(err, flag.ErrHelp) {
@@ -78,7 +78,7 @@ func TestBashCommand_Output(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	if !strings.Contains(output, "_gplay_completions") {
@@ -103,7 +103,7 @@ func TestZshCommand_Output(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	if !strings.Contains(output, "#compdef gplay") {
@@ -128,7 +128,9 @@ func TestFishCommand_Output(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading pipe: %v", err)
+	}
 	output := buf.String()
 
 	if !strings.Contains(output, "complete -c gplay") {
@@ -153,7 +155,9 @@ func TestPowerShellCommand_Output(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading pipe: %v", err)
+	}
 	output := buf.String()
 
 	if !strings.Contains(output, "Register-ArgumentCompleter") {

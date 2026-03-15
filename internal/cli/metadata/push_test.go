@@ -89,7 +89,7 @@ func TestPushReadsFilesAndCallsAPI(t *testing.T) {
 		if r.Method == http.MethodPost {
 			resp := androidpublisher.AppEdit{Id: "edit-456"}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 	})
@@ -108,7 +108,7 @@ func TestPushReadsFilesAndCallsAPI(t *testing.T) {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 	})
@@ -133,7 +133,7 @@ func TestPushReadsFilesAndCallsAPI(t *testing.T) {
 			resp := listing
 			resp.Language = "en-US"
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 	})
@@ -142,7 +142,7 @@ func TestPushReadsFilesAndCallsAPI(t *testing.T) {
 	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits/edit-456:commit", func(w http.ResponseWriter, r *http.Request) {
 		resp := androidpublisher.AppEdit{Id: "edit-456"}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	// Catch-all
@@ -185,7 +185,7 @@ func TestPushDryRun_NoAPICalls(t *testing.T) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apiCalls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)
@@ -224,7 +224,7 @@ func TestPushCommand_LocaleFilter(t *testing.T) {
 	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits", func(w http.ResponseWriter, r *http.Request) {
 		resp := androidpublisher.AppEdit{Id: "edit-789"}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits/edit-789/listings", func(w http.ResponseWriter, r *http.Request) {
 		resp := androidpublisher.ListingsListResponse{
@@ -234,25 +234,25 @@ func TestPushCommand_LocaleFilter(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits/edit-789/listings/en-US", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
 			updatedLocales = append(updatedLocales, "en-US")
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(androidpublisher.Listing{Language: "en-US"})
+			_ = json.NewEncoder(w).Encode(androidpublisher.Listing{Language: "en-US"})
 		}
 	})
 	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits/edit-789/listings/ja-JP", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
 			updatedLocales = append(updatedLocales, "ja-JP")
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(androidpublisher.Listing{Language: "ja-JP"})
+			_ = json.NewEncoder(w).Encode(androidpublisher.Listing{Language: "ja-JP"})
 		}
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)
@@ -280,7 +280,7 @@ func TestPushCommand_NoMetadataFiles(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)

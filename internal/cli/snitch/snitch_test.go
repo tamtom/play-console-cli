@@ -109,14 +109,14 @@ func TestIssueLabelsIncludesCustomLabelsWithoutDuplicates(t *testing.T) {
 
 func TestIssueBody(t *testing.T) {
 	e := LogEntry{
-		Description: "crashes --package doesn't resolve",
-		Repro:       `gplay vitals crashes --package "com.example.app"`,
-		Expected:    "Package name should resolve",
-		Actual:      "Error: package not found",
-		Severity:    "bug",
+		Description:  "crashes --package doesn't resolve",
+		Repro:        `gplay vitals crashes --package "com.example.app"`,
+		Expected:     "Package name should resolve",
+		Actual:       "Error: package not found",
+		Severity:     "bug",
 		GplayVersion: "0.37.2",
-		OS:          "darwin/arm64",
-		GoVersion:   "go1.25.0",
+		OS:           "darwin/arm64",
+		GoVersion:    "go1.25.0",
 	}
 
 	body := issueBody(e)

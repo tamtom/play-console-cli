@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 func TestUsageError_ReturnsFlagErrHelp(t *testing.T) {
 	err := UsageError("missing --package flag")
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -57,7 +58,7 @@ func TestUsageErrorf_FormatsMessage(t *testing.T) {
 	r.Close()
 	output := string(buf[:n])
 
-	if result != flag.ErrHelp {
+	if !errors.Is(result, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", result)
 	}
 

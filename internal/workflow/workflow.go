@@ -26,7 +26,7 @@ type Step struct {
 	Name       string `json:"name"`
 	Command    string `json:"command"`
 	ContinueOn string `json:"continue_on,omitempty"` // "error" to continue on failure
-	Condition  string `json:"condition,omitempty"`    // skip if evaluates to false
+	Condition  string `json:"condition,omitempty"`   // skip if evaluates to false
 }
 
 // Param declares a workflow parameter.

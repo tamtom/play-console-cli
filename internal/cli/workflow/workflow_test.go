@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func TestWorkflowCommand_HasSubcommands(t *testing.T) {
 func TestWorkflowCommand_NoArgsReturnsHelp(t *testing.T) {
 	cmd := WorkflowCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

@@ -9,8 +9,8 @@ import (
 func TestVitals_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"vitals"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"vitals"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "vitals") {
@@ -27,8 +27,8 @@ func TestVitals_Help(t *testing.T) {
 func TestVitals_Crashes_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"vitals", "crashes"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"vitals", "crashes"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "crashes") {
