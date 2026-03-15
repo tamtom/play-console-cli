@@ -1,0 +1,41 @@
+name: Integration Tests
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays at 06:00 UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Only run on the main repo, not forks
+    if: github.repository == 'tamtom/play-console-cli'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Write service account key
+        env:
+          GPLAY_SA_CONTENT: ${{ secrets.GPLAY_SERVICE_ACCOUNT }}
+        run: printenv GPLAY_SA_CONTENT > /tmp/gplay-sa.json
+
+      - name: Run integration tests
+        env:
+          GPLAY_INTEGRATION_TEST: "1"
+          GPLAY_SERVICE_ACCOUNT_JSON: /tmp/gplay-sa.json
+          GPLAY_CONFIG_PATH: /tmp/gplay-integration-config.json
+          GPLAY_NO_UPDATE: "1"
+          GPLAY_TIMEOUT: "30s"
+        run: go test -tags=integration -v -timeout 10m ./...
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/gplay-sa.json /tmp/gplay-integration-config.json

@@ -3,6 +3,27 @@ set -euo pipefail
 
 echo "Running pre-commit checks..."
 
+# Credential leak prevention
+echo "  Checking for credential files..."
+STAGED_SECRETS=$(git diff --cached --name-only | grep -iE '(service.account|credential|private.key|\.p12|\.pem|\.pfx).*\.json$|^\.gplay/' || true)
+if [ -n "$STAGED_SECRETS" ]; then
+    echo ""
+    echo "ERROR: Potential credential files staged for commit:"
+    echo "$STAGED_SECRETS"
+    echo ""
+    echo "NEVER commit service account keys or credentials."
+    echo "Use 'git reset HEAD <file>' to unstage."
+    exit 1
+fi
+
+# Check for private_key content in staged files (catches inline credentials)
+if git diff --cached --diff-filter=ACM | grep -q '"private_key".*BEGIN.*PRIVATE'; then
+    echo ""
+    echo "ERROR: Staged changes contain what appears to be a private key."
+    echo "NEVER commit private keys to version control."
+    exit 1
+fi
+
 # Format check
 echo "  Checking formatting..."
 make format 2>/dev/null
