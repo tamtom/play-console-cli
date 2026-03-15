@@ -74,7 +74,7 @@ func TestPullWritesFiles(t *testing.T) {
 		if r.Method == http.MethodPost {
 			resp := androidpublisher.AppEdit{Id: "edit-123"}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 	})
@@ -99,13 +99,13 @@ func TestPullWritesFiles(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	// Mock edits.delete (cleanup)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)
@@ -145,7 +145,7 @@ func TestPullWritesFiles_FilteredLocales(t *testing.T) {
 		if r.Method == http.MethodPost {
 			resp := androidpublisher.AppEdit{Id: "edit-123"}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 	})
@@ -174,12 +174,12 @@ func TestPullWritesFiles_FilteredLocales(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)

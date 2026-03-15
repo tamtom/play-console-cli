@@ -132,7 +132,7 @@ Examples:
 
 			token := resolveGitHubToken()
 
-			if len(entry.Labels) > 0 && !(*local && !*dryRun) {
+			if len(entry.Labels) > 0 && (!*local || *dryRun) {
 				validatedLabels, err := validateRequestedLabels(ctx, token, entry.Labels)
 				if err != nil {
 					if strings.Contains(err.Error(), "flag") {
@@ -313,10 +313,10 @@ func issueBody(e LogEntry) string {
 	}
 
 	b.WriteString("## Environment\n")
-	b.WriteString(fmt.Sprintf("- gplay version: %s\n", e.GplayVersion))
-	b.WriteString(fmt.Sprintf("- OS: %s\n", e.OS))
+	fmt.Fprintf(&b, "- gplay version: %s\n", e.GplayVersion)
+	fmt.Fprintf(&b, "- OS: %s\n", e.OS)
 	if e.GoVersion != "" {
-		b.WriteString(fmt.Sprintf("- Go: %s\n", e.GoVersion))
+		fmt.Fprintf(&b, "- Go: %s\n", e.GoVersion)
 	}
 
 	return b.String()

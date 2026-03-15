@@ -74,11 +74,11 @@ func captureOutput(t *testing.T, fn func()) (stdout, stderr string) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		io.Copy(&outBuf, rOut)
+		_, _ = io.Copy(&outBuf, rOut)
 	}()
 	go func() {
 		defer wg.Done()
-		io.Copy(&errBuf, rErr)
+		_, _ = io.Copy(&errBuf, rErr)
 	}()
 
 	// Run the function

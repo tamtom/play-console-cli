@@ -148,7 +148,7 @@ func TestPushReadsFilesAndCallsAPI(t *testing.T) {
 	// Catch-all
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	})
 
 	server := httptest.NewServer(mux)

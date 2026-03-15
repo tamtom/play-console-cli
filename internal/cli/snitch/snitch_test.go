@@ -255,7 +255,7 @@ func TestSnitchCommandRequiresFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, stderr, err := runSnitchCommand(t, "1.2.3", tt.args...)
+			_, stderr, err := runSnitchCommand(t, tt.args...)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -270,7 +270,7 @@ func TestSnitchCommandInvalidSeverity(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
-	_, stderr, err := runSnitchCommand(t, "1.2.3",
+	_, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--severity", "critical",
 	)
@@ -304,7 +304,7 @@ func TestSnitchCommandDryRun(t *testing.T) {
 	defer func() { setGitHubAPIBase(origBase) }()
 	setGitHubAPIBase(server.URL)
 
-	stdout, stderr, err := runSnitchCommand(t, "1.2.3",
+	stdout, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--dry-run",
 	)
@@ -351,7 +351,7 @@ func TestSnitchCommandPreviewWithoutConfirmDoesNotCreateIssue(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t, "1.2.3",
+	stdout, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 	)
 	if err != nil {
@@ -416,7 +416,7 @@ func TestSnitchCommandConfirmCreatesIssue(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t, "1.2.3",
+	stdout, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)
@@ -485,7 +485,7 @@ func TestSnitchCommandConfirmCreatesIssueWhenLabelsCannotBeApplied(t *testing.T)
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t, "1.2.3",
+	stdout, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)
@@ -954,7 +954,7 @@ func TestSnitchCommandLocalLogging(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
-	_, stderr, err := runSnitchCommand(t, "1.2.3",
+	_, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--local",
 	)
@@ -1009,7 +1009,7 @@ func TestSnitchFlushCommand(t *testing.T) {
 		t.Fatalf("WriteFile error: %v", err)
 	}
 
-	stdout, _, err := runSnitchFlushCommand(t, "1.2.3")
+	stdout, _, err := runSnitchFlushCommand(t)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1030,7 +1030,7 @@ func TestSnitchFlushCommandNoEntries(t *testing.T) {
 		t.Fatalf("chdir temp dir error: %v", err)
 	}
 
-	_, stderr, err := runSnitchFlushCommand(t, "1.2.3")
+	_, stderr, err := runSnitchFlushCommand(t)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1045,7 +1045,7 @@ func TestSnitchConfirmRequiresToken(t *testing.T) {
 
 	// Without token, search is skipped and no issue is created.
 	// But --confirm without token should error.
-	_, stderr, err := runSnitchCommand(t, "1.2.3",
+	_, stderr, err := runSnitchCommand(t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)
@@ -1088,10 +1088,10 @@ func TestDedupeLabels(t *testing.T) {
 
 // --- Helpers ---
 
-func runSnitchCommand(t *testing.T, version string, args ...string) (string, string, error) {
+func runSnitchCommand(t *testing.T, args ...string) (string, string, error) {
 	t.Helper()
 
-	cmd := SnitchCommand(version)
+	cmd := SnitchCommand("1.2.3")
 	cmd.FlagSet.SetOutput(io.Discard)
 
 	var runErr error
@@ -1106,10 +1106,10 @@ func runSnitchCommand(t *testing.T, version string, args ...string) (string, str
 	return stdout, stderr, runErr
 }
 
-func runSnitchFlushCommand(t *testing.T, version string, args ...string) (string, string, error) {
+func runSnitchFlushCommand(t *testing.T, args ...string) (string, string, error) {
 	t.Helper()
 
-	cmd := SnitchCommand(version)
+	cmd := SnitchCommand("1.2.3")
 	cmd.FlagSet.SetOutput(io.Discard)
 
 	fullArgs := append([]string{"flush"}, args...)

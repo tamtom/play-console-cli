@@ -3,6 +3,7 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -199,7 +200,8 @@ func executeStep(ctx context.Context, step Step, vars map[string]string, opts Ex
 
 	if err := cmd.Run(); err != nil {
 		sr.ExitCode = 1
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			sr.ExitCode = exitErr.ExitCode()
 		}
 	}

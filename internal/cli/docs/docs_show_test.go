@@ -3,6 +3,7 @@ package docs
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"strings"
@@ -91,7 +92,7 @@ func TestFindTopic_CaseInsensitive(t *testing.T) {
 func TestShowCommand_NoArgs(t *testing.T) {
 	cmd := ShowCommand()
 	err := cmd.Exec(context.Background(), nil)
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }
@@ -104,7 +105,7 @@ func TestShowCommand_TooManyArgs(t *testing.T) {
 	defer func() { os.Stderr = old }()
 
 	err := cmd.Exec(context.Background(), []string{"one", "two"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 }

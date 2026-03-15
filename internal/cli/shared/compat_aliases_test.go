@@ -66,7 +66,7 @@ func TestDeprecatedAliasLeafCommand_ExecPrintsWarningAndDelegates(t *testing.T) 
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	stderr := buf.String()
 
 	if !strings.Contains(stderr, "deprecated") {

@@ -60,7 +60,7 @@ and does not perform any write operations.`,
 }
 
 // runSubmissionChecks executes all validation checks against local metadata.
-func runSubmissionChecks(pkg, dir, format string) *validation.Report {
+func runSubmissionChecks(_, dir, format string) *validation.Report {
 	report := &validation.Report{}
 
 	// Read locales from metadata directory

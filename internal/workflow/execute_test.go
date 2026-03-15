@@ -341,7 +341,7 @@ func TestExecute_ContextCancelled(t *testing.T) {
 
 	result, err := Execute(ctx, w, nil, ExecuteOptions{})
 	if err == nil {
-		t.Fatal("expected error for cancelled context")
+		t.Fatal("expected error for canceled context")
 	}
 	if result.Success {
 		t.Error("expected failure")

@@ -3,6 +3,7 @@ package completion
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"strings"
@@ -46,7 +47,7 @@ func TestCompletionCommand_NoArgs_PrintsSetup(t *testing.T) {
 	buf.ReadFrom(r)
 	output := buf.String()
 
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got %v", err)
 	}
 	if !strings.Contains(output, "gplay completion bash") {

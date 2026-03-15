@@ -35,7 +35,7 @@ func RenderTableTo(w io.Writer, headers []string, rows [][]string) {
 		for i, cell := range row {
 			sanitized[i] = SanitizeTerminal(cell)
 		}
-		table.Append(sanitized)
+		_ = table.Append(sanitized)
 	}
 
 	_ = table.Render()
