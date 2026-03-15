@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/peterbourgon/ff/v3/ffcli"
-
 	"github.com/tamtom/play-console-cli/internal/config"
 	"github.com/tamtom/play-console-cli/internal/output"
 )
@@ -26,10 +24,6 @@ const (
 	uploadTimeoutSecondsEnvVar = "GPLAY_UPLOAD_TIMEOUT_SECONDS"
 )
 
-// DefaultUsageFunc matches ffcli's default usage format.
-func DefaultUsageFunc(cmd *ffcli.Command) string {
-	return ffcli.DefaultUsageFunc(cmd)
-}
 
 // PrintOutput renders output in the requested format.
 func PrintOutput(data interface{}, format string, pretty bool) error {
