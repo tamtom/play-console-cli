@@ -5,47 +5,53 @@ on:
     branches: [main]
 
 jobs:
-  format:
-    name: Format Check
+  format-and-lint:
+    name: Format & Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: true
       - run: go install mvdan.cc/gofumpt@latest
-      - run: make format
-      - run: git diff --exit-code
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      - name: golangci-lint
+      - name: Check formatting
+        run: make format && git diff --exit-code
+      - name: Check docs
+        run: make check-docs
+      - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
   test:
-    name: Unit Tests
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - run: make test
+          cache: true
+      - name: Run tests with coverage
+        run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [format-and-lint, test]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: true
       - run: make build
+      - run: ./gplay version

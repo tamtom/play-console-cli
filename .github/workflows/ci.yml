@@ -1,91 +1,57 @@
-name: CI
+name: PR Checks
 
 on:
-  push:
-    branches: [main, master]
   pull_request:
-    branches: [main, master]
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: ['1.24', '1.25']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run tests
-        shell: bash
-        run: |
-          COVER_FLAGS=""
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.go-version }}" = "1.25" ]; then
-            COVER_FLAGS="-coverprofile=coverage.out"
-          fi
-          go test -v -race $COVER_FLAGS ./...
-
-      - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25'
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.out
-          fail_ci_if_error: false
-
-  lint:
-    name: Lint
+  format-and-lint:
+    name: Format & Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: true
-
-      - name: Run golangci-lint
+      - run: go install mvdan.cc/gofumpt@latest
+      - name: Check formatting
+        run: make format && git diff --exit-code || (echo "Run 'make format' to fix." && exit 1)
+      - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
-  build:
-    name: Build
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    needs: [test, lint]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: true
+      - run: go test -v -race ./...
 
-      - name: Build
-        run: make build
-
-      - name: Verify binary
-        run: ./gplay version
-
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [format-and-lint, test]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - run: make build
+      - run: ./gplay version
       - name: Upload build artifact
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: gplay-${{ runner.os }}-${{ runner.arch }}

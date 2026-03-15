@@ -168,7 +168,9 @@ func TestListCommand_Output(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading pipe: %v", err)
+	}
 	output := buf.String()
 
 	if !strings.Contains(output, "auth-setup") {
