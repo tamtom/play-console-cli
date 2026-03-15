@@ -12,10 +12,13 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
+// rootFlags holds the parsed root-level flags. Set during RootCommand().
+var rootFlags *shared.RootFlags
+
 // RootCommand constructs the root CLI command with all subcommands.
 func RootCommand(version string) *ffcli.Command {
 	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
-	dryRun := rootFS.Bool("dry-run", false, "Preview write operations without executing them")
+	rootFlags = shared.BindRootFlags(rootFS)
 
 	var root *ffcli.Command
 	root = &ffcli.Command{
@@ -37,11 +40,5 @@ func RootCommand(version string) *ffcli.Command {
 		},
 	}
 
-	// Store dryRun pointer for use in Run()
-	rootDryRun = dryRun
-
 	return root
 }
-
-// rootDryRun holds the parsed --dry-run flag value. Set during RootCommand().
-var rootDryRun *bool

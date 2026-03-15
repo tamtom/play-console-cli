@@ -38,15 +38,15 @@ func TestRun_VersionFlagOutput(t *testing.T) {
 
 func TestRun_NoArgs(t *testing.T) {
 	code := Run([]string{}, "1.0.0")
-	if code != 1 {
-		t.Errorf("expected exit code 1, got %d", code)
+	if code != ExitUsage {
+		t.Errorf("expected exit code %d (ExitUsage), got %d", ExitUsage, code)
 	}
 }
 
 func TestRun_UnknownCommand(t *testing.T) {
 	code := Run([]string{"nonexistent"}, "1.0.0")
-	if code != 1 {
-		t.Errorf("expected exit code 1, got %d", code)
+	if code != ExitUsage {
+		t.Errorf("expected exit code %d (ExitUsage), got %d", ExitUsage, code)
 	}
 }
 
