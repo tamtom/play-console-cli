@@ -83,3 +83,12 @@ jobs:
 
       - name: Verify binary
         run: ./gplay version
+
+      - name: Upload build artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gplay-${{ runner.os }}-${{ runner.arch }}
+          path: gplay*
+          retention-days: 1
+          if-no-files-found: ignore

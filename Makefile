@@ -126,6 +126,29 @@ format:
 		echo "$(YELLOW)gofumpt not found; using go fmt only. Install with: make tools$(NC)"; \
 	fi
 
+# Check code formatting (CI-friendly, no modifications)
+.PHONY: format-check
+format-check:
+	@echo "$(BLUE)Checking code formatting...$(NC)"
+	@if command -v gofumpt > /dev/null 2>&1; then \
+		UNFORMATTED=$$(gofumpt -l .); \
+		if [ -n "$$UNFORMATTED" ]; then \
+			echo "$(RED)Files need formatting:$(NC)"; \
+			echo "$$UNFORMATTED"; \
+			echo "Run 'make format' to fix."; \
+			exit 1; \
+		fi; \
+	else \
+		UNFORMATTED=$$(gofmt -l .); \
+		if [ -n "$$UNFORMATTED" ]; then \
+			echo "$(RED)Files need formatting:$(NC)"; \
+			echo "$$UNFORMATTED"; \
+			echo "Run 'make format' to fix."; \
+			exit 1; \
+		fi; \
+	fi
+	@echo "$(GREEN)All files properly formatted.$(NC)"
+
 # Install dev tools
 .PHONY: tools
 tools:
@@ -268,6 +291,7 @@ help:
 	@echo "$(BLUE)Quality:$(NC)"
 	@echo "  lint            Lint the code"
 	@echo "  format          Format code (go fmt + gofumpt)"
+	@echo "  format-check    Check formatting without modifying files"
 	@echo "  security        Check for security vulnerabilities"
 	@echo ""
 	@echo "$(BLUE)Dependencies:$(NC)"

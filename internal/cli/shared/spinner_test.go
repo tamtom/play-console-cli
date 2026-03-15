@@ -37,7 +37,7 @@ func TestWithSpinner_PanicReRaise(t *testing.T) {
 		}
 	}()
 
-	WithSpinner("loading", func() error {
+	_ = WithSpinner("loading", func() error {
 		panic("boom")
 	})
 }
@@ -180,7 +180,7 @@ func TestSpinner_PanicReRaise(t *testing.T) {
 		writer: nil,
 		tick:   10 * time.Millisecond,
 	}
-	s.run(func() error {
+	_ = s.run(func() error {
 		panic("kaboom")
 	})
 }

@@ -242,7 +242,7 @@ func DownloadUpdate(ctx context.Context, info *UpdateInfo) (string, error) {
 
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 		tmpFile.Close()
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name())
 		return "", err
 	}
 
