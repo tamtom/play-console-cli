@@ -28,6 +28,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
+	"github.com/tamtom/play-console-cli/internal/cli/metadata"
 	"github.com/tamtom/play-console-cli/internal/cli/migrate"
 	"github.com/tamtom/play-console-cli/internal/cli/notify"
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
@@ -81,6 +82,7 @@ func Subcommands(version string) []*ffcli.Command {
 		tracks.TracksCommand(),
 		users.UsersCommand(),
 		listings.ListingsCommand(),
+		metadata.MetadataCommand(),
 		images.ImagesCommand(),
 		initcmd.InitCommand(),
 		reviews.ReviewsCommand(),
