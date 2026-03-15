@@ -24,7 +24,6 @@ const (
 	uploadTimeoutSecondsEnvVar = "GPLAY_UPLOAD_TIMEOUT_SECONDS"
 )
 
-
 // PrintOutput renders output in the requested format.
 func PrintOutput(data interface{}, format string, pretty bool) error {
 	format = strings.ToLower(strings.TrimSpace(format))

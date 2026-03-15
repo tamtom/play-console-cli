@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"testing"
 )
@@ -122,7 +123,7 @@ func TestBuildConfirmDeleteCommand_RejectsWithoutConfirm(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when --confirm is not set")
 	}
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Errorf("expected flag.ErrHelp, got: %v", err)
 	}
 	if executed {

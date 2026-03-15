@@ -78,11 +78,11 @@ func TestTruncate(t *testing.T) {
 		maxLen int
 		want   string
 	}{
-		{"hello", 10, "hello"},          // shorter than maxLen
-		{"hello", 5, "hello"},           // equal to maxLen
+		{"hello", 10, "hello"},         // shorter than maxLen
+		{"hello", 5, "hello"},          // equal to maxLen
 		{"hello world", 8, "hello..."}, // longer than maxLen
-		{"hi", 2, "hi"},                 // equal, no truncation
-		{"hello", 3, "hel"},             // maxLen <= 3, no ellipsis
+		{"hi", 2, "hi"},                // equal, no truncation
+		{"hello", 3, "hel"},            // maxLen <= 3, no ellipsis
 		{"abcd", 1, "a"},               // maxLen = 1
 	}
 	for _, tt := range tests {

@@ -28,6 +28,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
+	"github.com/tamtom/play-console-cli/internal/cli/metadata"
 	"github.com/tamtom/play-console-cli/internal/cli/migrate"
 	"github.com/tamtom/play-console-cli/internal/cli/notify"
 	"github.com/tamtom/play-console-cli/internal/cli/offers"
@@ -45,6 +46,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/cli/snitch"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
@@ -54,6 +56,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/users"
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
 	"github.com/tamtom/play-console-cli/internal/cli/vitals"
+	"github.com/tamtom/play-console-cli/internal/cli/web"
+	"github.com/tamtom/play-console-cli/internal/cli/workflow"
 )
 
 // VersionCommand returns a version subcommand.
@@ -81,6 +85,7 @@ func Subcommands(version string) []*ffcli.Command {
 		tracks.TracksCommand(),
 		users.UsersCommand(),
 		listings.ListingsCommand(),
+		metadata.MetadataCommand(),
 		images.ImagesCommand(),
 		initcmd.InitCommand(),
 		reviews.ReviewsCommand(),
@@ -114,10 +119,13 @@ func Subcommands(version string) []*ffcli.Command {
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
 		notify.NotifyCommand(),
+		snitch.SnitchCommand(version),
 		migrate.MigrateCommand(),
 		releasenotes.ReleaseNotesCommand(),
 		reports.ReportsCommand(),
+		workflow.WorkflowCommand(),
 		docs.DocsCommand(),
+		web.WebCommand(),
 		updatecmd.UpdateCommand(),
 		completion.CompletionCommand(),
 		VersionCommand(version),

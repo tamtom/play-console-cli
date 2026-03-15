@@ -9,8 +9,8 @@ import (
 func TestAuth_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"auth"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"auth"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "auth") {
@@ -48,7 +48,7 @@ func TestAuth_Doctor_ShowsReport(t *testing.T) {
 		if err := root.Parse([]string{"auth", "doctor"}); err != nil {
 			return
 		}
-		root.Run(context.Background())
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	// Doctor runs without errors in isolated environment; should produce output

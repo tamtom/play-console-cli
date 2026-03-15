@@ -25,7 +25,9 @@ func TestRun_VersionFlagOutput(t *testing.T) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading pipe: %v", err)
+	}
 	output := buf.String()
 
 	if output == "" {

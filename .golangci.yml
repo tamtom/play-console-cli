@@ -7,16 +7,14 @@ linters:
   default: none
   enable:
     - govet
-    - ineffassign
     - staticcheck
+    - errcheck
+    - ineffassign
     - unused
     - misspell
     - unparam
     - errorlint
-    - errcheck
   settings:
-    misspell:
-      locale: US
     errcheck:
       exclude-functions:
         - (io.Closer).Close
@@ -28,3 +26,5 @@ linters:
         - os.Setenv
         - os.Unsetenv
         - (*text/tabwriter.Writer).Flush
+    misspell:
+      locale: US

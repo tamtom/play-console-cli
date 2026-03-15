@@ -9,8 +9,8 @@ import (
 func TestUsers_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"users"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"users"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "users") {

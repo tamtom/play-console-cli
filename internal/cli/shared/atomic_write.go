@@ -25,7 +25,7 @@ func AtomicWrite(path string, data []byte, mode os.FileMode) error {
 	success := false
 	defer func() {
 		if !success {
-			os.Remove(tmpPath)
+			_ = os.Remove(tmpPath)
 		}
 	}()
 

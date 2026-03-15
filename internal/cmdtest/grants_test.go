@@ -9,8 +9,8 @@ import (
 func TestGrants_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"grants"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"grants"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "grants") {

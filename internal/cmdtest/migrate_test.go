@@ -9,8 +9,8 @@ import (
 func TestMigrate_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"migrate"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"migrate"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "migrate") {

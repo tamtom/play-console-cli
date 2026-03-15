@@ -25,6 +25,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// Cleanup
-	os.RemoveAll(tempDir)
+	_ = os.RemoveAll(tempDir)
 	os.Exit(code)
 }

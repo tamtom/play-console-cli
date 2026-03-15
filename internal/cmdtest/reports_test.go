@@ -9,8 +9,8 @@ import (
 func TestReports_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"reports"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"reports"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "reports") {
@@ -26,8 +26,8 @@ func TestReports_Help(t *testing.T) {
 func TestReports_Financial_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"reports", "financial"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"reports", "financial"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "financial") {
@@ -43,8 +43,8 @@ func TestReports_Financial_Help(t *testing.T) {
 func TestReports_Stats_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"reports", "stats"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"reports", "stats"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "stats") {

@@ -9,8 +9,8 @@ import (
 func TestNotify_Help(t *testing.T) {
 	root := RootCommand("test")
 	stdout, stderr := captureOutput(t, func() {
-		root.Parse([]string{"notify"})
-		root.Run(context.Background())
+		_ = root.Parse([]string{"notify"})
+		_ = root.Run(context.Background())
 	})
 	combined := stdout + stderr
 	if !strings.Contains(combined, "notify") {
