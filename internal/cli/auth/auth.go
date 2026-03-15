@@ -79,6 +79,8 @@ func AuthInitCommand() *ffcli.Command {
 				return err
 			}
 
+			fmt.Fprintf(os.Stderr, "Config created at %s\n\nNext steps:\n  gplay auth login --service-account /path/to/key.json\n  gplay auth doctor\n", path)
+
 			result := struct {
 				ConfigPath string         `json:"config_path"`
 				Created    bool           `json:"created"`

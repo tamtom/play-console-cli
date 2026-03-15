@@ -1,9 +1,12 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -315,6 +318,144 @@ func TestAuthInitCommand_Name(t *testing.T) {
 	cmd := AuthInitCommand()
 	if cmd.Name != "init" {
 		t.Errorf("expected name %q, got %q", "init", cmd.Name)
+	}
+}
+
+func TestAuthInitCommand_ForceOverwritesExisting(t *testing.T) {
+	tmpDir := t.TempDir()
+	gplayDir := filepath.Join(tmpDir, ".gplay")
+	if err := os.MkdirAll(gplayDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(gplayDir, "config.json")
+	if err := os.WriteFile(configPath, []byte(`{"default_profile":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Point to this config via env var so GlobalPath is not used
+	t.Setenv("GPLAY_CONFIG_PATH", configPath)
+
+	// Use --local with chdir
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := AuthInitCommand()
+	if err := cmd.FlagSet.Parse([]string{"--force", "--local"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	t.Cleanup(func() { os.Stderr = oldStderr })
+
+	err = cmd.Exec(context.Background(), nil)
+	w.Close()
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+
+	if err != nil {
+		t.Fatalf("expected no error with --force, got: %v", err)
+	}
+
+	// Verify the file was overwritten (should have empty default_profile)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "old") {
+		t.Error("expected config to be overwritten, but still contains old data")
+	}
+}
+
+func TestAuthInitCommand_NoForceWithExistingConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	gplayDir := filepath.Join(tmpDir, ".gplay")
+	if err := os.MkdirAll(gplayDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(gplayDir, "config.json")
+	if err := os.WriteFile(configPath, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := AuthInitCommand()
+	if err := cmd.FlagSet.Parse([]string{"--local"}); err != nil {
+		t.Fatal(err)
+	}
+
+	err = cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error when config exists without --force")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error should mention 'already exists', got: %s", err.Error())
+	}
+	if !strings.Contains(err.Error(), "--force") {
+		t.Errorf("error should mention '--force', got: %s", err.Error())
+	}
+}
+
+func TestAuthInitCommand_PrintsNextSteps(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := AuthInitCommand()
+	if err := cmd.FlagSet.Parse([]string{"--local"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	t.Cleanup(func() { os.Stderr = oldStderr })
+
+	err = cmd.Exec(context.Background(), nil)
+	w.Close()
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	stderr := buf.String()
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(stderr, "Config created at") {
+		t.Errorf("stderr should contain 'Config created at', got: %s", stderr)
+	}
+	if !strings.Contains(stderr, "Next steps:") {
+		t.Errorf("stderr should contain 'Next steps:', got: %s", stderr)
+	}
+	if !strings.Contains(stderr, "gplay auth login") {
+		t.Errorf("stderr should contain 'gplay auth login', got: %s", stderr)
+	}
+	if !strings.Contains(stderr, "gplay auth doctor") {
+		t.Errorf("stderr should contain 'gplay auth doctor', got: %s", stderr)
 	}
 }
 
