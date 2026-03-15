@@ -115,7 +115,7 @@ func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
 	if err != nil {
 		return fmt.Errorf("downloading update: %w", err)
 	}
-	defer os.Remove(tmpPath) // clean up on failure
+	defer func() { _ = os.Remove(tmpPath) }() // clean up on failure
 
 	// Apply the update (atomic rename)
 	if err := update.ApplyUpdate(tmpPath); err != nil {

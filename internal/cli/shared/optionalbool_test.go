@@ -73,7 +73,7 @@ func TestOptionalBool_StringUnset(t *testing.T) {
 
 func TestOptionalBool_StringTrue(t *testing.T) {
 	var ob OptionalBool
-	ob.Set("true")
+	_ = ob.Set("true")
 	if got := ob.String(); got != "true" {
 		t.Errorf("String() = %q, want %q", got, "true")
 	}
@@ -81,7 +81,7 @@ func TestOptionalBool_StringTrue(t *testing.T) {
 
 func TestOptionalBool_StringFalse(t *testing.T) {
 	var ob OptionalBool
-	ob.Set("false")
+	_ = ob.Set("false")
 	if got := ob.String(); got != "false" {
 		t.Errorf("String() = %q, want %q", got, "false")
 	}

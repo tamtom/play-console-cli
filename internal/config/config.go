@@ -127,7 +127,52 @@ type Config struct {
 	TimeoutSeconds       DurationValue `json:"timeout_seconds"`
 	UploadTimeout        DurationValue `json:"upload_timeout"`
 	UploadTimeoutSeconds DurationValue `json:"upload_timeout_seconds"`
+	MaxRetries           int           `json:"max_retries,omitempty"`
+	RetryDelay           string        `json:"retry_delay,omitempty"`
 	Debug                string        `json:"debug"`
+}
+
+const maxConfigRetries = 30
+
+// Validate checks the configuration for invalid values.
+func (c *Config) Validate() error {
+	if c == nil {
+		return nil
+	}
+
+	// Validate profile names are non-empty
+	seen := make(map[string]bool)
+	for i, p := range c.Profiles {
+		name := strings.TrimSpace(p.Name)
+		if name == "" {
+			return fmt.Errorf("profile at index %d has empty name", i)
+		}
+		if seen[name] {
+			return fmt.Errorf("duplicate profile name: %q", name)
+		}
+		seen[name] = true
+	}
+
+	// Validate default profile exists if set
+	if dp := strings.TrimSpace(c.DefaultProfile); dp != "" && len(c.Profiles) > 0 {
+		found := false
+		for _, p := range c.Profiles {
+			if p.Name == dp {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("default_profile %q not found in profiles", dp)
+		}
+	}
+
+	// Validate retry bounds
+	if c.MaxRetries < 0 || c.MaxRetries > maxConfigRetries {
+		return fmt.Errorf("max_retries must be between 0 and %d, got %d", maxConfigRetries, c.MaxRetries)
+	}
+
+	return nil
 }
 
 // ErrNotFound is returned when the config file doesn't exist.
@@ -141,12 +186,36 @@ func GlobalPath() (string, error) {
 	return configPath()
 }
 
-// LocalPath returns the local configuration file path.
+// LocalPath returns the nearest local configuration file path.
+// It walks up from the current directory to find the nearest .gplay/config.json,
+// stopping at a .git boundary or the filesystem root.
 func LocalPath() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
+
+	dir := cwd
+	for {
+		candidate := filepath.Join(dir, configDirName, configFileName)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
+
+		// Stop at .git boundary
+		gitDir := filepath.Join(dir, ".git")
+		if _, err := os.Stat(gitDir); err == nil {
+			break
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break // reached filesystem root
+		}
+		dir = parent
+	}
+
+	// Fall back to cwd/.gplay/config.json (original behavior)
 	return filepath.Join(cwd, configDirName, configFileName), nil
 }
 
@@ -199,7 +268,14 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return LoadAt(path)
+	cfg, err := LoadAt(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config at %s: %w", path, err)
+	}
+	return cfg, nil
 }
 
 // LoadAt reads configuration from a specific path.
