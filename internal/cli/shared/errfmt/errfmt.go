@@ -18,6 +18,7 @@ const (
 	CategoryNotFound    Category = "not_found"
 	CategoryTimeout     Category = "timeout"
 	CategoryMissingAuth Category = "missing_auth"
+	CategoryConflict    Category = "conflict"
 	CategoryGeneric     Category = "generic"
 )
 
@@ -63,6 +64,32 @@ func Classify(err error) *ClassifiedError {
 				Original: err,
 				Category: CategoryNotFound,
 				Hint:     "Resource not found. Verify the package name and resource IDs are correct.",
+			}
+		case 429:
+			return &ClassifiedError{
+				Original: err,
+				Category: CategoryPermission,
+				Hint:     "API rate limit exceeded. Wait and retry, or increase GPLAY_RETRY_DELAY.",
+			}
+		case 409:
+			return &ClassifiedError{
+				Original: err,
+				Category: CategoryConflict,
+				Hint:     "Conflict: an edit may already be open. Commit or discard it with `gplay edits delete`, then retry.",
+			}
+		case 400:
+			msg := gerr.Message
+			if strings.Contains(msg, "package") || strings.Contains(msg, "Package") {
+				return &ClassifiedError{
+					Original: err,
+					Category: CategoryNotFound,
+					Hint:     "Verify --package matches your app's package name in Play Console.",
+				}
+			}
+			return &ClassifiedError{
+				Original: err,
+				Category: CategoryGeneric,
+				Hint:     "Bad request. Check your flag values and try again.",
 			}
 		}
 	}

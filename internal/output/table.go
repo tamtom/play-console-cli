@@ -1,52 +1,47 @@
 package output
 
 import (
-	"fmt"
 	"io"
 	"os"
-	"strings"
-	"text/tabwriter"
+
+	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
-// RenderTable writes a formatted table to stdout with the given headers and rows.
+// RenderTable writes a formatted table to stdout.
 func RenderTable(headers []string, rows [][]string) {
 	RenderTableTo(os.Stdout, headers, rows)
 }
 
 // RenderTableTo writes a formatted table to the given writer.
 func RenderTableTo(w io.Writer, headers []string, rows [][]string) {
-	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+	table := tablewriter.NewTable(w,
+		tablewriter.WithConfig(tablewriter.Config{
+			Header: tw.CellConfig{
+				Formatting: tw.CellFormatting{
+					AutoFormat: tw.On,
+				},
+				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+			},
+			Row: tw.CellConfig{
+				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+			},
+		}),
+	)
+	table.Header(headers)
 
-	// Print headers
-	fmt.Fprintln(tw, strings.Join(headers, "\t"))
-
-	// Print separator
-	seps := make([]string, len(headers))
-	for i, h := range headers {
-		seps[i] = strings.Repeat("-", len(h))
-	}
-	fmt.Fprintln(tw, strings.Join(seps, "\t"))
-
-	// Sanitize row cell values
-	for i, row := range rows {
-		for j, cell := range row {
-			rows[i][j] = SanitizeTerminal(cell)
+	for _, row := range rows {
+		sanitized := make([]string, len(row))
+		for i, cell := range row {
+			sanitized[i] = SanitizeTerminal(cell)
 		}
+		table.Append(sanitized)
 	}
 
-	// Print rows
-	if len(rows) == 0 {
-		fmt.Fprintln(tw, "No results found.")
-	} else {
-		for _, row := range rows {
-			fmt.Fprintln(tw, strings.Join(row, "\t"))
-		}
-	}
-
-	tw.Flush()
+	_ = table.Render()
 }
 
-// Truncate truncates a string to maxLen characters, adding "..." if truncated.
+// Truncate shortens a string to maxLen, appending "..." if truncated.
 func Truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

@@ -13,6 +13,18 @@ linters:
     - misspell
     - unparam
     - errorlint
+    - errcheck
   settings:
     misspell:
       locale: US
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (*os.File).Close
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - os.Setenv
+        - os.Unsetenv
+        - (*text/tabwriter.Writer).Flush

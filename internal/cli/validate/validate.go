@@ -188,7 +188,7 @@ func validateBundle(filePath string) *ValidationResult {
 		result.Errors = append(result.Errors, fmt.Sprintf("Not a valid ZIP archive: %v", err))
 		return result
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Check for required bundle components
 	requiredFiles := map[string]bool{
