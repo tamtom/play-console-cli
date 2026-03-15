@@ -1,55 +1,22 @@
 package main
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"os"
 
-	"github.com/peterbourgon/ff/v3/ffcli"
-
-	"github.com/tamtom/play-console-cli/internal/cli/registry"
-	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/cmd"
 )
 
-var version = "dev"
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
+func versionInfo() string {
+	return fmt.Sprintf("%s (commit: %s, date: %s)", version, commit, date)
+}
 
 func main() {
-	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
-	dryRun := rootFS.Bool("dry-run", false, "Preview write operations without executing them")
-
-	var root *ffcli.Command
-	root = &ffcli.Command{
-		Name:        "gplay",
-		ShortUsage:  "gplay <command> [flags]",
-		ShortHelp:   "A CLI for Google Play Console.",
-		FlagSet:     rootFS,
-		Subcommands: registry.Subcommands(version),
-		Exec: func(ctx context.Context, args []string) error {
-			if len(args) == 0 {
-				return flag.ErrHelp
-			}
-			var names []string
-			for _, sub := range root.Subcommands {
-				names = append(names, sub.Name)
-			}
-			fmt.Fprintln(os.Stderr, shared.FormatUnknownCommand(args[0], names))
-			return flag.ErrHelp
-		},
-	}
-
-	ctx := context.Background()
-	if err := root.Parse(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	ctx = shared.ContextWithDryRun(ctx, *dryRun)
-
-	if err := root.Run(ctx); err != nil {
-		if !shared.IsReportedError(err) {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		os.Exit(1)
-	}
+	os.Exit(cmd.Run(os.Args[1:], versionInfo()))
 }
