@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/peterbourgon/ff/v3 v3.4.0
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/term v0.41.0
 	google.golang.org/api v0.266.0
 )
