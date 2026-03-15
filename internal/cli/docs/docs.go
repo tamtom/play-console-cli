@@ -16,11 +16,13 @@ func DocsCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "docs",
 		ShortUsage: "gplay docs <subcommand> [flags]",
-		ShortHelp:  "Documentation generation tools.",
+		ShortHelp:  "Documentation and help topics.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			GenerateCommand(),
+			ListCommand(),
+			ShowCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
