@@ -1,21 +1,8 @@
 package cmdtest
 
 import (
-	"os"
 	"testing"
 )
-
-func TestMain(m *testing.M) {
-	// Build the binary once
-	t := &testing.T{}
-	dir, _ := os.MkdirTemp("", "cmdtest-*")
-	defer func() { _ = os.RemoveAll(dir) }()
-
-	// We need a real test for Build, so skip TestMain build here
-	// Tests that need the binary will call Build themselves
-	_ = t
-	os.Exit(m.Run())
-}
 
 func TestRun_Help(t *testing.T) {
 	Build(t)
