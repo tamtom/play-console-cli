@@ -88,6 +88,16 @@ func TestSanitizeTerminal(t *testing.T) {
 			in:   "  spaced  out  ",
 			want: "  spaced  out  ",
 		},
+		{
+			name: "DEL character stripped",
+			in:   "before\x7Fafter",
+			want: "beforeafter",
+		},
+		{
+			name: "multiple DEL characters stripped",
+			in:   "\x7Fstart\x7Fmid\x7Fend\x7F",
+			want: "startmidend",
+		},
 	}
 
 	for _, tt := range tests {
