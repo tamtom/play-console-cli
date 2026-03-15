@@ -9,7 +9,7 @@ func TestMain(m *testing.M) {
 	// Build the binary once
 	t := &testing.T{}
 	dir, _ := os.MkdirTemp("", "cmdtest-*")
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// We need a real test for Build, so skip TestMain build here
 	// Tests that need the binary will call Build themselves
