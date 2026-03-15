@@ -45,6 +45,10 @@
 - [listings delete](#listings-delete)
 - [listings delete-all](#listings-delete-all)
 - [listings locales](#listings-locales)
+- [metadata](#metadata)
+- [metadata pull](#metadata-pull)
+- [metadata push](#metadata-push)
+- [metadata validate](#metadata-validate)
 - [images](#images)
 - [images list](#images-list)
 - [images upload](#images-upload)
@@ -84,6 +88,7 @@
 - [validate bundle](#validate-bundle)
 - [validate listing](#validate-listing)
 - [validate screenshots](#validate-screenshots)
+- [validate submission](#validate-submission)
 - [vitals](#vitals)
 - [vitals crashes](#vitals-crashes)
 - [vitals crashes query](#vitals-crashes-query)
@@ -209,6 +214,8 @@
 - [device-tiers create](#device-tiers-create)
 - [notify](#notify)
 - [notify send](#notify-send)
+- [snitch](#snitch)
+- [snitch flush](#snitch-flush)
 - [migrate](#migrate)
 - [migrate fastlane](#migrate-fastlane)
 - [release-notes](#release-notes)
@@ -220,8 +227,16 @@
 - [reports stats](#reports-stats)
 - [reports stats list](#reports-stats-list)
 - [reports stats download](#reports-stats-download)
+- [workflow](#workflow)
+- [workflow run](#workflow-run)
+- [workflow validate](#workflow-validate)
+- [workflow list](#workflow-list)
 - [docs](#docs)
 - [docs generate](#docs-generate)
+- [docs list](#docs-list)
+- [docs show](#docs-show)
+- [web](#web)
+- [web open](#web-open)
 - [update](#update)
 - [completion](#completion)
 - [completion bash](#completion-bash)
@@ -891,6 +906,70 @@ gplay listings locales --package <name> [flags]
 
 ---
 
+## gplay metadata
+
+File-based metadata sync (pull/push/validate).
+
+```
+gplay metadata <subcommand> [flags]
+```
+
+---
+
+## gplay metadata pull
+
+Pull store listing metadata into local files.
+
+```
+gplay metadata pull --package <name> --dir <path> [--locales en-US,ja-JP]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Output directory for metadata files (required) | `` |
+| `--locales` | Comma-separated list of locales to pull (optional, pulls all if omitted) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay metadata push
+
+Push local metadata files to Google Play.
+
+```
+gplay metadata push --package <name> --dir <path> [--locales en-US] [--confirm] [--dry-run]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm push (required for safety) | `false` |
+| `--dir` | Metadata directory to read from (required) | `` |
+| `--dry-run` | Show what would be updated without calling API | `false` |
+| `--locales` | Comma-separated list of locales to push (optional, pushes all if omitted) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay metadata validate
+
+Validate metadata files offline.
+
+```
+gplay metadata validate --dir <path>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Metadata directory to validate (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay images
 
 Manage listing images in an edit.
@@ -1552,6 +1631,24 @@ gplay validate screenshots --dir <path> [--locale <lang>]
 | `--dir` | Directory containing screenshots | `./metadata` |
 | `--locale` | Specific locale to validate (optional) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay validate submission
+
+Run all pre-submission validation checks.
+
+```
+gplay validate submission --package <name> [--dir <path>] [--output json|table]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Directory containing listing metadata | `./metadata` |
+| `--format` | Metadata format: fastlane (default), json | `fastlane` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Application package name | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -3633,6 +3730,41 @@ gplay notify send --webhook-url <url> --message <text> [flags]
 
 ---
 
+## gplay snitch
+
+Report CLI friction as a GitHub issue.
+
+```
+gplay snitch [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--actual` | Actual behavior (required) | `` |
+| `--confirm` | Create the GitHub issue after duplicate search | `false` |
+| `--dry-run` | Show what would be filed without filing | `false` |
+| `--expected` | Expected behavior (required) | `` |
+| `--label` | Existing repo label to attach (repeatable) | `` |
+| `--local` | Log to .gplay/snitch.log instead of filing on GitHub | `false` |
+| `--repro` | Reproduction steps (required) | `` |
+| `--severity` | Severity: bug or enhancement | `bug` |
+
+---
+
+## gplay snitch flush
+
+Review locally logged friction entries.
+
+```
+gplay snitch flush [--file PATH]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--file` | Path to snitch log file (default: .gplay/snitch.log) | `` |
+
+---
+
 ## gplay migrate
 
 Migrate metadata from other tools.
@@ -3702,7 +3834,7 @@ gplay reports <subcommand> [flags]
 
 ## gplay reports financial
 
-Manage financial reports (earnings, sales, payouts).
+Manage financial reports (earnings, sales, payouts, play_balance, wht_statements).
 
 ```
 gplay reports financial <subcommand> [flags]
@@ -3715,17 +3847,17 @@ gplay reports financial <subcommand> [flags]
 List available financial reports.
 
 ```
-gplay reports financial list --developer <id> [flags]
+gplay reports financial list --bucket-id <id> [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--bucket-id` | GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI) | `` |
 | `--from` | Start month in YYYY-MM format | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--to` | End month in YYYY-MM format | `` |
-| `--type` | Report type: earnings, sales, payouts, all | `all` |
+| `--type` | Report type: earnings, sales, payouts, play_balance, wht_statements, all | `all` |
 
 ---
 
@@ -3734,18 +3866,18 @@ gplay reports financial list --developer <id> [flags]
 Download financial reports.
 
 ```
-gplay reports financial download --developer <id> --from <YYYY-MM> [flags]
+gplay reports financial download --bucket-id <id> --from <YYYY-MM> [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--bucket-id` | GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI) | `` |
 | `--dir` | Output directory | `.` |
 | `--from` | Start month in YYYY-MM format (required) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--to` | End month in YYYY-MM format (defaults to --from) | `` |
-| `--type` | Report type: earnings, sales, payouts | `earnings` |
+| `--type` | Report type: earnings, sales, payouts, play_balance, wht_statements | `earnings` |
 
 ---
 
@@ -3764,12 +3896,12 @@ gplay reports stats <subcommand> [flags]
 List available statistics reports.
 
 ```
-gplay reports stats list --developer <id> [flags]
+gplay reports stats list --bucket-id <id> [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--bucket-id` | GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI) | `` |
 | `--from` | Start month in YYYY-MM format | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (filters results by package) | `` |
@@ -3784,12 +3916,12 @@ gplay reports stats list --developer <id> [flags]
 Download statistics reports.
 
 ```
-gplay reports stats download --developer <id> --package <name> --from <YYYY-MM> --type <type> [flags]
+gplay reports stats download --bucket-id <id> --package <name> --from <YYYY-MM> --type <type> [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--developer` | GCS developer ID (required; find via Play Console > Download reports > Cloud Storage URI) | `` |
+| `--bucket-id` | GCS bucket ID or URI (required; find via Play Console > Download reports > Copy Cloud Storage URI) | `` |
 | `--dir` | Output directory | `.` |
 | `--from` | Start month in YYYY-MM format (required) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
@@ -3800,9 +3932,65 @@ gplay reports stats download --developer <id> --package <name> --from <YYYY-MM> 
 
 ---
 
+## gplay workflow
+
+Run multi-step automation workflows.
+
+```
+gplay workflow <subcommand> [flags]
+```
+
+---
+
+## gplay workflow run
+
+Run a named workflow.
+
+```
+gplay workflow run <name-or-file> [--param KEY=VALUE ...] [--dry-run] [--resume]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Preview steps without executing | `false` |
+| `--param` | Workflow parameter in KEY=VALUE format (repeatable) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--resume` | Resume from last saved state | `false` |
+
+---
+
+## gplay workflow validate
+
+Validate a workflow definition for errors.
+
+```
+gplay workflow validate <name-or-file>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay workflow list
+
+List available workflows.
+
+```
+gplay workflow list [--dir <path>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Directory containing workflow files | `.gplay/workflows` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay docs
 
-Documentation generation tools.
+Documentation and help topics.
 
 ```
 gplay docs <subcommand> [flags]
@@ -3821,6 +4009,51 @@ gplay docs generate [--output-file <path>]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--output-file` | Output file path (use - for stdout) | `GPLAY.md` |
+
+---
+
+## gplay docs list
+
+List available documentation topics.
+
+```
+gplay docs list
+```
+
+---
+
+## gplay docs show
+
+Print an embedded documentation guide.
+
+```
+gplay docs show <topic>
+```
+
+---
+
+## gplay web
+
+Open Google Play Console pages in the browser.
+
+```
+gplay web <subcommand> [flags]
+```
+
+---
+
+## gplay web open
+
+Open a Google Play Console page in the browser.
+
+```
+gplay web open [--package <name>] [--section <section>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--package` | Package name (applicationId) | `` |
+| `--section` | Console section: dashboard, pricing, releases, reviews, statistics, store-listing, testers, vitals | `` |
 
 ---
 

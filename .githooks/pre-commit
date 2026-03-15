@@ -44,4 +44,12 @@ if ! make lint 2>/dev/null; then
     exit 1
 fi
 
+# Docs check — ensure GPLAY.md matches current commands
+echo "  Checking docs..."
+if ! make check-docs 2>/dev/null; then
+    echo ""
+    echo "ERROR: GPLAY.md is out of date. Run 'make docs' and stage the changes."
+    exit 1
+fi
+
 echo "Pre-commit checks passed!"
