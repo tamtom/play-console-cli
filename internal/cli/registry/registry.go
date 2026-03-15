@@ -45,6 +45,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/cli/snitch"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
@@ -114,6 +115,7 @@ func Subcommands(version string) []*ffcli.Command {
 		datasafety.DataSafetyCommand(),
 		devicetiers.DeviceTiersCommand(),
 		notify.NotifyCommand(),
+		snitch.SnitchCommand(version),
 		migrate.MigrateCommand(),
 		releasenotes.ReleaseNotesCommand(),
 		reports.ReportsCommand(),
