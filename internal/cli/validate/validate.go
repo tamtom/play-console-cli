@@ -44,6 +44,7 @@ before making API calls, saving time and reducing errors.`,
 			BundleCommand(),
 			ListingCommand(),
 			ScreenshotsCommand(),
+			SubmissionCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
