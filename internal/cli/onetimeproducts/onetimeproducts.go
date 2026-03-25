@@ -182,7 +182,7 @@ func CreateCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true)
+			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true).UpdateMask("listings,purchaseOptions")
 			if strings.TrimSpace(*regionsVersion) != "" {
 				call = call.RegionsVersionVersion(*regionsVersion)
 			}
