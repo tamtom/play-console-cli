@@ -48,6 +48,10 @@ func generateMarkdown(w io.Writer, cmd *ffcli.Command, prefix string) {
 			fmt.Fprintf(w, "```\n%s\n```\n\n", cmd.ShortUsage)
 		}
 
+		if cmd.LongHelp != "" {
+			fmt.Fprintf(w, "%s\n\n", cmd.LongHelp)
+		}
+
 		if cmd.FlagSet != nil {
 			var flags []string
 			cmd.FlagSet.VisitAll(func(f *flag.Flag) {

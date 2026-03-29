@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
@@ -12,6 +13,15 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
+
+// subscriptionMutableFields are the top-level fields on Subscription that can
+// be set via update_mask. Must match the fields the SDK can serialize.
+var subscriptionMutableFields = []string{
+	"basePlans",
+	"listings",
+	"restrictedPaymentCountries",
+	"taxAndComplianceSettings",
+}
 
 func SubscriptionsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("subscriptions", flag.ExitOnError)
@@ -167,22 +177,22 @@ func CreateCommand() *ffcli.Command {
 JSON format:
 {
   "productId": "premium_monthly",
-  "listings": {
-    "en-US": {
+  "listings": [
+    {
+      "languageCode": "en-US",
       "title": "Premium Monthly",
       "benefits": ["Feature 1", "Feature 2"],
       "description": "Get premium access"
     }
-  },
+  ],
   "basePlans": [
     {
       "basePlanId": "monthly",
-      "state": "ACTIVE",
       "autoRenewingBasePlanType": {
         "billingPeriodDuration": "P1M",
         "gracePeriodDuration": "P7D",
         "resubscribeState": "RESUBSCRIBE_STATE_ACTIVE",
-        "prorationMode": "CHARGE_ON_NEXT_BILLING_DATE"
+        "prorationMode": "SUBSCRIPTION_PRORATION_MODE_CHARGE_ON_NEXT_BILLING_DATE"
       },
       "regionalConfigs": [
         {
@@ -256,8 +266,31 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay subscriptions update --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Update a subscription.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update a subscription.
+
+If --update-mask is not provided, it is automatically derived from the
+JSON keys. Mutable fields: basePlans, listings,
+restrictedPaymentCountries, taxAndComplianceSettings.
+
+JSON format:
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "Premium Monthly (Updated)",
+      "description": "Updated premium access"
+    }
+  ]
+}
+
+If --allow-missing is set and the subscription does not exist, it will
+be created. In that case, --update-mask is ignored.
+
+Examples:
+  gplay subscriptions update --package com.example --product-id premium --json @subscription.json
+  gplay subscriptions update --package com.example --product-id premium --json '{"listings":[...]}' --update-mask listings`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -268,6 +301,23 @@ func UpdateCommand() *ffcli.Command {
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			raw, err := shared.LoadJSONArgRaw(*jsonFlag)
+			if err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			mask := strings.TrimSpace(*updateMask)
+			if mask == "" {
+				derived, err := shared.DeriveUpdateMask(raw, subscriptionMutableFields)
+				if err != nil {
+					return err
+				}
+				mask = derived
+			}
+			var subscription androidpublisher.Subscription
+			if err := json.Unmarshal(raw, &subscription); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -276,21 +326,13 @@ func UpdateCommand() *ffcli.Command {
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			var subscription androidpublisher.Subscription
-			if err := shared.LoadJSONArg(*jsonFlag, &subscription); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
 			subscription.PackageName = pkg
 			subscription.ProductId = *productID
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Subscriptions.Patch(pkg, *productID, &subscription).Context(ctx)
-			if strings.TrimSpace(*updateMask) != "" {
-				call.UpdateMask(*updateMask)
-			}
+			call := service.API.Monetization.Subscriptions.Patch(pkg, *productID, &subscription).Context(ctx).UpdateMask(mask)
 			if strings.TrimSpace(*regionsVersion) != "" {
 				call.RegionsVersionVersion(*regionsVersion)
 			}
@@ -451,8 +493,31 @@ func BatchUpdateCommand() *ffcli.Command {
 		Name:       "batch-update",
 		ShortUsage: "gplay subscriptions batch-update --package <name> --json <json>",
 		ShortHelp:  "Batch update multiple subscriptions.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create or update multiple subscriptions in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "subscription": {
+        "packageName": "com.example.app",
+        "productId": "premium_monthly",
+        "listings": [
+          {
+            "languageCode": "en-US",
+            "title": "Premium Monthly",
+            "description": "Get premium access"
+          }
+        ]
+      },
+      "updateMask": "listings",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

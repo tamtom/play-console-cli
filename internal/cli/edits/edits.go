@@ -19,8 +19,18 @@ func EditsCommand() *ffcli.Command {
 		Name:       "edits",
 		ShortUsage: "gplay edits <subcommand> [flags]",
 		ShortHelp:  "Manage Google Play app edits.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Manage Google Play app edits.
+
+Edits are transactional containers for store changes. The workflow is:
+  1. Create an edit (gplay edits create)
+  2. Make changes (listings, tracks, APKs, images, etc.)
+  3. Validate the edit (gplay edits validate)
+  4. Commit to apply changes (gplay edits commit)
+
+Edit IDs expire after a period of inactivity. Use --edit to pass the
+edit ID to commands that require it.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			CreateCommand(),
 			GetCommand(),
@@ -47,8 +57,12 @@ func CreateCommand() *ffcli.Command {
 		Name:       "create",
 		ShortUsage: "gplay edits create --package <name>",
 		ShortHelp:  "Create a new edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create a new edit for an app.
+
+Returns an edit ID that must be passed to subsequent commands via --edit.
+Only one active edit per app is allowed at a time.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -83,8 +97,11 @@ func GetCommand() *ffcli.Command {
 		Name:       "get",
 		ShortUsage: "gplay edits get --package <name> --edit <id>",
 		ShortHelp:  "Get an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Retrieve the details of an existing edit.
+
+Use this to check whether an edit ID is still valid before making changes.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -122,8 +139,12 @@ func ValidateCommand() *ffcli.Command {
 		Name:       "validate",
 		ShortUsage: "gplay edits validate --package <name> --edit <id>",
 		ShortHelp:  "Validate an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Validate an edit without committing it.
+
+Run this before commit to catch errors early. Validation checks that all
+required fields are present and values are within allowed ranges.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -162,8 +183,17 @@ func CommitCommand() *ffcli.Command {
 		Name:       "commit",
 		ShortUsage: "gplay edits commit --package <name> --edit <id>",
 		ShortHelp:  "Commit an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Commit an edit to apply all pending changes.
+
+Use --changes-not-sent-for-review to commit changes without submitting
+them for review. This is useful for metadata-only updates that don't
+require review.
+
+Examples:
+  gplay edits commit --package com.example --edit EDIT_ID
+  gplay edits commit --package com.example --edit EDIT_ID --changes-not-sent-for-review`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -206,8 +236,11 @@ func DeleteCommand() *ffcli.Command {
 		Name:       "delete",
 		ShortUsage: "gplay edits delete --package <name> --edit <id> --confirm",
 		ShortHelp:  "Delete an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Delete an edit, discarding all pending changes.
+
+Requires --confirm to prevent accidental deletion.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

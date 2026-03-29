@@ -21,8 +21,22 @@ func ImagesCommand() *ffcli.Command {
 		Name:       "images",
 		ShortUsage: "gplay images <subcommand> [flags]",
 		ShortHelp:  "Manage listing images in an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Manage listing images within an edit.
+
+Valid --type values:
+  phoneScreenshots         Phone screenshots (min 2, max 8)
+  sevenInchScreenshots     7-inch tablet screenshots
+  tenInchScreenshots       10-inch tablet screenshots
+  tvScreenshots            Android TV screenshots
+  wearScreenshots          Wear OS screenshots
+  icon                     App icon (512x512 PNG)
+  featureGraphic           Feature graphic (1024x500)
+  tvBanner                 TV banner (1280x720)
+  promoGraphic             Promotional graphic
+
+Images must be PNG or JPEG. Max file size: 15MB.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			ListCommand(),
 			UploadCommand(),
@@ -102,8 +116,16 @@ func UploadCommand() *ffcli.Command {
 		Name:       "upload",
 		ShortUsage: "gplay images upload --package <name> --edit <id> --locale <lang> --type <type> --file <path>",
 		ShortHelp:  "Upload an image to a listing.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Upload an image to a store listing.
+
+Supported formats: PNG, JPEG, WebP, GIF. Max file size: 15MB.
+The image type determines size and count constraints (see gplay images --help).
+
+Examples:
+  gplay images upload --package com.example --edit EDIT_ID --locale en-US --type phoneScreenshots --file screenshot1.png
+  gplay images upload --package com.example --edit EDIT_ID --locale en-US --type featureGraphic --file feature.png`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

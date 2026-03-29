@@ -52,8 +52,33 @@ func BatchUpdateStatesCommand() *ffcli.Command {
 		Name:       "batch-update-states",
 		ShortUsage: "gplay purchase-options batch-update-states --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Batch activate/deactivate purchase options.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Batch update states for multiple purchase options.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activatePurchaseOptionRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default"
+      }
+    },
+    {
+      "deactivatePurchaseOptionRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "legacy_option"
+      }
+    }
+  ]
+}
+
+Each request must contain exactly one of:
+  - activatePurchaseOptionRequest
+  - deactivatePurchaseOptionRequest`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -103,8 +128,29 @@ func BatchDeleteCommand() *ffcli.Command {
 		Name:       "batch-delete",
 		ShortUsage: "gplay purchase-options batch-delete --package <name> --product-id <id> --json <json> --confirm",
 		ShortHelp:  "Batch delete purchase options.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Batch delete multiple purchase options in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "old_option",
+      "force": true
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "basic_item",
+      "purchaseOptionId": "legacy_option"
+    }
+  ]
+}
+
+Up to 100 requests per batch. Set "force" to true to also delete
+any offers associated with the purchase option. Requires --confirm.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

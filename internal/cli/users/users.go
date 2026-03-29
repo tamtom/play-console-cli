@@ -113,7 +113,7 @@ func CreateCommand() *ffcli.Command {
 JSON format:
 {
   "developerAccountPermissions": [
-    "CAN_MANAGE_DRAFT_APPS",
+    "CAN_MANAGE_DRAFT_APPS_GLOBAL",
     "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
   ],
   "expirationTime": "2025-12-31T23:59:59Z"
@@ -130,9 +130,9 @@ Available account permissions:
   - CAN_MANAGE_TRACK_APKS_GLOBAL
   - CAN_MANAGE_TRACK_USERS_GLOBAL
   - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
-  - CAN_MANAGE_DRAFT_APPS
-  - CAN_CREATE_MANAGED_PLAY_APPS
-  - CAN_CHANGE_MANAGED_PLAY_SETTING
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
+  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
   - CAN_MANAGE_ORDERS_GLOBAL`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
@@ -186,8 +186,36 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay users update --developer <id> --email <email> --json <json>",
 		ShortHelp:  "Update a user's permissions.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update a developer account user.
+
+JSON format:
+{
+  "developerAccountPermissions": [
+    "CAN_SEE_ALL_APPS",
+    "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
+  ]
+}
+
+Available account permissions:
+  - CAN_SEE_ALL_APPS
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
+  - CAN_MANAGE_PERMISSIONS_GLOBAL
+  - CAN_EDIT_GAMES_GLOBAL
+  - CAN_PUBLISH_GAMES_GLOBAL
+  - CAN_REPLY_TO_REVIEWS_GLOBAL
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_USERS_GLOBAL
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
+  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
+  - CAN_MANAGE_ORDERS_GLOBAL
+
+Use --update-mask to specify which fields to update. If omitted, all
+fields in the request body are applied.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

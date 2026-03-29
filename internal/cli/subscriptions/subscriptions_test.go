@@ -134,6 +134,45 @@ func TestCreateCommand_MissingJson(t *testing.T) {
 
 // --- update ---
 
+func TestUpdateCommand_EmptyJSON_NoUpdateMask_ReturnsError(t *testing.T) {
+	cmd := UpdateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for empty JSON without --update-mask")
+	}
+	if !strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	}
+}
+
+func TestUpdateCommand_OnlyImmutableFields_ReturnsError(t *testing.T) {
+	cmd := UpdateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{"packageName":"com.example","productId":"test"}`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for only immutable fields")
+	}
+	if !strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	}
+}
+
+func TestUpdateCommand_WithExplicitUpdateMask_SkipsDeriving(t *testing.T) {
+	cmd := UpdateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`, "--update-mask", "listings"}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err != nil && strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("explicit --update-mask should skip derive; got: %s", err.Error())
+	}
+}
+
 func TestUpdateCommand_MissingProductID(t *testing.T) {
 	cmd := UpdateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--json", `{}`}); err != nil {

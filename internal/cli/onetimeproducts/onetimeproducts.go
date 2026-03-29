@@ -2,6 +2,7 @@ package onetimeproducts
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
@@ -12,6 +13,16 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
+
+// otpMutableFields are the top-level fields on OneTimeProduct that can be
+// set via update_mask. Must match the fields the SDK can serialize.
+var otpMutableFields = []string{
+	"listings",
+	"offerTags",
+	"purchaseOptions",
+	"restrictedPaymentCountries",
+	"taxAndComplianceSettings",
+}
 
 func OneTimeProductsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("onetimeproducts", flag.ExitOnError)
@@ -153,8 +164,46 @@ func CreateCommand() *ffcli.Command {
 		Name:       "create",
 		ShortUsage: "gplay onetimeproducts create --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Create a one-time product.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create a one-time product (or update if it already exists).
+
+The --regions-version flag is required when setting regional pricing.
+
+JSON format:
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "100 Coins",
+      "description": "A pack of 100 coins"
+    }
+  ],
+  "purchaseOptions": [
+    {
+      "purchaseOptionId": "default",
+      "buyOption": {},
+      "regionalPricingAndAvailabilityConfigs": [
+        {
+          "regionCode": "US",
+          "availability": "AVAILABLE",
+          "price": {
+            "currencyCode": "USD",
+            "units": "1",
+            "nanos": 990000000
+          }
+        }
+      ]
+    }
+  ],
+  "offerTags": [
+    {"tag": "coins"}
+  ]
+}
+
+Examples:
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --regions-version 2025/02`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -165,6 +214,19 @@ func CreateCommand() *ffcli.Command {
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			raw, err := shared.LoadJSONArgRaw(*jsonFlag)
+			if err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			updateMask, err := shared.DeriveUpdateMask(raw, otpMutableFields)
+			if err != nil {
+				return err
+			}
+			var product androidpublisher.OneTimeProduct
+			if err := json.Unmarshal(raw, &product); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -174,15 +236,10 @@ func CreateCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var product androidpublisher.OneTimeProduct
-			if err := shared.LoadJSONArg(*jsonFlag, &product); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
-
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true)
+			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true).UpdateMask(updateMask)
 			if strings.TrimSpace(*regionsVersion) != "" {
 				call = call.RegionsVersionVersion(*regionsVersion)
 			}
@@ -210,8 +267,30 @@ func PatchCommand() *ffcli.Command {
 		Name:       "patch",
 		ShortUsage: "gplay onetimeproducts patch --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Patch a one-time product.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update specific fields of a one-time product.
+
+If --update-mask is not provided, it is automatically derived from the JSON keys.
+
+Mutable fields: listings, offerTags, purchaseOptions, restrictedPaymentCountries,
+taxAndComplianceSettings.
+
+JSON format (partial update):
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "200 Coins",
+      "description": "A pack of 200 coins"
+    }
+  ]
+}
+
+Examples:
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @patch.json
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --update-mask listings
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02 --allow-missing`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -222,6 +301,23 @@ func PatchCommand() *ffcli.Command {
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			raw, err := shared.LoadJSONArgRaw(*jsonFlag)
+			if err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			mask := strings.TrimSpace(*updateMask)
+			if mask == "" {
+				derived, err := shared.DeriveUpdateMask(raw, otpMutableFields)
+				if err != nil {
+					return err
+				}
+				mask = derived
+			}
+			var product androidpublisher.OneTimeProduct
+			if err := json.Unmarshal(raw, &product); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -231,18 +327,10 @@ func PatchCommand() *ffcli.Command {
 				return fmt.Errorf("--package is required")
 			}
 
-			var product androidpublisher.OneTimeProduct
-			if err := shared.LoadJSONArg(*jsonFlag, &product); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
-
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx)
-			if strings.TrimSpace(*updateMask) != "" {
-				call = call.UpdateMask(*updateMask)
-			}
+			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).UpdateMask(mask)
 			if strings.TrimSpace(*regionsVersion) != "" {
 				call = call.RegionsVersionVersion(*regionsVersion)
 			}
@@ -361,8 +449,52 @@ func BatchUpdateCommand() *ffcli.Command {
 		Name:       "batch-update",
 		ShortUsage: "gplay onetimeproducts batch-update --package <name> --json <json>",
 		ShortHelp:  "Create or update multiple one-time products.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create or update multiple one-time products in a single request.
+
+JSON format (BatchUpdateOneTimeProductsRequest):
+{
+  "requests": [
+    {
+      "oneTimeProduct": {
+        "packageName": "com.example.app",
+        "productId": "coins_100",
+        "listings": [
+          {
+            "languageCode": "en-US",
+            "title": "100 Coins",
+            "description": "A pack of 100 coins"
+          }
+        ],
+        "purchaseOptions": [
+          {
+            "purchaseOptionId": "default",
+            "buyOption": {},
+            "regionalPricingAndAvailabilityConfigs": [
+              {
+                "regionCode": "US",
+                "availability": "AVAILABLE",
+                "price": {
+                  "currencyCode": "USD",
+                  "units": "1",
+                  "nanos": 990000000
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "updateMask": "listings,purchaseOptions",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}
+
+Examples:
+  gplay onetimeproducts batch-update --package com.example.app --json @batch.json
+  gplay onetimeproducts batch-update --package com.example.app --json '{"requests":[...]}'`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -408,8 +540,23 @@ func BatchDeleteCommand() *ffcli.Command {
 		Name:       "batch-delete",
 		ShortUsage: "gplay onetimeproducts batch-delete --package <name> --json <json> --confirm",
 		ShortHelp:  "Delete multiple one-time products.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Delete multiple one-time products in a single request.
+
+Requires --confirm for safety.
+
+JSON format (BatchDeleteOneTimeProductsRequest):
+{
+  "requests": [
+    {"packageName": "com.example.app", "productId": "coins_100"},
+    {"packageName": "com.example.app", "productId": "coins_500"}
+  ]
+}
+
+Examples:
+  gplay onetimeproducts batch-delete --package com.example.app --json @delete.json --confirm
+  gplay onetimeproducts batch-delete --package com.example.app --json '{"requests":[...]}' --confirm`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

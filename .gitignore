@@ -45,3 +45,6 @@ credentials*.json
 ROADMAP.md
 .worktrees/
 .parity-plan/
+
+# SDK reference docs (local only)
+docs/androidpublisher-v3-reference.md

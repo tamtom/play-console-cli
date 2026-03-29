@@ -90,8 +90,24 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay details update --package <name> --edit <id> [--contact-email <email>] [--contact-phone <phone>] [--contact-website <url>] [--default-language <lang>] [--json <json>]",
 		ShortHelp:  "Update app details (replaces entire resource).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update app details. Replaces the entire resource.
+
+Use individual flags for simple updates, or --json for full control.
+When --json is provided, it overrides all other flags.
+
+JSON format:
+{
+  "contactEmail": "support@example.com",
+  "contactPhone": "+1-555-0100",
+  "contactWebsite": "https://example.com",
+  "defaultLanguage": "en-US"
+}
+
+Examples:
+  gplay details update --package com.example --edit EDIT_ID --contact-email support@example.com
+  gplay details update --package com.example --edit EDIT_ID --json @details.json`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			return updateDetails(ctx, *packageName, *editID, *contactEmail, *contactPhone, *contactWebsite, *defaultLanguage, *jsonFlag, *outputFlag, *pretty, false)
 		},
@@ -114,8 +130,21 @@ func PatchCommand() *ffcli.Command {
 		Name:       "patch",
 		ShortUsage: "gplay details patch --package <name> --edit <id> [--contact-email <email>] [--contact-phone <phone>] [--contact-website <url>] [--default-language <lang>] [--json <json>]",
 		ShortHelp:  "Patch app details (partial update).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Patch app details. Only updates provided fields.
+
+Use individual flags for simple updates, or --json for full control.
+When --json is provided, it overrides all other flags.
+
+JSON format (include only fields to update):
+{
+  "contactEmail": "new-support@example.com"
+}
+
+Examples:
+  gplay details patch --package com.example --edit EDIT_ID --contact-email new@example.com
+  gplay details patch --package com.example --edit EDIT_ID --json '{"contactWebsite":"https://new.example.com"}'`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			return updateDetails(ctx, *packageName, *editID, *contactEmail, *contactPhone, *contactWebsite, *defaultLanguage, *jsonFlag, *outputFlag, *pretty, true)
 		},

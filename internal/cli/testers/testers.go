@@ -93,8 +93,23 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay testers update --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]",
 		ShortHelp:  "Update testers for a track (replaces entire resource).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update testers for a track. This replaces the entire tester resource.
+
+Any existing testers not included in the request will be removed.
+For partial updates that preserve existing testers, use "patch" instead.
+
+JSON format (via --json):
+{
+  "googleGroups": [
+    "beta-testers@example.com",
+    "qa-team@example.com"
+  ]
+}
+
+Alternatively, use the --google-groups flag:
+  --google-groups "beta-testers@example.com,qa-team@example.com"`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, false)
 		},
@@ -116,8 +131,22 @@ func PatchCommand() *ffcli.Command {
 		Name:       "patch",
 		ShortUsage: "gplay testers patch --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]",
 		ShortHelp:  "Patch testers for a track (partial update).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Patch testers for a track. This performs a partial update.
+
+Unlike "update", patch merges the provided fields with the
+existing resource, preserving any fields not included in the request.
+
+JSON format (via --json):
+{
+  "googleGroups": [
+    "new-testers@example.com"
+  ]
+}
+
+Alternatively, use the --google-groups flag:
+  --google-groups "new-testers@example.com"`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, true)
 		},

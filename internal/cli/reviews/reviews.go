@@ -49,8 +49,18 @@ func ListCommand() *ffcli.Command {
 		Name:       "list",
 		ShortUsage: "gplay reviews list --package <name> [flags]",
 		ShortHelp:  "List reviews.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `List app reviews.
+
+Use --start-index for pagination. Results are returned newest first.
+Use --translation-language to get machine-translated review text
+(e.g., "en-US" for English).
+
+Examples:
+  gplay reviews list --package com.example
+  gplay reviews list --package com.example --max-results 10
+  gplay reviews list --package com.example --translation-language en-US`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -155,8 +165,12 @@ func ReplyCommand() *ffcli.Command {
 		Name:       "reply",
 		ShortUsage: "gplay reviews reply --package <name> --review <id> --text <reply>",
 		ShortHelp:  "Reply to a review.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Reply to a user review.
+
+Examples:
+  gplay reviews reply --package com.example --review REVIEW_ID --text "Thank you for your feedback!"`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

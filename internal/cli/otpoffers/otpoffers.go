@@ -270,8 +270,30 @@ func BatchGetCommand() *ffcli.Command {
 		Name:       "batch-get",
 		ShortUsage: "gplay otp-offers batch-get --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
 		ShortHelp:  "Get multiple OTP offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Get multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "launch_discount"
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "holiday_sale"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must retrieve
+different offers.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -324,8 +346,31 @@ func BatchUpdateCommand() *ffcli.Command {
 		Name:       "batch-update",
 		ShortUsage: "gplay otp-offers batch-update --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
 		ShortHelp:  "Batch update multiple OTP offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Batch update multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "oneTimeProductOffer": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "launch_discount"
+      },
+      "regionsVersion": {
+        "version": "2024001"
+      },
+      "updateMask": "oneTimeProductOffer.offerTags"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must update
+different offers. Use updateMask to specify which fields
+to update.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -378,8 +423,44 @@ func BatchUpdateStatesCommand() *ffcli.Command {
 		Name:       "batch-update-states",
 		ShortUsage: "gplay otp-offers batch-update-states --package <name> --product-id <id> --purchase-option-id <id> --json <json>",
 		ShortHelp:  "Batch activate/deactivate/cancel multiple OTP offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Batch update states for multiple OTP offers.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activateOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "launch_discount"
+      }
+    },
+    {
+      "deactivateOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "old_promo"
+      }
+    },
+    {
+      "cancelOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "preorder_deal"
+      }
+    }
+  ]
+}
+
+Each request must contain exactly one of:
+  - activateOneTimeProductOfferRequest
+  - deactivateOneTimeProductOfferRequest (for discounted offers)
+  - cancelOneTimeProductOfferRequest (for pre-order offers)`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -433,8 +514,30 @@ func BatchDeleteCommand() *ffcli.Command {
 		Name:       "batch-delete",
 		ShortUsage: "gplay otp-offers batch-delete --package <name> --product-id <id> --purchase-option-id <id> --json <json> --confirm",
 		ShortHelp:  "Batch delete OTP offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Batch delete multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "launch_discount"
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "old_promo"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must correspond
+to different offers. Requires --confirm.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

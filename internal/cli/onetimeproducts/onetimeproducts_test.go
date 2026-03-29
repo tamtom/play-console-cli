@@ -150,6 +150,45 @@ func TestCreateCommand_MissingJson(t *testing.T) {
 	}
 }
 
+func TestCreateCommand_EmptyJSON_ReturnsNoUpdatableFieldsError(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for empty JSON")
+	}
+	if !strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	}
+}
+
+func TestCreateCommand_OnlyImmutableFields_ReturnsNoUpdatableFieldsError(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{"packageName":"com.example","productId":"test"}`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for only immutable fields")
+	}
+	if !strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	}
+}
+
+func TestCreateCommand_InvalidJSON_ReturnsError(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `not json`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+}
+
 func TestCreateCommand_HasRegionsVersionFlag(t *testing.T) {
 	cmd := CreateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--regions-version", "2024001", "--product-id", "test", "--json", `{}`}); err != nil {
@@ -209,6 +248,35 @@ func TestPatchCommand_HasRegionsVersionFlag(t *testing.T) {
 	f := cmd.FlagSet.Lookup("regions-version")
 	if f == nil {
 		t.Fatal("expected --regions-version flag")
+	}
+}
+
+func TestPatchCommand_EmptyJSON_NoUpdateMask_ReturnsError(t *testing.T) {
+	cmd := PatchCommand()
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for empty JSON without --update-mask")
+	}
+	if !strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	}
+}
+
+func TestPatchCommand_EmptyJSON_WithUpdateMask_SkipsDeriving(t *testing.T) {
+	cmd := PatchCommand()
+	// With explicit --update-mask, the derive step is skipped so the error
+	// will come from the API (service auth) not from DeriveUpdateMask.
+	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`, "--update-mask", "listings"}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	// Should NOT get "no updatable fields" — the error should be from
+	// playclient.NewService (auth) since we're not in a real env.
+	if err != nil && strings.Contains(err.Error(), "no updatable fields") {
+		t.Errorf("explicit --update-mask should skip derive; got: %s", err.Error())
 	}
 }
 

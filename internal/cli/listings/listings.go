@@ -19,8 +19,17 @@ func ListingsCommand() *ffcli.Command {
 		Name:       "listings",
 		ShortUsage: "gplay listings <subcommand> [flags]",
 		ShortHelp:  "Manage store listings in an edit.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Manage store listings within an edit.
+
+Store listing fields:
+  - title: App name (max 30 characters for most locales)
+  - shortDescription: Promotional text (max 80 characters)
+  - fullDescription: Full app description (max 4000 characters)
+  - video: YouTube video URL (optional)
+
+Listings are scoped to an edit. Create an edit first with gplay edits create.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			ListCommand(),
 			GetCommand(),
@@ -142,8 +151,16 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay listings update --package <name> --edit <id> --locale <lang> [flags]",
 		ShortHelp:  "Update or create a listing.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update a store listing for a specific locale.
+
+Sets all fields for the given locale. Fields not provided will be cleared.
+Use gplay listings patch for partial updates.
+
+Examples:
+  gplay listings update --package com.example --edit EDIT_ID --locale en-US --title "My App" --short-description "A great app"
+  gplay listings update --package com.example --edit EDIT_ID --locale en-US --title "My App" --video "https://youtube.com/watch?v=..."`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			return updateListing(ctx, *packageName, *editID, *locale, *title, *fullDescription, *shortDescription, *video, *outputFlag, *pretty, false)
 		},

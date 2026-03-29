@@ -229,8 +229,27 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay iap update --package <name> --sku <sku> --json <json>",
 		ShortHelp:  "Update an in-app product.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update an in-app product.
+
+JSON format:
+{
+  "defaultPrice": {
+    "priceMicros": "4990000",
+    "currency": "USD"
+  },
+  "listings": {
+    "en-US": {
+      "title": "Premium Upgrade",
+      "description": "Unlock all premium features"
+    }
+  }
+}
+
+Note: Uses legacy pricing format (priceMicros/currency).
+The --sku flag identifies which product to update.
+Use --allow-missing to create the product if it doesn't exist.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -385,8 +404,49 @@ func BatchUpdateCommand() *ffcli.Command {
 		Name:       "batch-update",
 		ShortUsage: "gplay iap batch-update --package <name> --json <json>",
 		ShortHelp:  "Update multiple in-app products.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create or update multiple in-app products in a single request.
+
+The --json flag accepts an array of InAppProduct objects. Each product
+is wrapped in an InappproductsUpdateRequest internally.
+
+JSON format:
+[
+  {
+    "sku": "coins_100",
+    "status": "active",
+    "purchaseType": "managedUser",
+    "defaultPrice": {
+      "priceMicros": "990000",
+      "currency": "USD"
+    },
+    "listings": {
+      "en-US": {
+        "title": "100 Coins",
+        "description": "A pack of 100 coins"
+      }
+    }
+  },
+  {
+    "sku": "coins_500",
+    "status": "active",
+    "purchaseType": "managedUser",
+    "defaultPrice": {
+      "priceMicros": "3990000",
+      "currency": "USD"
+    },
+    "listings": {
+      "en-US": {
+        "title": "500 Coins",
+        "description": "A pack of 500 coins"
+      }
+    }
+  }
+]
+
+Up to 100 products per request. Use --allow-missing to create
+products that don't exist yet.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

@@ -216,7 +216,7 @@ JSON format:
     {
       "regionCode": "US",
       "oldestAllowedPriceVersionTime": "2024-01-01T00:00:00Z",
-      "priceIncreaseType": "OPT_IN_PRICE_INCREASE"
+      "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_IN"
     }
   ],
   "regionsVersion": {
@@ -225,8 +225,8 @@ JSON format:
 }
 
 priceIncreaseType values:
-  - OPT_IN_PRICE_INCREASE: User must accept
-  - OPT_OUT_PRICE_INCREASE: Auto-applied unless user cancels`,
+  - PRICE_INCREASE_TYPE_OPT_IN: User must accept
+  - PRICE_INCREASE_TYPE_OPT_OUT: Auto-applied unless user cancels`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -347,8 +347,47 @@ func BatchMigratePricesCommand() *ffcli.Command {
 		Name:       "batch-migrate-prices",
 		ShortUsage: "gplay baseplans batch-migrate-prices --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Batch migrate prices for multiple base plans.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Migrate prices for multiple base plans in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "basePlanId": "monthly",
+      "regionalPriceMigrations": [
+        {
+          "regionCode": "US",
+          "oldestAllowedPriceVersionTime": "2024-01-01T00:00:00Z",
+          "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_IN"
+        }
+      ],
+      "regionsVersion": {
+        "version": "2024001"
+      }
+    },
+    {
+      "basePlanId": "yearly",
+      "regionalPriceMigrations": [
+        {
+          "regionCode": "DE",
+          "oldestAllowedPriceVersionTime": "2024-06-01T00:00:00Z",
+          "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_OUT"
+        }
+      ],
+      "regionsVersion": {
+        "version": "2024001"
+      }
+    }
+  ]
+}
+
+Up to 100 requests per batch. Each request targets a different base plan.
+
+priceIncreaseType values:
+  - PRICE_INCREASE_TYPE_OPT_IN: User must accept
+  - PRICE_INCREASE_TYPE_OPT_OUT: Auto-applied unless user cancels`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

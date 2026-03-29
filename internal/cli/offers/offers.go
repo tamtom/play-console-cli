@@ -2,6 +2,7 @@ package offers
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
@@ -12,6 +13,16 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
+
+// offerMutableFields are the top-level fields on SubscriptionOffer that can be
+// set via update_mask. Must match the fields the SDK can serialize.
+var offerMutableFields = []string{
+	"offerTags",
+	"otherRegionsConfig",
+	"phases",
+	"regionalConfigs",
+	"targeting",
+}
 
 func OffersCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("offers", flag.ExitOnError)
@@ -187,10 +198,10 @@ JSON format for a free trial:
     {
       "recurrenceCount": 1,
       "duration": "P7D",
-      "regionConfigs": [
+      "regionalConfigs": [
         {
           "regionCode": "US",
-          "freeTrialPhase": {}
+          "free": {}
         }
       ]
     }
@@ -213,7 +224,7 @@ JSON format for introductory price:
     {
       "recurrenceCount": 3,
       "duration": "P1M",
-      "regionConfigs": [
+      "regionalConfigs": [
         {
           "regionCode": "US",
           "price": {
@@ -295,8 +306,33 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay offers update --package <name> --product-id <id> --base-plan-id <plan> --offer-id <offer> --json <json>",
 		ShortHelp:  "Update an offer.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update a subscription offer.
+
+If --update-mask is not provided, it is automatically derived from the
+JSON keys. Mutable fields: offerTags, otherRegionsConfig, phases,
+regionalConfigs, targeting.
+
+JSON format:
+{
+  "phases": [
+    {
+      "recurrenceCount": 1,
+      "duration": "P14D",
+      "regionalConfigs": [
+        {
+          "regionCode": "US",
+          "free": {}
+        }
+      ]
+    }
+  ]
+}
+
+Examples:
+  gplay offers update --package com.example --product-id premium --base-plan-id monthly --offer-id trial --json @offer.json
+  gplay offers update --package com.example --product-id premium --base-plan-id monthly --offer-id trial --json '{"offerTags":[{"tag":"promo"}]}' --update-mask offerTags`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -313,6 +349,23 @@ func UpdateCommand() *ffcli.Command {
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			raw, err := shared.LoadJSONArgRaw(*jsonFlag)
+			if err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			mask := strings.TrimSpace(*updateMask)
+			if mask == "" {
+				derived, err := shared.DeriveUpdateMask(raw, offerMutableFields)
+				if err != nil {
+					return err
+				}
+				mask = derived
+			}
+			var offer androidpublisher.SubscriptionOffer
+			if err := json.Unmarshal(raw, &offer); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -320,11 +373,6 @@ func UpdateCommand() *ffcli.Command {
 			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
-			}
-
-			var offer androidpublisher.SubscriptionOffer
-			if err := shared.LoadJSONArg(*jsonFlag, &offer); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
 			}
 			offer.PackageName = pkg
 			offer.ProductId = *productID
@@ -334,10 +382,7 @@ func UpdateCommand() *ffcli.Command {
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			call := service.API.Monetization.Subscriptions.BasePlans.Offers.Patch(pkg, *productID, *basePlanID, *offerID, &offer).Context(ctx)
-			if strings.TrimSpace(*updateMask) != "" {
-				call.UpdateMask(*updateMask)
-			}
+			call := service.API.Monetization.Subscriptions.BasePlans.Offers.Patch(pkg, *productID, *basePlanID, *offerID, &offer).Context(ctx).UpdateMask(mask)
 			if strings.TrimSpace(*regionsVersion) != "" {
 				call.RegionsVersionVersion(*regionsVersion)
 			}
@@ -592,8 +637,38 @@ func BatchUpdateCommand() *ffcli.Command {
 		Name:       "batch-update",
 		ShortUsage: "gplay offers batch-update --package <name> --product-id <id> --base-plan-id <plan> --json <json>",
 		ShortHelp:  "Batch update multiple offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Create or update multiple subscription offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "subscriptionOffer": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "trial",
+        "phases": [
+          {
+            "recurrenceCount": 1,
+            "duration": "P14D",
+            "regionalConfigs": [
+              {
+                "regionCode": "US",
+                "free": {}
+              }
+            ]
+          }
+        ]
+      },
+      "updateMask": "phases",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
@@ -646,8 +721,31 @@ func BatchUpdateStatesCommand() *ffcli.Command {
 		Name:       "batch-update-states",
 		ShortUsage: "gplay offers batch-update-states --package <name> --product-id <id> --base-plan-id <plan> --json <json>",
 		ShortHelp:  "Batch activate/deactivate multiple offers.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Activate or deactivate multiple subscription offers.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activateSubscriptionOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "trial"
+      }
+    },
+    {
+      "deactivateSubscriptionOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "old_trial"
+      }
+    }
+  ]
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err

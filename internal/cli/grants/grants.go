@@ -160,8 +160,32 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay grants update --developer <id> --email <email> --package <pkg> --json <json>",
 		ShortHelp:  "Update a grant's permissions.",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
+		LongHelp: `Update permissions for an existing app-level grant.
+
+JSON format:
+{
+  "appLevelPermissions": [
+    "CAN_ACCESS_APP",
+    "CAN_MANAGE_PUBLIC_LISTING"
+  ]
+}
+
+Available app permissions:
+  - CAN_ACCESS_APP: Basic app access
+  - CAN_VIEW_FINANCIAL_DATA: View financial reports
+  - CAN_MANAGE_PERMISSIONS: Manage user permissions
+  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
+  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
+  - CAN_MANAGE_TRACK_APKS: Manage test tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testers
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
+  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
+  - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+
+Use --update-mask to specify which fields to update. If omitted, all
+fields in the request body are applied.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
