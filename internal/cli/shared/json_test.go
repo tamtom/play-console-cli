@@ -20,7 +20,7 @@ func TestLoadJSONArgRaw_InlineJSON(t *testing.T) {
 func TestLoadJSONArgRaw_FileJSON(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "test.json")
-	if err := os.WriteFile(p, []byte(`{"key":"value"}`), 0644); err != nil {
+	if err := os.WriteFile(p, []byte(`{"key":"value"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := LoadJSONArgRaw("@" + p)
