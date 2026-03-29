@@ -280,6 +280,16 @@ Authenticate with Google Play Console using a service account.
 gplay auth login --service-account <path> [flags]
 ```
 
+Authenticate with Google Play Console using a service account.
+
+Service accounts are required for the Google Play Android Developer API.
+See README.md for setup instructions.
+
+Examples:
+  gplay auth login --service-account /path/to/key.json
+  gplay auth login --service-account key.json --profile work
+  gplay auth login --service-account key.json --local
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--local` | Write to local repo config | `false` |
@@ -383,6 +393,17 @@ Manage Google Play app edits.
 gplay edits <subcommand> [flags]
 ```
 
+Manage Google Play app edits.
+
+Edits are transactional containers for store changes. The workflow is:
+  1. Create an edit (gplay edits create)
+  2. Make changes (listings, tracks, APKs, images, etc.)
+  3. Validate the edit (gplay edits validate)
+  4. Commit to apply changes (gplay edits commit)
+
+Edit IDs expire after a period of inactivity. Use --edit to pass the
+edit ID to commands that require it.
+
 ---
 
 ## gplay edits create
@@ -392,6 +413,11 @@ Create a new edit.
 ```
 gplay edits create --package <name>
 ```
+
+Create a new edit for an app.
+
+Returns an edit ID that must be passed to subsequent commands via --edit.
+Only one active edit per app is allowed at a time.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -408,6 +434,10 @@ Get an edit.
 ```
 gplay edits get --package <name> --edit <id>
 ```
+
+Retrieve the details of an existing edit.
+
+Use this to check whether an edit ID is still valid before making changes.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -426,6 +456,11 @@ Validate an edit.
 gplay edits validate --package <name> --edit <id>
 ```
 
+Validate an edit without committing it.
+
+Run this before commit to catch errors early. Validation checks that all
+required fields are present and values are within allowed ranges.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--edit` | Edit ID | `` |
@@ -442,6 +477,16 @@ Commit an edit.
 ```
 gplay edits commit --package <name> --edit <id>
 ```
+
+Commit an edit to apply all pending changes.
+
+Use --changes-not-sent-for-review to commit changes without submitting
+them for review. This is useful for metadata-only updates that don't
+require review.
+
+Examples:
+  gplay edits commit --package com.example --edit EDIT_ID
+  gplay edits commit --package com.example --edit EDIT_ID --changes-not-sent-for-review
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -460,6 +505,10 @@ Delete an edit.
 ```
 gplay edits delete --package <name> --edit <id> --confirm
 ```
+
+Delete an edit, discarding all pending changes.
+
+Requires --confirm to prevent accidental deletion.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -569,6 +618,28 @@ Add an externally hosted APK without uploading.
 gplay apks addexternallyhosted --package <name> --edit <id> --json <json>
 ```
 
+Add an externally hosted APK without uploading.
+
+Creates an APK entry that references an APK hosted at an external URL.
+This is useful for very large APKs that are hosted elsewhere.
+
+JSON format:
+{
+  "externallyHostedApk": {
+    "packageName": "com.example.app",
+    "versionCode": 1,
+    "versionName": "1.0",
+    "applicationLabel": "My App",
+    "fileSize": 12345678,
+    "fileSha1Base64": "...",
+    "fileSha256Base64": "...",
+    "externallyHostedUrl": "https://example.com/app.apk",
+    "minimumSdk": 21,
+    "nativeCodes": ["armeabi-v7a", "arm64-v8a"],
+    "usesPermissions": [{"name": "android.permission.INTERNET"}]
+  }
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--edit` | Edit ID | `` |
@@ -632,6 +703,11 @@ Create a new custom track.
 gplay tracks create --package <name> --edit <id> --track <name>
 ```
 
+Create a new custom track.
+
+Use this to create custom testing tracks beyond the standard
+production, beta, alpha, and internal tracks.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--edit` | Edit ID | `` |
@@ -688,6 +764,11 @@ Manage developer account team members.
 gplay users <subcommand> [flags]
 ```
 
+Manage users in your Google Play developer account.
+
+Users can be granted access to specific apps or the entire
+developer account with various permission levels.
+
 ---
 
 ## gplay users list
@@ -716,6 +797,33 @@ Create a new user.
 gplay users create --developer <id> --email <email> --json <json>
 ```
 
+Create a new user in the developer account.
+
+JSON format:
+{
+  "developerAccountPermissions": [
+    "CAN_MANAGE_DRAFT_APPS_GLOBAL",
+    "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
+  ],
+  "expirationTime": "2025-12-31T23:59:59Z"
+}
+
+Available account permissions:
+  - CAN_SEE_ALL_APPS
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
+  - CAN_MANAGE_PERMISSIONS_GLOBAL
+  - CAN_EDIT_GAMES_GLOBAL
+  - CAN_PUBLISH_GAMES_GLOBAL
+  - CAN_REPLY_TO_REVIEWS_GLOBAL
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_USERS_GLOBAL
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
+  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
+  - CAN_MANAGE_ORDERS_GLOBAL
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--developer` | Developer ID | `` |
@@ -733,6 +841,35 @@ Update a user's permissions.
 ```
 gplay users update --developer <id> --email <email> --json <json>
 ```
+
+Update a developer account user.
+
+JSON format:
+{
+  "developerAccountPermissions": [
+    "CAN_SEE_ALL_APPS",
+    "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
+  ]
+}
+
+Available account permissions:
+  - CAN_SEE_ALL_APPS
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
+  - CAN_MANAGE_PERMISSIONS_GLOBAL
+  - CAN_EDIT_GAMES_GLOBAL
+  - CAN_PUBLISH_GAMES_GLOBAL
+  - CAN_REPLY_TO_REVIEWS_GLOBAL
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_APKS_GLOBAL
+  - CAN_MANAGE_TRACK_USERS_GLOBAL
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
+  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
+  - CAN_MANAGE_ORDERS_GLOBAL
+
+Use --update-mask to specify which fields to update. If omitted, all
+fields in the request body are applied.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -770,6 +907,16 @@ Manage store listings in an edit.
 ```
 gplay listings <subcommand> [flags]
 ```
+
+Manage store listings within an edit.
+
+Store listing fields:
+  - title: App name (max 30 characters for most locales)
+  - shortDescription: Promotional text (max 80 characters)
+  - fullDescription: Full app description (max 4000 characters)
+  - video: YouTube video URL (optional)
+
+Listings are scoped to an edit. Create an edit first with gplay edits create.
 
 ---
 
@@ -815,6 +962,15 @@ Update or create a listing.
 ```
 gplay listings update --package <name> --edit <id> --locale <lang> [flags]
 ```
+
+Update a store listing for a specific locale.
+
+Sets all fields for the given locale. Fields not provided will be cleared.
+Use gplay listings patch for partial updates.
+
+Examples:
+  gplay listings update --package com.example --edit EDIT_ID --locale en-US --title "My App" --short-description "A great app"
+  gplay listings update --package com.example --edit EDIT_ID --locale en-US --title "My App" --video "https://youtube.com/watch?v=..."
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -914,6 +1070,23 @@ File-based metadata sync (pull/push/validate).
 gplay metadata <subcommand> [flags]
 ```
 
+Pull, push, and validate store listing metadata as local files.
+
+The metadata directory uses a flat structure with one directory per locale:
+  metadata/
+    en-US/
+      title.txt
+      short_description.txt
+      full_description.txt
+      video_url.txt
+    ja-JP/
+      title.txt
+      ...
+
+Use 'gplay metadata pull' to download current listings to files.
+Use 'gplay metadata push' to upload file changes to the store.
+Use 'gplay metadata validate' to check metadata locally before pushing.
+
 ---
 
 ## gplay metadata pull
@@ -923,6 +1096,22 @@ Pull store listing metadata into local files.
 ```
 gplay metadata pull --package <name> --dir <path> [--locales en-US,ja-JP]
 ```
+
+Pull store listing metadata from Google Play into local files.
+
+Creates a directory structure with one folder per locale:
+  metadata/
+    en-US/
+      title.txt
+      short_description.txt
+      full_description.txt
+      video_url.txt          (if present)
+    ja-JP/
+      ...
+
+Examples:
+  gplay metadata pull --package com.example --dir ./metadata
+  gplay metadata pull --package com.example --dir ./metadata --locales en-US,ja-JP
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -941,6 +1130,18 @@ Push local metadata files to Google Play.
 ```
 gplay metadata push --package <name> --dir <path> [--locales en-US] [--confirm] [--dry-run]
 ```
+
+Push store listing metadata from local files to Google Play.
+
+Reads files from the metadata directory and updates listings for each locale.
+Creates an edit, updates each listing, and commits the edit.
+
+Requires --confirm for safety. Use --dry-run to preview changes.
+
+Examples:
+  gplay metadata push --package com.example --dir ./metadata --confirm
+  gplay metadata push --package com.example --dir ./metadata --dry-run
+  gplay metadata push --package com.example --dir ./metadata --locales en-US --confirm
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -962,6 +1163,18 @@ Validate metadata files offline.
 gplay metadata validate --dir <path>
 ```
 
+Validate local metadata files against Google Play character limits.
+
+Checks:
+  - title.txt: max 30 characters
+  - short_description.txt: max 80 characters
+  - full_description.txt: max 4000 characters
+
+Reports errors per locale per field. Exits non-zero if validation errors found.
+
+Examples:
+  gplay metadata validate --dir ./metadata
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--dir` | Metadata directory to validate (required) | `` |
@@ -977,6 +1190,21 @@ Manage listing images in an edit.
 ```
 gplay images <subcommand> [flags]
 ```
+
+Manage listing images within an edit.
+
+Valid --type values:
+  phoneScreenshots         Phone screenshots (min 2, max 8)
+  sevenInchScreenshots     7-inch tablet screenshots
+  tenInchScreenshots       10-inch tablet screenshots
+  tvScreenshots            Android TV screenshots
+  wearScreenshots          Wear OS screenshots
+  icon                     App icon (512x512 PNG)
+  featureGraphic           Feature graphic (1024x500)
+  tvBanner                 TV banner (1280x720)
+  promoGraphic             Promotional graphic
+
+Images must be PNG or JPEG. Max file size: 15MB.
 
 ---
 
@@ -1006,6 +1234,15 @@ Upload an image to a listing.
 ```
 gplay images upload --package <name> --edit <id> --locale <lang> --type <type> --file <path>
 ```
+
+Upload an image to a store listing.
+
+Supported formats: PNG, JPEG, WebP, GIF. Max file size: 15MB.
+The image type determines size and count constraints (see gplay images --help).
+
+Examples:
+  gplay images upload --package com.example --edit EDIT_ID --locale en-US --type phoneScreenshots --file screenshot1.png
+  gplay images upload --package com.example --edit EDIT_ID --locale en-US --type featureGraphic --file feature.png
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1095,6 +1332,17 @@ List reviews.
 gplay reviews list --package <name> [flags]
 ```
 
+List app reviews.
+
+Use --start-index for pagination. Results are returned newest first.
+Use --translation-language to get machine-translated review text
+(e.g., "en-US" for English).
+
+Examples:
+  gplay reviews list --package com.example
+  gplay reviews list --package com.example --max-results 10
+  gplay reviews list --package com.example --translation-language en-US
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--max-results` | Max results per page | `50` |
@@ -1131,6 +1379,11 @@ Reply to a review.
 ```
 gplay reviews reply --package <name> --review <id> --text <reply>
 ```
+
+Reply to a user review.
+
+Examples:
+  gplay reviews reply --package com.example --review REVIEW_ID --text "Thank you for your feedback!"
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1177,6 +1430,23 @@ Update app details (replaces entire resource).
 gplay details update --package <name> --edit <id> [--contact-email <email>] [--contact-phone <phone>] [--contact-website <url>] [--default-language <lang>] [--json <json>]
 ```
 
+Update app details. Replaces the entire resource.
+
+Use individual flags for simple updates, or --json for full control.
+When --json is provided, it overrides all other flags.
+
+JSON format:
+{
+  "contactEmail": "support@example.com",
+  "contactPhone": "+1-555-0100",
+  "contactWebsite": "https://example.com",
+  "defaultLanguage": "en-US"
+}
+
+Examples:
+  gplay details update --package com.example --edit EDIT_ID --contact-email support@example.com
+  gplay details update --package com.example --edit EDIT_ID --json @details.json
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--contact-email` | Contact email address | `` |
@@ -1198,6 +1468,20 @@ Patch app details (partial update).
 ```
 gplay details patch --package <name> --edit <id> [--contact-email <email>] [--contact-phone <phone>] [--contact-website <url>] [--default-language <lang>] [--json <json>]
 ```
+
+Patch app details. Only updates provided fields.
+
+Use individual flags for simple updates, or --json for full control.
+When --json is provided, it overrides all other flags.
+
+JSON format (include only fields to update):
+{
+  "contactEmail": "new-support@example.com"
+}
+
+Examples:
+  gplay details patch --package com.example --edit EDIT_ID --contact-email new@example.com
+  gplay details patch --package com.example --edit EDIT_ID --json '{"contactWebsite":"https://new.example.com"}'
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1249,6 +1533,22 @@ Update testers for a track (replaces entire resource).
 gplay testers update --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]
 ```
 
+Update testers for a track. This replaces the entire tester resource.
+
+Any existing testers not included in the request will be removed.
+For partial updates that preserve existing testers, use "patch" instead.
+
+JSON format (via --json):
+{
+  "googleGroups": [
+    "beta-testers@example.com",
+    "qa-team@example.com"
+  ]
+}
+
+Alternatively, use the --google-groups flag:
+  --google-groups "beta-testers@example.com,qa-team@example.com"
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--edit` | Edit ID | `` |
@@ -1269,6 +1569,21 @@ Patch testers for a track (partial update).
 ```
 gplay testers patch --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]
 ```
+
+Patch testers for a track. This performs a partial update.
+
+Unlike "update", patch merges the provided fields with the
+existing resource, preserving any fields not included in the request.
+
+JSON format (via --json):
+{
+  "googleGroups": [
+    "new-testers@example.com"
+  ]
+}
+
+Alternatively, use the --google-groups flag:
+  --google-groups "new-testers@example.com"
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1349,6 +1664,26 @@ Create a complete release: create edit, upload bundle/apk, configure track, comm
 gplay release --package <name> --track <track> --bundle <path> [--release-notes <json>] [--rollout <fraction>] [--wait]
 ```
 
+The release command is a high-level workflow that combines:
+  1. Create a new edit
+  2. Upload app bundle or APK
+  3. Update store listings (if --listings-dir is provided)
+  4. Upload screenshots (if --screenshots-dir is provided)
+  5. Configure track with release notes and rollout
+  6. Validate and commit the edit
+
+This replaces the manual workflow of:
+  gplay edits create
+  gplay bundles upload
+  gplay listings update
+  gplay images upload
+  gplay tracks update
+  gplay edits commit
+
+Example:
+  gplay release --package com.example.app --track production --bundle app.aab --release-notes @notes.json --rollout 0.1
+  gplay release --package com.example.app --track internal --bundle app.aab --listings-dir ./metadata --screenshots-dir ./screenshots
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--apk` | Path to .apk file (use --bundle or --apk, not both) | `` |
@@ -1378,6 +1713,18 @@ Promote a release from one track to another.
 ```
 gplay promote --package <name> --from <track> --to <track> [--rollout <fraction>]
 ```
+
+Promote a release from one track to another.
+
+This command:
+  1. Creates a new edit
+  2. Gets the current release from the source track
+  3. Configures the destination track with the same version codes
+  4. Commits the edit
+
+Example:
+  gplay promote --package com.example.app --from internal --to beta
+  gplay promote --package com.example.app --from beta --to production --rollout 0.1
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1411,6 +1758,12 @@ Halt a staged rollout.
 gplay rollout halt --package <name> --track <track>
 ```
 
+Halt a staged rollout, preventing new users from getting the update.
+Existing users who received the update are not affected.
+
+Example:
+  gplay rollout halt --package com.example.app --track production
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
@@ -1428,6 +1781,13 @@ Resume a halted rollout.
 ```
 gplay rollout resume --package <name> --track <track> [--rollout <fraction>]
 ```
+
+Resume a previously halted staged rollout.
+Optionally specify a new rollout fraction.
+
+Example:
+  gplay rollout resume --package com.example.app --track production
+  gplay rollout resume --package com.example.app --track production --rollout 0.5
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1448,6 +1808,12 @@ Update rollout percentage.
 gplay rollout update --package <name> --track <track> --rollout <fraction>
 ```
 
+Update the rollout percentage for a staged rollout.
+The new fraction must be greater than the current fraction.
+
+Example:
+  gplay rollout update --package com.example.app --track production --rollout 0.5
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
@@ -1467,6 +1833,11 @@ Complete a staged rollout to 100%.
 gplay rollout complete --package <name> --track <track>
 ```
 
+Complete a staged rollout, making the release available to all users.
+
+Example:
+  gplay rollout complete --package com.example.app --track production
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
@@ -1484,6 +1855,31 @@ Sync metadata between local directory and Play Store.
 ```
 gplay sync <subcommand> [flags]
 ```
+
+Sync metadata in FastLane-compatible format.
+
+Directory structure (FastLane format):
+  metadata/
+    en-US/
+      title.txt
+      short_description.txt
+      full_description.txt
+      video.txt
+      changelogs/
+        default.txt
+        100.txt
+      images/
+        phoneScreenshots/
+        sevenInchScreenshots/
+        tenInchScreenshots/
+        tvScreenshots/
+        wearScreenshots/
+        featureGraphic.png
+        icon.png
+        promoGraphic.png
+        tvBanner.png
+    de-DE/
+      ...
 
 ---
 
@@ -1582,6 +1978,11 @@ Pre-flight validation commands.
 gplay validate <subcommand> [flags]
 ```
 
+Validate resources before uploading to Google Play.
+
+These commands perform local validation to catch common issues
+before making API calls, saving time and reducing errors.
+
 ---
 
 ## gplay validate bundle
@@ -1591,6 +1992,14 @@ Validate an app bundle before upload.
 ```
 gplay validate bundle --file <path>
 ```
+
+Validate an Android App Bundle (.aab) file.
+
+Checks:
+- File exists and is readable
+- File has .aab extension
+- File is a valid ZIP archive
+- Contains required bundle components
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1607,6 +2016,15 @@ Validate store listing metadata.
 ```
 gplay validate listing --dir <path> [--locale <lang>]
 ```
+
+Validate store listing metadata files.
+
+Checks:
+- Title length (max 30 characters)
+- Short description length (max 80 characters)
+- Full description length (max 4000 characters)
+- Required fields present
+- Valid UTF-8 encoding
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1626,6 +2044,14 @@ Validate screenshot images.
 gplay validate screenshots --dir <path> [--locale <lang>]
 ```
 
+Validate screenshot images for store listings.
+
+Checks:
+- Minimum 2 screenshots required per device type
+- Maximum 8 screenshots per device type
+- Valid image formats (PNG, JPEG)
+- File is readable
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--dir` | Directory containing screenshots | `./metadata` |
@@ -1642,6 +2068,14 @@ Run all pre-submission validation checks.
 ```
 gplay validate submission --package <name> [--dir <path>] [--output json|table]
 ```
+
+Run a comprehensive set of pre-submission validation checks.
+
+Validates metadata, required fields, and screenshots for all locales.
+Returns a validation report with errors, warnings, and remediation hints.
+
+This command is --dry-run compatible: it reads existing local data
+and does not perform any write operations.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1681,6 +2115,15 @@ Query crash or ANR rate metrics.
 gplay vitals crashes query --package <pkg> [--from <date>] [--to <date>] [--dimension <dim>] [--type crash|anr]
 ```
 
+Query crash or ANR rate metrics from the Play Developer Reporting API.
+
+Use --type to select between crash rate and ANR rate metrics.
+Use --dimension to group results by versionCode, deviceModel, etc.
+Date range can be specified with --from and --to in ISO 8601 format.
+
+Note: This command uses the Play Developer Reporting API, which is
+separate from the Android Publisher API used by other commands.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--dimension` | Dimension to group by (versionCode, deviceModel, etc.) | `` |
@@ -1701,6 +2144,14 @@ List detected anomalies for crash and ANR metrics.
 ```
 gplay vitals crashes anomalies --package <pkg>
 ```
+
+List detected anomalies for crash and ANR metrics.
+
+Anomalies are automatically detected deviations in crash or ANR rates
+that may indicate a regression introduced by a new release.
+
+Note: This command uses the Play Developer Reporting API, which is
+separate from the Android Publisher API used by other commands.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1728,6 +2179,12 @@ Get app startup time metrics.
 gplay vitals performance startup --package <name> [flags]
 ```
 
+Get app startup time metrics.
+
+Returns cold, warm, and hot start duration percentiles for the specified
+package and date range. Use --dimension to break down results by API level,
+device model, or country.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--dimension` | Breakdown dimension (e.g. apiLevel, deviceModel, country) | `` |
@@ -1748,6 +2205,12 @@ Get slow rendering metrics.
 gplay vitals performance rendering --package <name> [flags]
 ```
 
+Get slow rendering metrics.
+
+Returns the percentage of frames that exceeded the 16ms and 700ms render
+time thresholds. Use --dimension to break down results by API level,
+device model, or country.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--dimension` | Breakdown dimension (e.g. apiLevel, deviceModel, country) | `` |
@@ -1767,6 +2230,12 @@ Get battery usage metrics.
 ```
 gplay vitals performance battery --package <name> [flags]
 ```
+
+Get battery usage metrics.
+
+Returns excessive wakeup or partial wake lock metrics. Use --type to select
+between "wakeup" (excessive wake-ups) and "wakelock" (stuck partial wake locks).
+Use --dimension to break down results by API level, device model, or country.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1789,6 +2258,11 @@ Search error issues and reports.
 gplay vitals errors <subcommand> [flags]
 ```
 
+Search grouped error issues and individual error reports.
+
+Uses the Google Play Developer Reporting API to retrieve crash,
+ANR, and non-fatal error data for your application.
+
 ---
 
 ## gplay vitals errors issues
@@ -1798,6 +2272,22 @@ Search grouped error issues.
 ```
 gplay vitals errors issues --package <name> [flags]
 ```
+
+Search all error issues in which reports have been grouped.
+
+Supported --filter fields:
+  apiLevel, versionCode, deviceModel, deviceBrand, deviceType,
+  errorIssueType (CRASH, ANR, NON_FATAL), appProcessState (FOREGROUND, BACKGROUND),
+  isUserPerceived
+
+Supported --order-by fields:
+  errorReportCount desc, errorReportCount asc,
+  distinctUsers desc, distinctUsers asc
+
+Examples:
+  gplay vitals errors issues --package com.example.app
+  gplay vitals errors issues --package com.example.app --filter "errorIssueType = CRASH"
+  gplay vitals errors issues --package com.example.app --order-by "errorReportCount desc" --page-size 10
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1819,6 +2309,20 @@ Search individual error reports.
 gplay vitals errors reports --package <name> [flags]
 ```
 
+Search all error reports received for an app.
+
+Returns individual error reports with stack traces and device info.
+
+Supported --filter fields:
+  apiLevel, versionCode, deviceModel, deviceBrand, deviceType,
+  errorIssueType (CRASH, ANR, NON_FATAL), errorIssueId, errorReportId,
+  appProcessState (FOREGROUND, BACKGROUND), isUserPerceived
+
+Examples:
+  gplay vitals errors reports --package com.example.app
+  gplay vitals errors reports --package com.example.app --filter "errorIssueType = CRASH"
+  gplay vitals errors reports --package com.example.app --filter "errorIssueId = 12345" --page-size 10
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--filter` | AIP-160 filter expression (e.g. 'errorIssueType = CRASH') | `` |
@@ -1837,6 +2341,11 @@ Manage in-app products (managed products).
 ```
 gplay iap <subcommand> [flags]
 ```
+
+Manage in-app products including consumables and non-consumables.
+
+Note: This command manages "managed products" (one-time purchases).
+For subscriptions, use the "subscriptions" command instead.
 
 ---
 
@@ -1883,6 +2392,29 @@ Create an in-app product.
 gplay iap create --package <name> --json <json>
 ```
 
+Create a new in-app product.
+
+JSON format:
+{
+  "sku": "premium_upgrade",
+  "status": "active",
+  "purchaseType": "managedUser",
+  "defaultPrice": {
+    "priceMicros": "990000",
+    "currency": "USD"
+  },
+  "listings": {
+    "en-US": {
+      "title": "Premium Upgrade",
+      "description": "Unlock all premium features"
+    }
+  }
+}
+
+purchaseType can be:
+  - managedUser: One-time purchase
+  - subscription: Recurring subscription (use subscriptions command instead)
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--auto-convert-prices` | Auto-convert missing prices to local currencies | `true` |
@@ -1900,6 +2432,26 @@ Update an in-app product.
 ```
 gplay iap update --package <name> --sku <sku> --json <json>
 ```
+
+Update an in-app product.
+
+JSON format:
+{
+  "defaultPrice": {
+    "priceMicros": "4990000",
+    "currency": "USD"
+  },
+  "listings": {
+    "en-US": {
+      "title": "Premium Upgrade",
+      "description": "Unlock all premium features"
+    }
+  }
+}
+
+Note: Uses legacy pricing format (priceMicros/currency).
+The --sku flag identifies which product to update.
+Use --allow-missing to create the product if it doesn't exist.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -1956,6 +2508,48 @@ Update multiple in-app products.
 gplay iap batch-update --package <name> --json <json>
 ```
 
+Create or update multiple in-app products in a single request.
+
+The --json flag accepts an array of InAppProduct objects. Each product
+is wrapped in an InappproductsUpdateRequest internally.
+
+JSON format:
+[
+  {
+    "sku": "coins_100",
+    "status": "active",
+    "purchaseType": "managedUser",
+    "defaultPrice": {
+      "priceMicros": "990000",
+      "currency": "USD"
+    },
+    "listings": {
+      "en-US": {
+        "title": "100 Coins",
+        "description": "A pack of 100 coins"
+      }
+    }
+  },
+  {
+    "sku": "coins_500",
+    "status": "active",
+    "purchaseType": "managedUser",
+    "defaultPrice": {
+      "priceMicros": "3990000",
+      "currency": "USD"
+    },
+    "listings": {
+      "en-US": {
+        "title": "500 Coins",
+        "description": "A pack of 500 coins"
+      }
+    }
+  }
+]
+
+Up to 100 products per request. Use --allow-missing to create
+products that don't exist yet.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--allow-missing` | Create if not exists | `false` |
@@ -1992,6 +2586,15 @@ Manage subscription products.
 ```
 gplay subscriptions <subcommand> [flags]
 ```
+
+Manage subscription products.
+
+Subscriptions have a hierarchical structure:
+  - Subscription: The product itself
+  - Base Plan: A pricing tier within a subscription
+  - Offer: Promotional pricing on a base plan (trials, intro prices)
+
+Use the "baseplans" and "offers" commands to manage those resources.
 
 ---
 
@@ -2039,6 +2642,42 @@ Create a subscription.
 gplay subscriptions create --package <name> --product-id <id> --json <json>
 ```
 
+Create a new subscription product.
+
+JSON format:
+{
+  "productId": "premium_monthly",
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "Premium Monthly",
+      "benefits": ["Feature 1", "Feature 2"],
+      "description": "Get premium access"
+    }
+  ],
+  "basePlans": [
+    {
+      "basePlanId": "monthly",
+      "autoRenewingBasePlanType": {
+        "billingPeriodDuration": "P1M",
+        "gracePeriodDuration": "P7D",
+        "resubscribeState": "RESUBSCRIBE_STATE_ACTIVE",
+        "prorationMode": "SUBSCRIPTION_PRORATION_MODE_CHARGE_ON_NEXT_BILLING_DATE"
+      },
+      "regionalConfigs": [
+        {
+          "regionCode": "US",
+          "price": {
+            "currencyCode": "USD",
+            "units": "9",
+            "nanos": 990000000
+          }
+        }
+      ]
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | Subscription JSON (or @file) | `` |
@@ -2057,6 +2696,30 @@ Update a subscription.
 ```
 gplay subscriptions update --package <name> --product-id <id> --json <json>
 ```
+
+Update a subscription.
+
+If --update-mask is not provided, it is automatically derived from the
+JSON keys. Mutable fields: basePlans, listings,
+restrictedPaymentCountries, taxAndComplianceSettings.
+
+JSON format:
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "Premium Monthly (Updated)",
+      "description": "Updated premium access"
+    }
+  ]
+}
+
+If --allow-missing is set and the subscription does not exist, it will
+be created. In that case, --update-mask is ignored.
+
+Examples:
+  gplay subscriptions update --package com.example --product-id premium --json @subscription.json
+  gplay subscriptions update --package com.example --product-id premium --json '{"listings":[...]}' --update-mask listings
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2131,6 +2794,30 @@ Batch update multiple subscriptions.
 gplay subscriptions batch-update --package <name> --json <json>
 ```
 
+Create or update multiple subscriptions in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "subscription": {
+        "packageName": "com.example.app",
+        "productId": "premium_monthly",
+        "listings": [
+          {
+            "languageCode": "en-US",
+            "title": "Premium Monthly",
+            "description": "Get premium access"
+          }
+        ]
+      },
+      "updateMask": "listings",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | BatchUpdateSubscriptionsRequest JSON (or @file) | `` |
@@ -2147,6 +2834,17 @@ Manage subscription base plans.
 ```
 gplay baseplans <subcommand> [flags]
 ```
+
+Manage base plans within subscription products.
+
+Base plans define the pricing tiers for a subscription, including:
+  - Billing period (monthly, yearly, etc.)
+  - Grace period
+  - Renewal behavior
+  - Regional pricing
+
+Note: Base plans are created as part of the subscription.
+Use these commands to activate, deactivate, or delete existing base plans.
 
 ---
 
@@ -2213,6 +2911,26 @@ Migrate subscriber prices to current base plan prices.
 gplay baseplans migrate-prices --package <name> --product-id <id> --base-plan-id <plan> --json <json>
 ```
 
+Migrate prices for existing subscribers.
+
+JSON format:
+{
+  "regionalPriceMigrations": [
+    {
+      "regionCode": "US",
+      "oldestAllowedPriceVersionTime": "2024-01-01T00:00:00Z",
+      "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_IN"
+    }
+  ],
+  "regionsVersion": {
+    "version": "2024001"
+  }
+}
+
+priceIncreaseType values:
+  - PRICE_INCREASE_TYPE_OPT_IN: User must accept
+  - PRICE_INCREASE_TYPE_OPT_OUT: Auto-applied unless user cancels
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--base-plan-id` | Base plan ID | `` |
@@ -2232,6 +2950,24 @@ Batch activate/deactivate multiple base plans.
 gplay baseplans batch-update-states --package <name> --product-id <id> --json <json>
 ```
 
+Batch update states for multiple base plans.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activateBasePlanRequest": {
+        "basePlanId": "monthly"
+      }
+    },
+    {
+      "deactivateBasePlanRequest": {
+        "basePlanId": "yearly"
+      }
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | Batch update states request JSON (or @file) | `` |
@@ -2250,6 +2986,46 @@ Batch migrate prices for multiple base plans.
 gplay baseplans batch-migrate-prices --package <name> --product-id <id> --json <json>
 ```
 
+Migrate prices for multiple base plans in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "basePlanId": "monthly",
+      "regionalPriceMigrations": [
+        {
+          "regionCode": "US",
+          "oldestAllowedPriceVersionTime": "2024-01-01T00:00:00Z",
+          "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_IN"
+        }
+      ],
+      "regionsVersion": {
+        "version": "2024001"
+      }
+    },
+    {
+      "basePlanId": "yearly",
+      "regionalPriceMigrations": [
+        {
+          "regionCode": "DE",
+          "oldestAllowedPriceVersionTime": "2024-06-01T00:00:00Z",
+          "priceIncreaseType": "PRICE_INCREASE_TYPE_OPT_OUT"
+        }
+      ],
+      "regionsVersion": {
+        "version": "2024001"
+      }
+    }
+  ]
+}
+
+Up to 100 requests per batch. Each request targets a different base plan.
+
+priceIncreaseType values:
+  - PRICE_INCREASE_TYPE_OPT_IN: User must accept
+  - PRICE_INCREASE_TYPE_OPT_OUT: Auto-applied unless user cancels
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | Batch migrate prices request JSON (or @file) | `` |
@@ -2267,6 +3043,16 @@ Manage subscription offers (trials, introductory prices).
 ```
 gplay offers <subcommand> [flags]
 ```
+
+Manage subscription offers within base plans.
+
+Offers include:
+  - Free trials
+  - Introductory prices
+  - Developer-determined offers
+
+Offers are attached to base plans and provide promotional
+pricing for new subscribers.
 
 ---
 
@@ -2317,6 +3103,54 @@ Create an offer.
 gplay offers create --package <name> --product-id <id> --base-plan-id <plan> --offer-id <offer> --json <json>
 ```
 
+Create a new subscription offer.
+
+JSON format for a free trial:
+{
+  "phases": [
+    {
+      "recurrenceCount": 1,
+      "duration": "P7D",
+      "regionalConfigs": [
+        {
+          "regionCode": "US",
+          "free": {}
+        }
+      ]
+    }
+  ],
+  "targeting": {
+    "acquisitionRule": {
+      "scope": {
+        "anySubscriptionInApp": {}
+      }
+    }
+  },
+  "offerTags": [
+    {"tag": "trial"}
+  ]
+}
+
+JSON format for introductory price:
+{
+  "phases": [
+    {
+      "recurrenceCount": 3,
+      "duration": "P1M",
+      "regionalConfigs": [
+        {
+          "regionCode": "US",
+          "price": {
+            "currencyCode": "USD",
+            "units": "4",
+            "nanos": 990000000
+          }
+        }
+      ]
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--base-plan-id` | Base plan ID | `` |
@@ -2337,6 +3171,32 @@ Update an offer.
 ```
 gplay offers update --package <name> --product-id <id> --base-plan-id <plan> --offer-id <offer> --json <json>
 ```
+
+Update a subscription offer.
+
+If --update-mask is not provided, it is automatically derived from the
+JSON keys. Mutable fields: offerTags, otherRegionsConfig, phases,
+regionalConfigs, targeting.
+
+JSON format:
+{
+  "phases": [
+    {
+      "recurrenceCount": 1,
+      "duration": "P14D",
+      "regionalConfigs": [
+        {
+          "regionCode": "US",
+          "free": {}
+        }
+      ]
+    }
+  ]
+}
+
+Examples:
+  gplay offers update --package com.example --product-id premium --base-plan-id monthly --offer-id trial --json @offer.json
+  gplay offers update --package com.example --product-id premium --base-plan-id monthly --offer-id trial --json '{"offerTags":[{"tag":"promo"}]}' --update-mask offerTags
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2438,6 +3298,37 @@ Batch update multiple offers.
 gplay offers batch-update --package <name> --product-id <id> --base-plan-id <plan> --json <json>
 ```
 
+Create or update multiple subscription offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "subscriptionOffer": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "trial",
+        "phases": [
+          {
+            "recurrenceCount": 1,
+            "duration": "P14D",
+            "regionalConfigs": [
+              {
+                "regionCode": "US",
+                "free": {}
+              }
+            ]
+          }
+        ]
+      },
+      "updateMask": "phases",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--base-plan-id` | Base plan ID | `` |
@@ -2457,6 +3348,30 @@ Batch activate/deactivate multiple offers.
 gplay offers batch-update-states --package <name> --product-id <id> --base-plan-id <plan> --json <json>
 ```
 
+Activate or deactivate multiple subscription offers.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activateSubscriptionOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "trial"
+      }
+    },
+    {
+      "deactivateSubscriptionOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium",
+        "basePlanId": "monthly",
+        "offerId": "old_trial"
+      }
+    }
+  ]
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--base-plan-id` | Base plan ID | `` |
@@ -2475,6 +3390,11 @@ Manage one-time products (monetization).
 ```
 gplay onetimeproducts <subcommand> [flags]
 ```
+
+Manage one-time products in the monetization system.
+
+One-time products are non-subscription purchases that users buy once.
+This includes consumables (can be purchased again) and non-consumables.
 
 ---
 
@@ -2521,6 +3441,45 @@ Create a one-time product.
 gplay onetimeproducts create --package <name> --product-id <id> --json <json>
 ```
 
+Create a one-time product (or update if it already exists).
+
+The --regions-version flag is required when setting regional pricing.
+
+JSON format:
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "100 Coins",
+      "description": "A pack of 100 coins"
+    }
+  ],
+  "purchaseOptions": [
+    {
+      "purchaseOptionId": "default",
+      "buyOption": {},
+      "regionalPricingAndAvailabilityConfigs": [
+        {
+          "regionCode": "US",
+          "availability": "AVAILABLE",
+          "price": {
+            "currencyCode": "USD",
+            "units": "1",
+            "nanos": 990000000
+          }
+        }
+      ]
+    }
+  ],
+  "offerTags": [
+    {"tag": "coins"}
+  ]
+}
+
+Examples:
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --regions-version 2025/02
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | OneTimeProduct JSON (or @file) | `` |
@@ -2539,6 +3498,29 @@ Patch a one-time product.
 ```
 gplay onetimeproducts patch --package <name> --product-id <id> --json <json>
 ```
+
+Update specific fields of a one-time product.
+
+If --update-mask is not provided, it is automatically derived from the JSON keys.
+
+Mutable fields: listings, offerTags, purchaseOptions, restrictedPaymentCountries,
+taxAndComplianceSettings.
+
+JSON format (partial update):
+{
+  "listings": [
+    {
+      "languageCode": "en-US",
+      "title": "200 Coins",
+      "description": "A pack of 200 coins"
+    }
+  ]
+}
+
+Examples:
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @patch.json
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --update-mask listings
+  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02 --allow-missing
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2596,6 +3578,51 @@ Create or update multiple one-time products.
 gplay onetimeproducts batch-update --package <name> --json <json>
 ```
 
+Create or update multiple one-time products in a single request.
+
+JSON format (BatchUpdateOneTimeProductsRequest):
+{
+  "requests": [
+    {
+      "oneTimeProduct": {
+        "packageName": "com.example.app",
+        "productId": "coins_100",
+        "listings": [
+          {
+            "languageCode": "en-US",
+            "title": "100 Coins",
+            "description": "A pack of 100 coins"
+          }
+        ],
+        "purchaseOptions": [
+          {
+            "purchaseOptionId": "default",
+            "buyOption": {},
+            "regionalPricingAndAvailabilityConfigs": [
+              {
+                "regionCode": "US",
+                "availability": "AVAILABLE",
+                "price": {
+                  "currencyCode": "USD",
+                  "units": "1",
+                  "nanos": 990000000
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "updateMask": "listings,purchaseOptions",
+      "allowMissing": true,
+      "regionsVersion": {"version": "2025/02"}
+    }
+  ]
+}
+
+Examples:
+  gplay onetimeproducts batch-update --package com.example.app --json @batch.json
+  gplay onetimeproducts batch-update --package com.example.app --json '{"requests":[...]}'
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | BatchUpdateRequest JSON (or @file) | `` |
@@ -2612,6 +3639,22 @@ Delete multiple one-time products.
 ```
 gplay onetimeproducts batch-delete --package <name> --json <json> --confirm
 ```
+
+Delete multiple one-time products in a single request.
+
+Requires --confirm for safety.
+
+JSON format (BatchDeleteOneTimeProductsRequest):
+{
+  "requests": [
+    {"packageName": "com.example.app", "productId": "coins_100"},
+    {"packageName": "com.example.app", "productId": "coins_500"}
+  ]
+}
+
+Examples:
+  gplay onetimeproducts batch-delete --package com.example.app --json @delete.json --confirm
+  gplay onetimeproducts batch-delete --package com.example.app --json '{"requests":[...]}' --confirm
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2631,6 +3674,13 @@ Manage one-time product purchase options.
 gplay purchase-options <subcommand> [flags]
 ```
 
+Manage purchase options for one-time products.
+
+Purchase options define how a one-time product can be purchased,
+including pricing, availability, and regional configurations.
+
+Use "otp-offers" to manage offers within purchase options.
+
 ---
 
 ## gplay purchase-options batch-update-states
@@ -2640,6 +3690,32 @@ Batch activate/deactivate purchase options.
 ```
 gplay purchase-options batch-update-states --package <name> --product-id <id> --json <json>
 ```
+
+Batch update states for multiple purchase options.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activatePurchaseOptionRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default"
+      }
+    },
+    {
+      "deactivatePurchaseOptionRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "legacy_option"
+      }
+    }
+  ]
+}
+
+Each request must contain exactly one of:
+  - activatePurchaseOptionRequest
+  - deactivatePurchaseOptionRequest
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2659,6 +3735,28 @@ Batch delete purchase options.
 gplay purchase-options batch-delete --package <name> --product-id <id> --json <json> --confirm
 ```
 
+Batch delete multiple purchase options in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "old_option",
+      "force": true
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "basic_item",
+      "purchaseOptionId": "legacy_option"
+    }
+  ]
+}
+
+Up to 100 requests per batch. Set "force" to true to also delete
+any offers associated with the purchase option. Requires --confirm.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--confirm` | Confirm deletion | `false` |
@@ -2677,6 +3775,11 @@ Manage one-time product purchase option offers.
 ```
 gplay otp-offers <subcommand> [flags]
 ```
+
+Manage offers within one-time product purchase options.
+
+Offers provide promotional pricing or special terms for purchase options.
+Each offer is scoped to a specific purchase option within a one-time product.
 
 ---
 
@@ -2765,6 +3868,29 @@ Get multiple OTP offers.
 gplay otp-offers batch-get --package <name> --product-id <id> --purchase-option-id <id> --json <json>
 ```
 
+Get multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "launch_discount"
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "holiday_sale"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must retrieve
+different offers.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | BatchGetOneTimeProductOffersRequest JSON (or @file) | `` |
@@ -2783,6 +3909,30 @@ Batch update multiple OTP offers.
 ```
 gplay otp-offers batch-update --package <name> --product-id <id> --purchase-option-id <id> --json <json>
 ```
+
+Batch update multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "oneTimeProductOffer": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "launch_discount"
+      },
+      "regionsVersion": {
+        "version": "2024001"
+      },
+      "updateMask": "oneTimeProductOffer.offerTags"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must update
+different offers. Use updateMask to specify which fields
+to update.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2803,6 +3953,43 @@ Batch activate/deactivate/cancel multiple OTP offers.
 gplay otp-offers batch-update-states --package <name> --product-id <id> --purchase-option-id <id> --json <json>
 ```
 
+Batch update states for multiple OTP offers.
+
+JSON format:
+{
+  "requests": [
+    {
+      "activateOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "launch_discount"
+      }
+    },
+    {
+      "deactivateOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "old_promo"
+      }
+    },
+    {
+      "cancelOneTimeProductOfferRequest": {
+        "packageName": "com.example.app",
+        "productId": "premium_item",
+        "purchaseOptionId": "default",
+        "offerId": "preorder_deal"
+      }
+    }
+  ]
+}
+
+Each request must contain exactly one of:
+  - activateOneTimeProductOfferRequest
+  - deactivateOneTimeProductOfferRequest (for discounted offers)
+  - cancelOneTimeProductOfferRequest (for pre-order offers)
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | BatchUpdateOneTimeProductOfferStatesRequest JSON (or @file) | `` |
@@ -2821,6 +4008,29 @@ Batch delete OTP offers.
 ```
 gplay otp-offers batch-delete --package <name> --product-id <id> --purchase-option-id <id> --json <json> --confirm
 ```
+
+Batch delete multiple OTP offers in a single request.
+
+JSON format:
+{
+  "requests": [
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "launch_discount"
+    },
+    {
+      "packageName": "com.example.app",
+      "productId": "premium_item",
+      "purchaseOptionId": "default",
+      "offerId": "old_promo"
+    }
+  ]
+}
+
+Up to 100 requests per batch. All requests must correspond
+to different offers. Requires --confirm.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2852,6 +4062,23 @@ Convert a price to region-specific prices.
 gplay pricing convert --package <name> --json <json>
 ```
 
+Convert a base price to region-specific prices.
+
+This is useful for calculating equivalent prices across regions
+while maintaining Google Play's pricing tiers.
+
+JSON format:
+{
+  "price": {
+    "currencyCode": "USD",
+    "units": "9",
+    "nanos": 990000000
+  }
+}
+
+This will return prices for all supported regions in their
+local currencies, adjusted to Google Play's pricing tiers.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | ConvertRegionPricesRequest JSON (or @file) | `` |
@@ -2868,6 +4095,11 @@ Manage orders.
 ```
 gplay orders <subcommand> [flags]
 ```
+
+Manage orders and refunds.
+
+Orders represent completed transactions for in-app products
+and subscriptions.
 
 ---
 
@@ -2913,6 +4145,12 @@ Refund an order.
 gplay orders refund --package <name> --order-id <id> [--revoke] --confirm
 ```
 
+Refund an order.
+
+Options:
+  --revoke: Also revoke the entitlement (user loses access to the purchased item)
+            Without this flag, the user keeps access but the payment is refunded.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--confirm` | Confirm refund | `false` |
@@ -2931,6 +4169,11 @@ Verify and manage purchases.
 ```
 gplay purchases <subcommand> [flags]
 ```
+
+Verify and manage in-app purchases and subscriptions.
+
+Use these commands for server-side purchase validation
+and subscription management.
 
 ---
 
@@ -2952,6 +4195,13 @@ Get purchase details for verification.
 gplay purchases products get --package <name> --product-id <id> --token <token>
 ```
 
+Get purchase details for server-side verification.
+
+The response includes:
+  - purchaseState: 0=Purchased, 1=Canceled, 2=Pending
+  - consumptionState: 0=Not consumed, 1=Consumed
+  - acknowledgementState: 0=Not acknowledged, 1=Acknowledged
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--output` | Output format: json (default), table, markdown | `json` |
@@ -2969,6 +4219,11 @@ Acknowledge a purchase.
 ```
 gplay purchases products acknowledge --package <name> --product-id <id> --token <token>
 ```
+
+Acknowledge a purchase.
+
+Purchases must be acknowledged within 3 days or they are
+automatically refunded. Use this for server-side acknowledgement.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2989,6 +4244,11 @@ Consume a purchase (for consumable products).
 gplay purchases products consume --package <name> --product-id <id> --token <token>
 ```
 
+Consume a purchase.
+
+Use this for consumable products that can be purchased multiple times.
+After consumption, the product can be purchased again.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--output` | Output format: json (default), table, markdown | `json` |
@@ -3007,6 +4267,11 @@ Verify in-app product purchases (v2 API).
 gplay purchases productsv2 <subcommand> [flags]
 ```
 
+Verify in-app product purchases using the newer v2 API.
+
+The v2 API provides enhanced purchase information including
+multi-quantity purchases and improved status fields.
+
 ---
 
 ## gplay purchases productsv2 get
@@ -3016,6 +4281,15 @@ Get purchase details using v2 API.
 ```
 gplay purchases productsv2 get --package <name> --token <token>
 ```
+
+Get purchase details using the v2 API.
+
+The v2 API returns enhanced purchase information including:
+  - productId: The purchased product ID
+  - purchaseState: Current state of the purchase
+  - consumptionState: Whether the product has been consumed
+  - acknowledgementState: Whether acknowledged
+  - quantity: Number of items purchased (for multi-quantity)
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3044,6 +4318,13 @@ Get subscription purchase details (v2 API).
 gplay purchases subscriptions get --package <name> --token <token>
 ```
 
+Get subscription purchase details using the v2 API.
+
+The response includes:
+  - subscriptionState: Current state of the subscription
+  - lineItems: Details of each subscription item
+  - acknowledgementState: Whether the subscription is acknowledged
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--output` | Output format: json (default), table, markdown | `json` |
@@ -3060,6 +4341,11 @@ Cancel a subscription.
 ```
 gplay purchases subscriptions cancel --package <name> --subscription-id <id> --token <token> --confirm
 ```
+
+Cancel a subscription.
+
+The subscription remains active until the end of the current
+billing period, then will not renew.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3080,6 +4366,21 @@ Defer billing for a subscription.
 gplay purchases subscriptions defer --package <name> --subscription-id <id> --token <token> --json <json>
 ```
 
+Defer billing for a subscription.
+
+JSON format:
+{
+  "deferralInfo": {
+    "expectedExpiryTimeMillis": 1735689600000,
+    "desiredExpiryTimeMillis": 1738368000000
+  }
+}
+
+The new expiry time must be:
+- In the future
+- Before the current billing period ends
+- No more than one year ahead
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | DeferralInfo JSON (or @file) | `` |
@@ -3098,6 +4399,11 @@ Revoke a subscription immediately.
 ```
 gplay purchases subscriptions revoke --package <name> --subscription-id <id> --token <token> --confirm
 ```
+
+Revoke a subscription immediately.
+
+Unlike cancel, this immediately ends the subscription and
+the user loses access right away.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3128,6 +4434,17 @@ List voided purchases.
 gplay purchases voided list --package <name> [--start-time <ms>] [--end-time <ms>]
 ```
 
+List voided purchases (refunds and chargebacks).
+
+Use this to track:
+  - Refunds issued by you or Google
+  - Chargebacks from payment processors
+
+The --type flag filters by voided source:
+  0 = All voided purchases
+  1 = Refunds only
+  2 = Chargebacks only
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--end-time` | End time in milliseconds since epoch | `0` |
@@ -3150,6 +4467,11 @@ Report external transactions (EU compliance).
 gplay external-transactions <subcommand> [flags]
 ```
 
+Report external transactions for EU Digital Markets Act compliance.
+
+This is used to report transactions that occurred outside of Google Play
+(e.g., via your own website payment system) for apps distributed in the EU.
+
 ---
 
 ## gplay external-transactions create
@@ -3159,6 +4481,37 @@ Report a new external transaction.
 ```
 gplay external-transactions create --package <name> --external-transaction-id <id> --json <json>
 ```
+
+Report a new external transaction.
+
+JSON format:
+{
+  "originalPreTaxAmount": {
+    "priceMicros": "9990000",
+    "currency": "EUR"
+  },
+  "originalTaxAmount": {
+    "priceMicros": "1990000",
+    "currency": "EUR"
+  },
+  "currentPreTaxAmount": {
+    "priceMicros": "9990000",
+    "currency": "EUR"
+  },
+  "currentTaxAmount": {
+    "priceMicros": "1990000",
+    "currency": "EUR"
+  },
+  "transactionTime": "2024-01-15T10:30:00Z",
+  "oneTimeTransaction": {
+    "externalTransactionToken": "your-token-123"
+  },
+  "userTaxAddress": {
+    "regionCode": "DE"
+  }
+}
+
+For recurring subscriptions, use "recurringTransaction" instead of "oneTimeTransaction".
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3195,6 +4548,25 @@ Report a refund for an external transaction.
 gplay external-transactions refund --package <name> --external-transaction-id <id> --json <json> --confirm
 ```
 
+Report a refund for an external transaction.
+
+JSON format for full refund:
+{
+  "refundTime": "2024-01-20T10:30:00Z",
+  "fullRefund": {}
+}
+
+JSON format for partial refund:
+{
+  "refundTime": "2024-01-20T10:30:00Z",
+  "partialRefund": {
+    "refundPreTaxAmount": {
+      "priceMicros": "4990000",
+      "currency": "EUR"
+    }
+  }
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--confirm` | Confirm refund | `false` |
@@ -3213,6 +4585,12 @@ Download device-specific APKs generated from app bundles.
 ```
 gplay generated-apks <subcommand> [flags]
 ```
+
+Download device-specific APKs that Google Play generates from app bundles.
+
+When you upload an app bundle, Google Play generates optimized APKs
+for each device configuration. Use this command to download these
+APKs for testing or distribution outside of the Play Store.
 
 ---
 
@@ -3260,6 +4638,11 @@ Manage per-app permission grants.
 gplay grants <subcommand> [flags]
 ```
 
+Manage per-app permission grants for users.
+
+Grants give users specific permissions for individual apps,
+as opposed to account-wide permissions.
+
 ---
 
 ## gplay grants create
@@ -3269,6 +4652,36 @@ Create a grant for a user on an app.
 ```
 gplay grants create --developer <id> --email <email> --package <pkg> --json <json>
 ```
+
+Create a permission grant for a user on a specific app.
+
+JSON format:
+{
+  "appLevelPermissions": [
+    "CAN_ACCESS_APP",
+    "CAN_VIEW_FINANCIAL_DATA",
+    "CAN_MANAGE_PERMISSIONS",
+    "CAN_REPLY_TO_REVIEWS",
+    "CAN_MANAGE_PUBLIC_APKS",
+    "CAN_MANAGE_TRACK_APKS",
+    "CAN_MANAGE_TRACK_USERS",
+    "CAN_MANAGE_PUBLIC_LISTING",
+    "CAN_MANAGE_DRAFT_APPS",
+    "CAN_MANAGE_ORDERS"
+  ]
+}
+
+Available app permissions:
+  - CAN_ACCESS_APP: Basic app access
+  - CAN_VIEW_FINANCIAL_DATA: View financial reports
+  - CAN_MANAGE_PERMISSIONS: Manage user permissions
+  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
+  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
+  - CAN_MANAGE_TRACK_APKS: Manage test tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testers
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
+  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
+  - CAN_MANAGE_ORDERS: Manage orders and subscriptions
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3288,6 +4701,31 @@ Update a grant's permissions.
 ```
 gplay grants update --developer <id> --email <email> --package <pkg> --json <json>
 ```
+
+Update permissions for an existing app-level grant.
+
+JSON format:
+{
+  "appLevelPermissions": [
+    "CAN_ACCESS_APP",
+    "CAN_MANAGE_PUBLIC_LISTING"
+  ]
+}
+
+Available app permissions:
+  - CAN_ACCESS_APP: Basic app access
+  - CAN_VIEW_FINANCIAL_DATA: View financial reports
+  - CAN_MANAGE_PERMISSIONS: Manage user permissions
+  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
+  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
+  - CAN_MANAGE_TRACK_APKS: Manage test tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testers
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
+  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
+  - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+
+Use --update-mask to specify which fields to update. If omitted, all
+fields in the request body are applied.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3328,6 +4766,16 @@ Quick internal testing without review.
 gplay internal-sharing <subcommand> [flags]
 ```
 
+Upload APKs or bundles for internal sharing.
+
+Internal app sharing allows you to quickly share builds with
+internal testers without going through the review process.
+
+Shared artifacts:
+  - Are only accessible to users in your organization
+  - Don't require publishing to a track
+  - Generate shareable URLs for direct installation
+
 ---
 
 ## gplay internal-sharing upload-apk
@@ -3337,6 +4785,11 @@ Upload an APK for internal sharing.
 ```
 gplay internal-sharing upload-apk --package <name> --file <path>
 ```
+
+Upload an APK for internal app sharing.
+
+After upload, you'll receive a download URL that can be shared
+with internal testers for direct installation.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3355,6 +4808,11 @@ Upload a bundle for internal sharing.
 gplay internal-sharing upload-bundle --package <name> --file <path>
 ```
 
+Upload an app bundle for internal app sharing.
+
+After upload, you'll receive a download URL that can be shared
+with internal testers for direct installation.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--file` | Path to .aab bundle file | `` |
@@ -3372,6 +4830,11 @@ Create APKs for system image inclusion.
 gplay system-apks <subcommand> [flags]
 ```
 
+Create and manage system APK variants for OEM/system image inclusion.
+
+System APKs are pre-installed on devices by OEMs. Use these commands
+to create variants for specific device configurations.
+
 ---
 
 ## gplay system-apks create
@@ -3381,6 +4844,22 @@ Create a system APK variant.
 ```
 gplay system-apks create --package <name> --version-code <code> --json <json>
 ```
+
+Create a system APK variant from an app bundle.
+
+JSON format:
+{
+  "deviceSpec": {
+    "screenDensity": 480,
+    "supportedAbis": ["arm64-v8a", "armeabi-v7a"],
+    "supportedLocales": ["en-US", "es"]
+  },
+  "options": {
+    "rotated": false,
+    "uncompressedDexFiles": false,
+    "uncompressedNativeLibraries": true
+  }
+}
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3454,6 +4933,18 @@ Manage expansion files (OBB files).
 gplay expansion <subcommand> [flags]
 ```
 
+Manage expansion files (OBB) for large assets.
+
+Expansion files are used to deliver large assets (up to 2GB each)
+that don't fit within the APK size limit.
+
+File types:
+  - main: Required, primary expansion file
+  - patch: Optional, update to the main file
+
+Note: For new apps, consider using Play Asset Delivery instead,
+which provides a better user experience.
+
 ---
 
 ## gplay expansion get
@@ -3503,6 +4994,11 @@ Reference an expansion file from another APK version.
 gplay expansion patch --package <name> --edit <id> --apk-version <code> --type <type> --references-version <code>
 ```
 
+Reference an expansion file from a different APK version.
+
+This allows you to reuse an existing expansion file for a new APK
+without re-uploading it.
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--apk-version` | APK version code | `0` |
@@ -3522,6 +5018,13 @@ Manage app recovery actions.
 ```
 gplay recovery <subcommand> [flags]
 ```
+
+Manage remote app recovery actions.
+
+App recovery allows you to remotely trigger actions on user devices
+for crash mitigation, such as forcing an update or clearing app data.
+
+Use with caution - these actions directly affect users.
 
 ---
 
@@ -3549,6 +5052,28 @@ Create a draft recovery action.
 ```
 gplay recovery create --package <name> --json <json>
 ```
+
+Create a draft app recovery action.
+
+JSON format:
+{
+  "targeting": {
+    "versionList": {
+      "versionCodes": ["100", "101", "102"]
+    }
+  },
+  "remoteInAppUpdate": {
+    "isRemoteInAppUpdateRequested": true
+  }
+}
+
+Or for data deletion:
+{
+  "targeting": {
+    "allUsers": {}
+  },
+  "appDataDeletion": {}
+}
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3602,6 +5127,17 @@ Add targeting criteria to a recovery action.
 gplay recovery add-targeting --package <name> --recovery-id <id> --json <json>
 ```
 
+Add additional targeting criteria to a draft recovery action.
+
+JSON format:
+{
+  "targetingUpdate": {
+    "versionList": {
+      "versionCodes": ["103", "104"]
+    }
+  }
+}
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | AddTargetingRequest JSON (or @file) | `` |
@@ -3620,6 +5156,12 @@ Manage data safety declarations.
 gplay data-safety <subcommand> [flags]
 ```
 
+Manage data safety declarations for your app.
+
+Data safety declarations inform users about how your app
+collects and shares data. These appear on your app's
+Play Store listing.
+
 ---
 
 ## gplay data-safety update
@@ -3629,6 +5171,17 @@ Update data safety declarations.
 ```
 gplay data-safety update --package <name> --json <json>
 ```
+
+Update data safety declarations for your app.
+
+JSON format:
+{
+  "safetyLabels": "... base64 encoded SafetyLabels proto ..."
+}
+
+Note: The safety labels are encoded in Protocol Buffer format.
+Typically, you would use the Play Console UI or generate this
+from your data safety form responses.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3646,6 +5199,12 @@ Manage device tier configurations.
 ```
 gplay device-tiers <subcommand> [flags]
 ```
+
+Manage device tier configurations for Play Asset Delivery.
+
+Device tiers allow you to customize asset delivery based on
+device characteristics like RAM, texture compression support,
+or device model.
 
 ---
 
@@ -3689,6 +5248,47 @@ Create a device tier configuration.
 ```
 gplay device-tiers create --package <name> --json <json>
 ```
+
+Create a device tier configuration for asset delivery.
+
+JSON format for RAM-based tiers:
+{
+  "deviceGroups": [
+    {
+      "name": "low_ram",
+      "deviceSelectors": [
+        {
+          "deviceRam": {
+            "minBytes": "0",
+            "maxBytes": "2147483648"
+          }
+        }
+      ]
+    },
+    {
+      "name": "high_ram",
+      "deviceSelectors": [
+        {
+          "deviceRam": {
+            "minBytes": "2147483648"
+          }
+        }
+      ]
+    }
+  ],
+  "deviceTierSet": {
+    "deviceTiers": [
+      {
+        "deviceGroupNames": ["low_ram"],
+        "level": 0
+      },
+      {
+        "deviceGroupNames": ["high_ram"],
+        "level": 1
+      }
+    ]
+  }
+}
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3738,6 +5338,19 @@ Report CLI friction as a GitHub issue.
 gplay snitch [flags]
 ```
 
+Report CLI friction directly from the terminal.
+
+Searches for duplicate issues when GITHUB_TOKEN or GH_TOKEN is available.
+Without --confirm, snitch prints a preview only. Use --local to log friction
+offline for later review with "gplay snitch flush".
+
+Examples:
+  gplay snitch --repro 'gplay vitals crashes --package "com.example"' --expected "Should show crashes" --actual "Error: package not found" --confirm
+  gplay snitch --repro "gplay tracks list" --expected "tracks listed" --actual "timeout" --dry-run
+  gplay snitch --repro "gplay tracks list" --expected "tracks listed" --actual "timeout" --local
+  gplay snitch flush
+  gplay snitch flush --file .gplay/snitch.log
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--actual` | Actual behavior (required) | `` |
@@ -3759,6 +5372,16 @@ Review locally logged friction entries.
 gplay snitch flush [--file PATH]
 ```
 
+Review friction entries logged with --local.
+
+Prints all entries from .gplay/snitch.log (or --file path) in a readable format.
+Filing from flush is manual: copy the description and rerun "gplay snitch"
+with --confirm when you're ready to create the issue.
+
+Examples:
+  gplay snitch flush
+  gplay snitch flush --file .gplay/snitch.log
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--file` | Path to snitch log file (default: .gplay/snitch.log) | `` |
@@ -3773,6 +5396,11 @@ Migrate metadata from other tools.
 gplay migrate <subcommand> [flags]
 ```
 
+Import metadata from other store management tools.
+
+Supported sources:
+  fastlane    Import from Fastlane metadata/android/ directory structure
+
 ---
 
 ## gplay migrate fastlane
@@ -3782,6 +5410,26 @@ Import metadata from Fastlane directory structure.
 ```
 gplay migrate fastlane --source <path> [--output-dir <path>] [--dry-run] [--locales <list>]
 ```
+
+Import metadata from a Fastlane metadata/android/ directory.
+
+Reads the standard Fastlane directory layout and copies text files,
+changelogs, and images into the gplay metadata directory.
+
+Fastlane directory structure:
+  metadata/android/
+    en-US/
+      title.txt
+      short_description.txt
+      full_description.txt
+      video.txt
+      changelogs/
+        100.txt
+      images/
+        phoneScreenshots/
+        featureGraphic.png
+    de-DE/
+      ...
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3940,6 +5588,41 @@ Run multi-step automation workflows.
 gplay workflow <subcommand> [flags]
 ```
 
+Define named, multi-step automation sequences in .gplay/workflows/*.json.
+Each workflow composes existing gplay commands and shell commands.
+
+Example workflow file (.gplay/workflows/deploy.json):
+
+{
+  "name": "deploy",
+  "description": "Build, test, and deploy the app",
+  "params": [
+    {"name": "VERSION", "required": true}
+  ],
+  "env": {
+    "PACKAGE": "com.example.app"
+  },
+  "steps": [
+    {"name": "build", "command": "make build"},
+    {"name": "test", "command": "make test"},
+    {"name": "deploy", "command": "gplay release create --package {{ .PACKAGE }} --version {{ .VERSION }}"}
+  ]
+}
+
+Security note:
+  Workflows execute arbitrary shell commands.
+  Only run workflow files you trust.
+
+Tips:
+  Use gplay workflow validate before running a new workflow file.
+  Preview the plan with gplay workflow run --dry-run <name>.
+
+Examples:
+  gplay workflow list
+  gplay workflow validate deploy.json
+  gplay workflow run deploy --param VERSION=1.0.0
+  gplay workflow run --dry-run deploy.json
+
 ---
 
 ## gplay workflow run
@@ -3949,6 +5632,17 @@ Run a named workflow.
 ```
 gplay workflow run <name-or-file> [--param KEY=VALUE ...] [--dry-run] [--resume]
 ```
+
+Run a workflow from .gplay/workflows/ or a direct file path.
+
+The workflow name is resolved by searching .gplay/workflows/<name>.json first.
+If not found, it's treated as a direct file path.
+
+Examples:
+  gplay workflow run deploy --param VERSION=1.0.0
+  gplay workflow run ./my-workflow.json --param ENV=staging
+  gplay workflow run --dry-run deploy
+  gplay workflow run deploy --resume
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -3967,6 +5661,12 @@ Validate a workflow definition for errors.
 gplay workflow validate <name-or-file>
 ```
 
+Validate a workflow JSON file for structure, references, and naming.
+
+Examples:
+  gplay workflow validate deploy
+  gplay workflow validate ./my-workflow.json
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -3980,6 +5680,12 @@ List available workflows.
 ```
 gplay workflow list [--dir <path>]
 ```
+
+List workflows found in .gplay/workflows/ (or a custom directory).
+
+Examples:
+  gplay workflow list
+  gplay workflow list --dir ./workflows
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -4030,6 +5736,15 @@ Print an embedded documentation guide.
 gplay docs show <topic>
 ```
 
+Print an embedded documentation guide.
+
+Use 'gplay docs list' to see available topics.
+
+Examples:
+  gplay docs show auth-setup
+  gplay docs show release-workflow
+  gplay docs show troubleshooting
+
 ---
 
 ## gplay web
@@ -4049,6 +5764,23 @@ Open a Google Play Console page in the browser.
 ```
 gplay web open [--package <name>] [--section <section>]
 ```
+
+Open a Google Play Console page in the default browser.
+
+Sections:
+  dashboard      App dashboard (default)
+  store-listing  Store listing editor
+  releases       Release tracks overview
+  pricing        Pricing and distribution
+  testers        Closed testing management
+  reviews        User reviews and feedback
+  vitals         Android vitals overview
+  statistics     Statistics and metrics
+
+Examples:
+  gplay web open --package com.example.app
+  gplay web open --package com.example.app --section vitals
+  gplay web open --package com.example.app --section reviews
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -4079,6 +5811,28 @@ Generate shell completion scripts.
 ```
 gplay completion <shell>
 ```
+
+Generate shell completion scripts for gplay.
+
+To install completions:
+
+Bash:
+  gplay completion bash > /etc/bash_completion.d/gplay
+  # or for user-local installation:
+  gplay completion bash > ~/.bash_completion.d/gplay
+
+Zsh:
+  gplay completion zsh > "${fpath[1]}/_gplay"
+  # or:
+  gplay completion zsh > ~/.zfunc/_gplay
+  # Make sure ~/.zfunc is in your fpath before compinit
+
+Fish:
+  gplay completion fish > ~/.config/fish/completions/gplay.fish
+
+PowerShell:
+  gplay completion powershell > gplay.ps1
+  # Then source the script in your PowerShell profile
 
 ---
 
