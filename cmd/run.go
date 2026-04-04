@@ -24,7 +24,7 @@ func Run(args []string, versionInfo string) int {
 	}
 
 	// Build command tree
-	root := RootCommand(versionInfo)
+	root, rt := constructRootCommand(versionInfo)
 
 	// Signal handling for graceful Ctrl+C
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -36,17 +36,9 @@ func Run(args []string, versionInfo string) int {
 		return ExitCodeFromError(err)
 	}
 
-	// Apply root flags to environment
-	rootFlags.Apply()
-
-	// Validate report flags
-	if err := rootFlags.ValidateReportFlags(); err != nil {
+	ctx, err := rt.ApplyRootContext(ctx)
+	if err != nil {
 		return ExitUsage
-	}
-
-	// Apply dry-run context
-	if rootFlags.DryRun != nil && *rootFlags.DryRun {
-		ctx = shared.ContextWithDryRun(ctx, true)
 	}
 
 	// Record start time for JUnit reporting
@@ -61,9 +53,10 @@ func Run(args []string, versionInfo string) int {
 	elapsed := time.Since(startTime)
 
 	// Write JUnit report if requested
-	if rootFlags.Report != nil && strings.ToLower(strings.TrimSpace(*rootFlags.Report)) == "junit" &&
-		rootFlags.ReportFile != nil && strings.TrimSpace(*rootFlags.ReportFile) != "" {
-		if reportErr := writeJUnitReport(*rootFlags.ReportFile, commandName, runErr, elapsed); reportErr != nil {
+	if rt.RootFlags != nil &&
+		rt.RootFlags.Report != nil && strings.ToLower(strings.TrimSpace(*rt.RootFlags.Report)) == "junit" &&
+		rt.RootFlags.ReportFile != nil && strings.TrimSpace(*rt.RootFlags.ReportFile) != "" {
+		if reportErr := writeJUnitReport(*rt.RootFlags.ReportFile, commandName, runErr, elapsed); reportErr != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to write JUnit report: %v\n", reportErr)
 			if runErr == nil {
 				return ExitError
