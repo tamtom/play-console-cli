@@ -27,25 +27,36 @@ func WorkflowCommand() *ffcli.Command {
 		Name:       "workflow",
 		ShortUsage: "gplay workflow <subcommand> [flags]",
 		ShortHelp:  "Run multi-step automation workflows.",
-		LongHelp: `Define named, multi-step automation sequences in .gplay/workflows/*.json.
-Each workflow composes existing gplay commands and shell commands.
+		LongHelp: `Define reusable Google Play release workflows in .gplay/workflows/*.json.
+Workflow files can contain one legacy workflow or multiple named workflows.
 
-Example workflow file (.gplay/workflows/deploy.json):
+Example workflow file (.gplay/workflows/release.json):
 
 {
-  "name": "deploy",
-  "description": "Build, test, and deploy the app",
-  "params": [
-    {"name": "VERSION", "required": true}
-  ],
-  "env": {
-    "PACKAGE": "com.example.app"
-  },
-  "steps": [
-    {"name": "build", "command": "make build"},
-    {"name": "test", "command": "make test"},
-    {"name": "deploy", "command": "gplay release create --package {{ .PACKAGE }} --version {{ .VERSION }}"}
-  ]
+  "workflows": {
+    "preflight": {
+      "steps": [
+        {
+          "name": "readiness",
+          "run": "gplay validate --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}",
+          "outputs": {
+            "status": "$.summary.status"
+          }
+        }
+      ]
+    },
+    "publish": {
+      "params": [
+        {"name": "PACKAGE", "required": true},
+        {"name": "TRACK", "required": true},
+        {"name": "BUNDLE", "required": true}
+      ],
+      "steps": [
+        {"name": "preflight", "workflow": "preflight", "with": {"PACKAGE": "{{ .PACKAGE }}", "TRACK": "{{ .TRACK }}", "BUNDLE": "{{ .BUNDLE }}"}},
+        {"name": "release", "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}"}
+      ]
+    }
+  }
 }
 
 Security note:
@@ -54,13 +65,13 @@ Security note:
 
 Tips:
   Use gplay workflow validate before running a new workflow file.
-  Preview the plan with gplay workflow run --dry-run <name>.
+  Preview the plan with gplay workflow run --dry-run release --workflow publish.
 
 Examples:
   gplay workflow list
-  gplay workflow validate deploy.json
-  gplay workflow run deploy --param VERSION=1.0.0
-  gplay workflow run --dry-run deploy.json`,
+  gplay workflow validate release.json
+  gplay workflow run release --workflow publish --param PACKAGE=com.example.app --param TRACK=internal --param BUNDLE=app.aab
+  gplay workflow run --dry-run ./release.json --workflow publish`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
@@ -79,6 +90,7 @@ func workflowRunCommand() *ffcli.Command {
 	dryRun := fs.Bool("dry-run", false, "Preview steps without executing")
 	resume := fs.Bool("resume", false, "Resume from last saved state")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+	workflowName := fs.String("workflow", "", "Workflow name when the file contains multiple workflows")
 
 	type paramSlice []string
 	var params paramSlice
@@ -89,48 +101,50 @@ func workflowRunCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "run",
-		ShortUsage: "gplay workflow run <name-or-file> [--param KEY=VALUE ...] [--dry-run] [--resume]",
+		ShortUsage: "gplay workflow run <name-or-file> [--workflow <name>] [--param KEY=VALUE ...] [--dry-run] [--resume]",
 		ShortHelp:  "Run a named workflow.",
 		LongHelp: `Run a workflow from .gplay/workflows/ or a direct file path.
 
-The workflow name is resolved by searching .gplay/workflows/<name>.json first.
-If not found, it's treated as a direct file path.
+The workflow file is resolved from .gplay/workflows/<name>.json first unless
+you pass an explicit path. Legacy single-workflow files still work.
 
 Examples:
-  gplay workflow run deploy --param VERSION=1.0.0
-  gplay workflow run ./my-workflow.json --param ENV=staging
-  gplay workflow run --dry-run deploy
-  gplay workflow run deploy --resume`,
+  gplay workflow run release --workflow publish --param PACKAGE=com.example.app --param TRACK=internal --param BUNDLE=app.aab
+  gplay workflow run ./release.json --workflow publish --param TRACK=production
+  gplay workflow run --dry-run release --workflow publish
+  gplay workflow run release --workflow publish --resume`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return shared.UsageError("workflow name or file path is required")
 			}
-
-			nameOrFile := args[0]
 			if *dryRun && *resume {
 				return shared.UsageError("--resume cannot be used with --dry-run")
 			}
 
-			// Resolve workflow file path.
+			nameOrFile := args[0]
 			filePath, err := resolveWorkflowPath(nameOrFile)
 			if err != nil {
 				return fmt.Errorf("workflow run: %w", err)
 			}
 
-			w, err := wf.Load(filePath)
+			def, err := wf.LoadDefinition(filePath)
 			if err != nil {
 				return fmt.Errorf("workflow run: %w", err)
 			}
 
-			// Parse params.
+			selectedName, _, err := wf.SelectWorkflow(def, workflowImplicitName(nameOrFile, filePath), *workflowName)
+			if err != nil {
+				return fmt.Errorf("workflow run: %w", err)
+			}
+
 			paramMap, err := parseParams(params)
 			if err != nil {
 				return shared.UsageErrorf("invalid parameter: %v", err)
 			}
 
-			result, err := wf.Execute(ctx, w, paramMap, wf.ExecuteOptions{
+			result, err := wf.ExecuteDefinition(ctx, def, selectedName, paramMap, wf.ExecuteOptions{
 				DryRun: *dryRun,
 				Resume: *resume,
 				Stdout: os.Stderr,
@@ -157,11 +171,11 @@ func workflowValidateCommand() *ffcli.Command {
 		Name:       "validate",
 		ShortUsage: "gplay workflow validate <name-or-file>",
 		ShortHelp:  "Validate a workflow definition for errors.",
-		LongHelp: `Validate a workflow JSON file for structure, references, and naming.
+		LongHelp: `Validate a workflow file for structure, references, output declarations, and cycles.
 
 Examples:
-  gplay workflow validate deploy
-  gplay workflow validate ./my-workflow.json`,
+  gplay workflow validate release
+  gplay workflow validate ./release.json`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(_ context.Context, args []string) error {
@@ -169,42 +183,30 @@ Examples:
 				return shared.UsageError("workflow name or file path is required")
 			}
 
-			nameOrFile := args[0]
-			filePath, err := resolveWorkflowPath(nameOrFile)
+			filePath, err := resolveWorkflowPath(args[0])
 			if err != nil {
 				return fmt.Errorf("workflow validate: %w", err)
 			}
 
-			w, err := wf.Load(filePath)
+			def, err := wf.LoadDefinition(filePath)
 			if err != nil {
 				return fmt.Errorf("workflow validate: %w", err)
 			}
 
-			errs := wf.Validate(w)
-
-			type validationResult struct {
-				Valid  bool     `json:"valid"`
-				Errors []string `json:"errors,omitempty"`
-			}
-
-			errorStrings := make([]string, len(errs))
-			for i, e := range errs {
-				errorStrings[i] = e.Error()
-			}
-
-			result := validationResult{
+			errs := wf.Validate(def)
+			result := struct {
+				Valid  bool                  `json:"valid"`
+				Errors []*wf.ValidationError `json:"errors,omitempty"`
+			}{
 				Valid:  len(errs) == 0,
-				Errors: errorStrings,
+				Errors: errs,
 			}
 
 			if printErr := printJSON(os.Stdout, result, *pretty); printErr != nil {
 				return printErr
 			}
-
 			if !result.Valid {
-				return shared.NewReportedError(
-					fmt.Errorf("workflow validate: found %d error(s)", len(errs)),
-				)
+				return shared.NewReportedError(fmt.Errorf("workflow validate: found %d error(s)", len(errs)))
 			}
 			return nil
 		},
@@ -244,6 +246,7 @@ Examples:
 				Name        string `json:"name"`
 				Description string `json:"description,omitempty"`
 				File        string `json:"file"`
+				Private     bool   `json:"private,omitempty"`
 				StepCount   int    `json:"step_count"`
 			}
 
@@ -254,21 +257,28 @@ Examples:
 				}
 
 				filePath := filepath.Join(*dir, entry.Name())
-				w, err := wf.Load(filePath)
+				def, err := wf.LoadDefinition(filePath)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "warning: skipping %s: %v\n", entry.Name(), err)
 					continue
 				}
 
-				workflows = append(workflows, workflowInfo{
-					Name:        w.Name,
-					Description: w.Description,
-					File:        entry.Name(),
-					StepCount:   len(w.Steps),
-				})
+				for _, name := range sortedWorkflowNames(def) {
+					workflow := def.Workflows[name]
+					workflows = append(workflows, workflowInfo{
+						Name:        name,
+						Description: workflow.Description,
+						File:        entry.Name(),
+						Private:     workflow.Private,
+						StepCount:   len(workflow.Steps),
+					})
+				}
 			}
 
 			sort.Slice(workflows, func(i, j int) bool {
+				if workflows[i].Name == workflows[j].Name {
+					return workflows[i].File < workflows[j].File
+				}
 				return workflows[i].Name < workflows[j].Name
 			})
 
@@ -277,11 +287,17 @@ Examples:
 	}
 }
 
+func workflowImplicitName(nameOrFile, filePath string) string {
+	if !strings.Contains(nameOrFile, string(os.PathSeparator)) && filepath.Ext(nameOrFile) == "" && !strings.HasPrefix(nameOrFile, ".") {
+		return nameOrFile
+	}
+	return strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+}
+
 // resolveWorkflowPath resolves a workflow name or file path.
 // If it's an existing file path, use it directly.
 // Otherwise, look in .gplay/workflows/<name>.json.
 func resolveWorkflowPath(nameOrFile string) (string, error) {
-	// If it looks like a file path (has extension or path separator), use directly.
 	if strings.HasSuffix(nameOrFile, ".json") || strings.Contains(nameOrFile, string(os.PathSeparator)) || strings.HasPrefix(nameOrFile, ".") {
 		absPath, err := filepath.Abs(nameOrFile)
 		if err != nil {
@@ -290,16 +306,13 @@ func resolveWorkflowPath(nameOrFile string) (string, error) {
 		return absPath, nil
 	}
 
-	// Look in default workflows directory.
-	dirPath := filepath.Join(defaultWorkflowDir, nameOrFile+".json")
-	absPath, err := filepath.Abs(dirPath)
+	absPath, err := filepath.Abs(filepath.Join(defaultWorkflowDir, nameOrFile+".json"))
 	if err != nil {
 		return "", fmt.Errorf("resolve path: %w", err)
 	}
 	return absPath, nil
 }
 
-// parseParams converts KEY=VALUE strings to a map.
 func parseParams(args []string) (map[string]string, error) {
 	params := make(map[string]string, len(args))
 	for _, arg := range args {
@@ -308,18 +321,25 @@ func parseParams(args []string) (map[string]string, error) {
 			return nil, fmt.Errorf("expected KEY=VALUE format, got %q", arg)
 		}
 		key := strings.TrimSpace(arg[:idx])
-		value := arg[idx+1:]
 		if key == "" {
 			return nil, fmt.Errorf("parameter key must not be empty in %q", arg)
 		}
-		params[key] = value
+		params[key] = arg[idx+1:]
 	}
 	return params, nil
 }
 
-// printJSON encodes data as JSON to the writer.
-func printJSON(w io.Writer, data any, pretty bool) error {
-	enc := json.NewEncoder(w)
+func sortedWorkflowNames(def *wf.Definition) []string {
+	names := make([]string, 0, len(def.Workflows))
+	for name := range def.Workflows {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func printJSON(writer io.Writer, data any, pretty bool) error {
+	enc := json.NewEncoder(writer)
 	if pretty {
 		enc.SetIndent("", "  ")
 	}

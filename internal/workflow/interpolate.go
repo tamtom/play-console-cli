@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// interpolatePattern matches {{ .varname }} and {{ .varname | default "fallback" }}.
-var interpolatePattern = regexp.MustCompile(`\{\{\s*\.(\w+)(?:\s*\|\s*default\s+"([^"]*)")?\s*\}\}`)
+// interpolatePattern matches {{ .varname }} and {{ .step.output | default "fallback" }}.
+var interpolatePattern = regexp.MustCompile(`\{\{\s*\.([a-zA-Z0-9_.]+)(?:\s*\|\s*default\s+"([^"]*)")?\s*\}\}`)
 
 // Interpolate performs variable substitution on a template string.
 // It supports {{ .varname }} syntax and {{ .VAR | default "fallback" }} for defaults.
