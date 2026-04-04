@@ -18,7 +18,7 @@ var rootCommandGroups = []commandGroup{
 	{title: "APP MANAGEMENT", commands: []string{"apps", "listings", "images", "details", "data-safety", "availability", "device-tiers"}},
 	{title: "RELEASES & TRACKS", commands: []string{"edits", "bundles", "apks", "tracks", "release", "promote", "rollout", "sync", "validate", "deobfuscation", "expansion", "generated-apks", "system-apks"}},
 	{title: "TESTING", commands: []string{"testers", "internal-sharing"}},
-	{title: "VITALS & REVIEWS", commands: []string{"vitals", "reviews"}},
+	{title: "VITALS & REVIEWS", commands: []string{"status", "vitals", "reviews"}},
 	{title: "MONETIZATION", commands: []string{"iap", "subscriptions", "base-plans", "offers", "one-time-products", "purchase-options", "otp-offers", "pricing", "orders", "purchases", "external-transactions"}},
 	{title: "ACCOUNT & ACCESS", commands: []string{"users", "grants"}},
 	{title: "AUTOMATION", commands: []string{"notify", "migrate", "release-notes", "reports", "recovery"}},

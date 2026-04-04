@@ -37,6 +37,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/otpoffers"
 	"github.com/tamtom/play-console-cli/internal/cli/pricing"
 	"github.com/tamtom/play-console-cli/internal/cli/promote"
+	"github.com/tamtom/play-console-cli/internal/cli/publish"
 	"github.com/tamtom/play-console-cli/internal/cli/purchaseoptions"
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
@@ -48,6 +49,7 @@ import (
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/snitch"
+	"github.com/tamtom/play-console-cli/internal/cli/status"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
@@ -101,10 +103,12 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		availability.AvailabilityCommand(),
 		deobfuscation.DeobfuscationCommand(),
 		release.ReleaseCommand(),
+		publish.PublishCommand(),
 		promote.PromoteCommand(),
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		status.StatusCommand(),
 		vitals.VitalsCommand(),
 		iap.IAPCommand(),
 		subscriptions.SubscriptionsCommand(),
