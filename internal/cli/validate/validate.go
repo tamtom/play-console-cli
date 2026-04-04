@@ -30,14 +30,36 @@ const (
 
 func ValidateCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("validate", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	track := fs.String("track", "production", "Target track to validate")
+	bundlePath := fs.String("bundle", "", "Path to .aab bundle file to validate")
+	apkPath := fs.String("apk", "", "Path to .apk file to validate")
+	metadataDir := fs.String("dir", "", "Metadata directory to validate (legacy combined layout)")
+	listingsDir := fs.String("listings-dir", "", "Directory containing listing metadata")
+	screenshotsDir := fs.String("screenshots-dir", "", "Directory containing screenshots grouped by locale/device type")
+	releaseNotes := fs.String("release-notes", "", "Release notes input: plain text, JSON array, or @file")
+	strict := fs.Bool("strict", false, "Treat warnings as failures")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
 	return &ffcli.Command{
 		Name:       "validate",
-		ShortUsage: "gplay validate <subcommand> [flags]",
-		ShortHelp:  "Pre-flight validation commands.",
-		LongHelp: `Validate resources before uploading to Google Play.
+		ShortUsage: "gplay validate --package <name> [flags]",
+		ShortHelp:  "Canonical Google Play release-readiness report.",
+		LongHelp: `Validate release readiness for Google Play.
 
-These commands perform local validation to catch common issues
-before making API calls, saving time and reducing errors.`,
+This is the canonical pre-release verification command. It combines:
+- local artifact checks
+- local metadata and screenshot checks
+- release notes validation
+- remote Play track and listing state
+- manual follow-up items for Console-only checks
+
+Legacy local-only validators remain available as subcommands:
+  gplay validate bundle
+  gplay validate listing
+  gplay validate screenshots
+  gplay validate submission`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
@@ -47,10 +69,43 @@ before making API calls, saving time and reducing errors.`,
 			SubmissionCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
-			if len(args) == 0 {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*bundlePath) != "" && strings.TrimSpace(*apkPath) != "" {
+				return fmt.Errorf("use either --bundle or --apk, not both")
+			}
+
+			// Preserve help output when no root readiness flags are provided.
+			if strings.TrimSpace(*packageName) == "" &&
+				strings.TrimSpace(*bundlePath) == "" &&
+				strings.TrimSpace(*apkPath) == "" &&
+				strings.TrimSpace(*metadataDir) == "" &&
+				strings.TrimSpace(*listingsDir) == "" &&
+				strings.TrimSpace(*screenshotsDir) == "" &&
+				strings.TrimSpace(*releaseNotes) == "" &&
+				!*strict {
 				return flag.ErrHelp
 			}
-			return flag.ErrHelp
+
+			pkgName, err := shared.RequirePackageName(*packageName, nil)
+			if err != nil {
+				return err
+			}
+
+			return runReadinessCommand(ctx, readinessOptions{
+				PackageName:    pkgName,
+				Track:          *track,
+				BundlePath:     *bundlePath,
+				APKPath:        *apkPath,
+				MetadataDir:    *metadataDir,
+				ListingsDir:    *listingsDir,
+				ScreenshotsDir: *screenshotsDir,
+				ReleaseNotes:   *releaseNotes,
+				Strict:         *strict,
+				Output:         *outputFlag,
+				Pretty:         *pretty,
+			})
 		},
 	}
 }
