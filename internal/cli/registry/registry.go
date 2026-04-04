@@ -37,6 +37,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/otpoffers"
 	"github.com/tamtom/play-console-cli/internal/cli/pricing"
 	"github.com/tamtom/play-console-cli/internal/cli/promote"
+	"github.com/tamtom/play-console-cli/internal/cli/publish"
 	"github.com/tamtom/play-console-cli/internal/cli/purchaseoptions"
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
@@ -94,6 +95,7 @@ func Subcommands(version string) []*ffcli.Command {
 		availability.AvailabilityCommand(),
 		deobfuscation.DeobfuscationCommand(),
 		release.ReleaseCommand(),
+		publish.PublishCommand(),
 		promote.PromoteCommand(),
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
