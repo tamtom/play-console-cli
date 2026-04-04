@@ -20,21 +20,22 @@ func SubmissionCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("validate submission", flag.ExitOnError)
 	pkg := fs.String("package", "", "Application package name")
 	dir := fs.String("dir", "./metadata", "Directory containing listing metadata")
+	track := fs.String("track", "production", "Target track to validate")
+	releaseNotes := fs.String("release-notes", "", "Release notes input: plain text, JSON array, or @file")
 	format := fs.String("format", "fastlane", "Metadata format: fastlane (default), json")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+	strict := fs.Bool("strict", false, "Treat warnings as failures")
 
 	return &ffcli.Command{
 		Name:       "submission",
 		ShortUsage: "gplay validate submission --package <name> [--dir <path>] [--output json|table]",
-		ShortHelp:  "Run all pre-submission validation checks.",
-		LongHelp: `Run a comprehensive set of pre-submission validation checks.
+		ShortHelp:  "Compatibility alias for the canonical readiness command.",
+		LongHelp: `Run the canonical Google Play release-readiness report using the
+legacy validate submission entry point.
 
-Validates metadata, required fields, and screenshots for all locales.
-Returns a validation report with errors, warnings, and remediation hints.
-
-This command is --dry-run compatible: it reads existing local data
-and does not perform any write operations.`,
+This command remains for compatibility, but new docs and workflows should use:
+  gplay validate --package <name> [flags]`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -47,14 +48,17 @@ and does not perform any write operations.`,
 				return err
 			}
 
-			report := runSubmissionChecks(pkgName, *dir, *format)
-			if report.HasErrors() {
-				fmt.Fprintf(os.Stderr, "%s\n", report.Summary())
-			} else {
-				fmt.Fprintf(os.Stderr, "%s\n", report.Summary())
-			}
+			_ = *format
 
-			return shared.PrintOutput(report, *outputFlag, *pretty)
+			return runReadinessCommand(ctx, readinessOptions{
+				PackageName:  pkgName,
+				Track:        *track,
+				MetadataDir:  *dir,
+				ReleaseNotes: *releaseNotes,
+				Strict:       *strict,
+				Output:       *outputFlag,
+				Pretty:       *pretty,
+			})
 		},
 	}
 }
