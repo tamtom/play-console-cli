@@ -49,6 +49,7 @@ import (
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/snitch"
+	"github.com/tamtom/play-console-cli/internal/cli/status"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
@@ -107,6 +108,7 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		status.StatusCommand(),
 		vitals.VitalsCommand(),
 		iap.IAPCommand(),
 		subscriptions.SubscriptionsCommand(),
