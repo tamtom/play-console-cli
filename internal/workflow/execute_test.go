@@ -3,6 +3,7 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -345,5 +346,137 @@ func TestExecute_ContextCancelled(t *testing.T) {
 	}
 	if result.Success {
 		t.Error("expected failure")
+	}
+}
+
+func TestExecuteDefinition_ReferencedWorkflowWithOutputs(t *testing.T) {
+	def := &Definition{
+		Workflows: map[string]Workflow{
+			"prepare": {
+				Name: "prepare",
+				Steps: []Step{
+					{
+						Name:    "capture",
+						Run:     `printf '{"version":"42"}'`,
+						Outputs: map[string]string{"version": "$.version"},
+					},
+				},
+			},
+			"deploy": {
+				Name: "deploy",
+				Steps: []Step{
+					{Name: "prepare", Workflow: "prepare"},
+					{Name: "publish", Run: "echo {{ .capture.version }}"},
+				},
+			},
+		},
+	}
+
+	result, err := ExecuteDefinition(context.Background(), def, "deploy", nil, ExecuteOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Steps) < 3 {
+		t.Fatalf("expected nested workflow steps to be recorded, got %d", len(result.Steps))
+	}
+	if got := strings.TrimSpace(result.Steps[len(result.Steps)-1].Stdout); got != "42" {
+		t.Fatalf("stdout = %q, want %q", got, "42")
+	}
+	if result.Outputs["capture.version"] != "42" {
+		t.Fatalf("expected capture.version output, got %#v", result.Outputs)
+	}
+}
+
+func TestExecuteDefinition_WorkflowWithInterpolatedParams(t *testing.T) {
+	def := &Definition{
+		Workflows: map[string]Workflow{
+			"prepare": {
+				Name: "prepare",
+				Steps: []Step{
+					{
+						Name:    "capture",
+						Run:     `printf '{"track":"beta"}'`,
+						Outputs: map[string]string{"track": "$.track"},
+					},
+				},
+			},
+			"publish": {
+				Name: "publish",
+				Params: []Param{
+					{Name: "TRACK", Required: true},
+				},
+				Steps: []Step{
+					{Name: "release", Run: "echo {{ .TRACK }}"},
+				},
+			},
+			"deploy": {
+				Name: "deploy",
+				Steps: []Step{
+					{Name: "prepare", Workflow: "prepare"},
+					{Name: "publish", Workflow: "publish", With: map[string]string{"TRACK": "{{ .capture.track }}"}},
+				},
+			},
+		},
+	}
+
+	result, err := ExecuteDefinition(context.Background(), def, "deploy", nil, ExecuteOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, step := range result.Steps {
+		if step.Path == "deploy.publish.release" {
+			found = true
+			if got := strings.TrimSpace(step.Stdout); got != "beta" {
+				t.Fatalf("stdout = %q, want %q", got, "beta")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("expected nested publish step result")
+	}
+}
+
+func TestExecuteDefinition_ResumeUsesNestedPaths(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "workflow-state.json")
+	def := &Definition{
+		Workflows: map[string]Workflow{
+			"child": {
+				Name: "child",
+				Steps: []Step{
+					{Name: "first", Run: "echo child"},
+				},
+			},
+			"root": {
+				Name: "root",
+				Steps: []Step{
+					{Name: "child", Workflow: "child"},
+					{Name: "final", Run: "echo final"},
+				},
+			},
+		},
+	}
+
+	if _, err := ExecuteDefinition(context.Background(), def, "root", nil, ExecuteOptions{StatePath: statePath}); err != nil {
+		t.Fatalf("unexpected first run error: %v", err)
+	}
+
+	result, err := ExecuteDefinition(context.Background(), def, "root", nil, ExecuteOptions{
+		Resume:    true,
+		StatePath: statePath,
+	})
+	if err != nil {
+		t.Fatalf("unexpected resume error: %v", err)
+	}
+
+	skipped := map[string]bool{}
+	for _, step := range result.Steps {
+		if step.Skipped {
+			skipped[step.Path] = true
+		}
+	}
+	if !skipped["root.child.first"] || !skipped["root.final"] {
+		t.Fatalf("expected nested resume skips, got %#v", skipped)
 	}
 }
