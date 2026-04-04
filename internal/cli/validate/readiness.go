@@ -204,10 +204,10 @@ func addLocalScreenshotChecks(report *validation.ReadinessReport, opts readiness
 					state = validation.ReadinessWarning
 					message = fmt.Sprintf("%s has only %d %s file(s).", locale, count, deviceType)
 					remediation = fmt.Sprintf("Provide at least %d screenshots for %s.", minScreenshots, deviceType)
-				case count > screenshotMaxCount(deviceType):
+				case count > maxPhoneScreenshots:
 					state = validation.ReadinessBlocking
 					message = fmt.Sprintf("%s has %d %s file(s), above the supported maximum.", locale, count, deviceType)
-					remediation = fmt.Sprintf("Reduce %s to %d files or fewer.", deviceType, screenshotMaxCount(deviceType))
+					remediation = fmt.Sprintf("Reduce %s to %d files or fewer.", deviceType, maxPhoneScreenshots)
 				}
 				report.AddCheck(validation.ReadinessCheck{
 					ID:          "local-screenshots-count",
@@ -524,19 +524,4 @@ func normalizedTrack(track string) string {
 		return "production"
 	}
 	return trimmed
-}
-
-func screenshotMaxCount(deviceType string) int {
-	switch deviceType {
-	case "phoneScreenshots":
-		return maxPhoneScreenshots
-	case "sevenInchScreenshots", "tenInchScreenshots", "chromebookScreenshots":
-		return maxTabletScreenshots
-	case "tvScreenshots":
-		return maxTVScreenshots
-	case "wearScreenshots":
-		return maxWearScreenshots
-	default:
-		return maxPhoneScreenshots
-	}
 }
