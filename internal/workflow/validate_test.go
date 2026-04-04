@@ -78,7 +78,7 @@ func TestValidate_DuplicateStepNames(t *testing.T) {
 
 func TestValidate_EmptyCommand(t *testing.T) {
 	errs := Validate(definitionForValidation(Workflow{
-		Name: "bad",
+		Name:  "bad",
 		Steps: []Step{{Name: "empty-cmd", Run: "   "}},
 	}))
 	found := false
@@ -114,7 +114,7 @@ func TestValidate_WithOnRunStep(t *testing.T) {
 
 func TestValidate_UnknownWorkflowReference(t *testing.T) {
 	errs := Validate(definitionForValidation(Workflow{
-		Name: "deploy",
+		Name:  "deploy",
 		Steps: []Step{{Name: "publish", Workflow: "missing"}},
 	}))
 	found := false
