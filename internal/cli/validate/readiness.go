@@ -29,6 +29,10 @@ type readinessOptions struct {
 	Pretty         bool
 }
 
+// ReadinessOptions is the exported shape used by other command families that
+// need the canonical release-readiness report.
+type ReadinessOptions = readinessOptions
+
 type remoteReadinessState struct {
 	Tracks      []*androidpublisher.Track
 	TargetTrack *androidpublisher.Track
@@ -53,6 +57,11 @@ func runReadinessCommand(ctx context.Context, opts readinessOptions) error {
 	}
 
 	return nil
+}
+
+// BuildReadinessReport constructs the canonical Play release-readiness report.
+func BuildReadinessReport(ctx context.Context, opts ReadinessOptions) *validation.ReadinessReport {
+	return buildReadinessReport(ctx, opts)
 }
 
 func buildReadinessReport(ctx context.Context, opts readinessOptions) *validation.ReadinessReport {
