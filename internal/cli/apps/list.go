@@ -6,15 +6,17 @@ import (
 	"fmt"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
-	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 // ListCommand returns the apps list subcommand.
-func ListCommand() *ffcli.Command {
+func ListCommand(rt *cliruntime.Runtime) *ffcli.Command {
 	fs := flag.NewFlagSet("apps list", flag.ExitOnError)
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	rt = cliruntime.Ensure(rt)
 
 	return &ffcli.Command{
 		Name:       "list",
@@ -27,7 +29,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			service, err := playclient.NewService(ctx)
+			service, err := rt.NewPlayService(ctx)
 			if err != nil {
 				return fmt.Errorf("creating service: %w", err)
 			}
