@@ -20,3 +20,32 @@ func TestPublish_Help(t *testing.T) {
 		t.Fatalf("help should mention track subcommand, got %q", combined)
 	}
 }
+
+func TestPublishTrack_RequiresArtifact(t *testing.T) {
+	_, _, err := runCommand(t,
+		"publish", "track",
+		"--package", "com.example.app",
+		"--track", "internal",
+	)
+	if err == nil {
+		t.Fatal("expected missing artifact error")
+	}
+	if !strings.Contains(err.Error(), "either --bundle or --apk is required") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPublishTrack_RejectsBothArtifactFlags(t *testing.T) {
+	_, _, err := runCommand(t,
+		"publish", "track",
+		"--package", "com.example.app",
+		"--bundle", "app.aab",
+		"--apk", "app.apk",
+	)
+	if err == nil {
+		t.Fatal("expected conflicting artifact error")
+	}
+	if !strings.Contains(err.Error(), "use either --bundle or --apk") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
