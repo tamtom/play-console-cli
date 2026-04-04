@@ -17,8 +17,10 @@ import (
 	"github.com/tamtom/play-console-cli/internal/reportingclient"
 )
 
-const defaultPollInterval = 30 * time.Second
-const vitalsWindowDays = 7
+const (
+	defaultPollInterval = 30 * time.Second
+	vitalsWindowDays    = 7
+)
 
 var (
 	newPlayService      = playclient.NewService
