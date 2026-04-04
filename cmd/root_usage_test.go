@@ -7,11 +7,11 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
-// allCommandNames returns all 48 top-level command names registered in gplay.
+// allCommandNames returns all 49 top-level command names registered in gplay.
 func allCommandNames() []string {
 	return []string{
 		"auth", "apps", "edits", "bundles", "apks", "tracks", "users",
-		"listings", "images", "init", "reviews", "details", "testers",
+		"listings", "images", "init", "status", "reviews", "details", "testers",
 		"availability", "deobfuscation", "release", "promote", "rollout",
 		"sync", "validate", "vitals", "iap", "subscriptions", "baseplans",
 		"offers", "onetimeproducts", "purchase-options", "otp-offers",
