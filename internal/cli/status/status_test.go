@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -340,14 +341,10 @@ func captureStatusOutput(t *testing.T, fn func() error) string {
 	wg.Wait()
 	_ = rOut.Close()
 
-	if runErr != nil && !errorsIsContextCanceled(runErr) {
+	if runErr != nil && !errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
 		t.Fatalf("run returned error: %v", runErr)
 	}
 	return buf.String()
-}
-
-func errorsIsContextCanceled(err error) bool {
-	return err == context.Canceled || err == context.DeadlineExceeded
 }
 
 func writeJSON(t *testing.T, w http.ResponseWriter, payload map[string]any) {
