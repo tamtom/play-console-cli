@@ -5,203 +5,215 @@ import (
 	"testing"
 )
 
+func definitionForValidation(workflow Workflow) *Definition {
+	if strings.TrimSpace(workflow.Name) == "" {
+		workflow.Name = "deploy"
+	}
+	return &Definition{
+		Workflows: map[string]Workflow{
+			workflow.Name: workflow,
+		},
+	}
+}
+
 func TestValidate_ValidWorkflow(t *testing.T) {
-	w := &Workflow{
+	errs := Validate(definitionForValidation(Workflow{
 		Name: "deploy",
 		Steps: []Step{
 			{Name: "build", Command: "make build"},
 			{Name: "test", Command: "make test"},
 		},
-	}
-
-	errs := Validate(w)
+	}))
 	if len(errs) != 0 {
-		t.Errorf("expected no errors, got %d: %v", len(errs), errs)
+		t.Fatalf("expected no errors, got %d: %v", len(errs), errs)
 	}
 }
 
-func TestValidate_EmptyName(t *testing.T) {
-	w := &Workflow{
-		Name:  "",
-		Steps: []Step{{Name: "s1", Command: "echo hi"}},
+func TestValidate_NoWorkflows(t *testing.T) {
+	errs := Validate(&Definition{})
+	if len(errs) != 1 || errs[0].Code != ErrNoWorkflows {
+		t.Fatalf("expected ErrNoWorkflows, got %#v", errs)
 	}
+}
 
-	errs := Validate(w)
-	if len(errs) == 0 {
-		t.Fatal("expected error for empty name")
-	}
-
-	found := false
-	for _, err := range errs {
-		if strings.Contains(err.Error(), "name must not be empty") {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected 'name must not be empty' error, got %v", errs)
+func TestValidate_InvalidWorkflowName(t *testing.T) {
+	errs := Validate(&Definition{
+		Workflows: map[string]Workflow{
+			"123deploy": {Steps: []Step{{Name: "build", Command: "make build"}}},
+		},
+	})
+	if len(errs) == 0 || errs[0].Code != ErrInvalidWorkflowName {
+		t.Fatalf("expected ErrInvalidWorkflowName, got %#v", errs)
 	}
 }
 
 func TestValidate_NoSteps(t *testing.T) {
-	w := &Workflow{
-		Name:  "empty",
-		Steps: nil,
-	}
-
-	errs := Validate(w)
+	errs := Validate(definitionForValidation(Workflow{Name: "empty"}))
 	if len(errs) == 0 {
-		t.Fatal("expected error for no steps")
+		t.Fatal("expected validation error")
 	}
-
-	found := false
-	for _, err := range errs {
-		if strings.Contains(err.Error(), "at least one step") {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected 'at least one step' error, got %v", errs)
+	if errs[0].Code != ErrEmptySteps {
+		t.Fatalf("expected ErrEmptySteps, got %#v", errs[0])
 	}
 }
 
 func TestValidate_DuplicateStepNames(t *testing.T) {
-	w := &Workflow{
+	errs := Validate(definitionForValidation(Workflow{
 		Name: "dup",
 		Steps: []Step{
 			{Name: "build", Command: "echo a"},
 			{Name: "build", Command: "echo b"},
 		},
-	}
-
-	errs := Validate(w)
-	if len(errs) == 0 {
-		t.Fatal("expected error for duplicate step names")
-	}
-
+	}))
 	found := false
 	for _, err := range errs {
-		if strings.Contains(err.Error(), "duplicate step name") {
+		if err.Code == ErrDuplicateStepName {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected 'duplicate step name' error, got %v", errs)
+		t.Fatalf("expected ErrDuplicateStepName, got %#v", errs)
 	}
 }
 
 func TestValidate_EmptyCommand(t *testing.T) {
-	w := &Workflow{
+	errs := Validate(definitionForValidation(Workflow{
 		Name: "bad",
-		Steps: []Step{
-			{Name: "empty-cmd", Command: ""},
-		},
-	}
-
-	errs := Validate(w)
-	if len(errs) == 0 {
-		t.Fatal("expected error for empty command")
-	}
-
+		Steps: []Step{{Name: "empty-cmd", Run: "   "}},
+	}))
 	found := false
 	for _, err := range errs {
-		if strings.Contains(err.Error(), "command must not be empty") {
+		if err.Code == ErrStepEmptyRun {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected 'command must not be empty' error, got %v", errs)
+		t.Fatalf("expected ErrStepEmptyRun, got %#v", errs)
 	}
 }
 
-func TestValidate_WhitespaceOnlyCommand(t *testing.T) {
-	w := &Workflow{
-		Name: "ws",
-		Steps: []Step{
-			{Name: "ws-cmd", Command: "   "},
-		},
+func TestValidate_WithOnRunStep(t *testing.T) {
+	errs := Validate(definitionForValidation(Workflow{
+		Name: "bad",
+		Steps: []Step{{
+			Name: "build",
+			Run:  "make build",
+			With: map[string]string{"TRACK": "internal"},
+		}},
+	}))
+	found := false
+	for _, err := range errs {
+		if err.Code == ErrStepWithOnRun {
+			found = true
+		}
 	}
-
-	errs := Validate(w)
-	if len(errs) == 0 {
-		t.Fatal("expected error for whitespace-only command")
-	}
-}
-
-func TestValidate_MultipleErrors(t *testing.T) {
-	w := &Workflow{
-		Name: "",
-		Steps: []Step{
-			{Name: "a", Command: ""},
-			{Name: "a", Command: "echo hi"},
-		},
-	}
-
-	errs := Validate(w)
-	// Should have: empty name, empty command, duplicate name
-	if len(errs) < 3 {
-		t.Errorf("expected at least 3 errors, got %d: %v", len(errs), errs)
+	if !found {
+		t.Fatalf("expected ErrStepWithOnRun, got %#v", errs)
 	}
 }
 
-func TestValidate_DuplicateParamNames(t *testing.T) {
-	w := &Workflow{
-		Name: "params",
-		Steps: []Step{
-			{Name: "s1", Command: "echo hi"},
+func TestValidate_UnknownWorkflowReference(t *testing.T) {
+	errs := Validate(definitionForValidation(Workflow{
+		Name: "deploy",
+		Steps: []Step{{Name: "publish", Workflow: "missing"}},
+	}))
+	found := false
+	for _, err := range errs {
+		if err.Code == ErrWorkflowNotFound {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected ErrWorkflowNotFound, got %#v", errs)
+	}
+}
+
+func TestValidate_CyclicWorkflowReference(t *testing.T) {
+	errs := Validate(&Definition{
+		Workflows: map[string]Workflow{
+			"deploy":  {Steps: []Step{{Workflow: "publish"}}},
+			"publish": {Steps: []Step{{Workflow: "deploy"}}},
 		},
+	})
+	found := false
+	for _, err := range errs {
+		if err.Code == ErrCyclicReference {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected ErrCyclicReference, got %#v", errs)
+	}
+}
+
+func TestValidate_OutputRules(t *testing.T) {
+	errs := Validate(&Definition{
+		Workflows: map[string]Workflow{
+			"prepare": {
+				Steps: []Step{
+					{Name: "capture", Workflow: "publish", Outputs: map[string]string{"version": "$.version"}},
+				},
+			},
+			"publish": {
+				Steps: []Step{{Name: "release", Run: "echo ok"}},
+			},
+		},
+	})
+	found := false
+	for _, err := range errs {
+		if err.Code == ErrStepOutputsOnWorkflow {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected ErrStepOutputsOnWorkflow, got %#v", errs)
+	}
+}
+
+func TestValidate_DuplicateOutputProducerNames(t *testing.T) {
+	errs := Validate(&Definition{
+		Workflows: map[string]Workflow{
+			"prepare": {
+				Steps: []Step{{Name: "capture", Run: "echo '{}'", Outputs: map[string]string{"version": "$.version"}}},
+			},
+			"publish": {
+				Steps: []Step{{Name: "capture", Run: "echo '{}'", Outputs: map[string]string{"code": "$.code"}}},
+			},
+		},
+	})
+	found := false
+	for _, err := range errs {
+		if err.Code == ErrDuplicateOutputProducerName {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected ErrDuplicateOutputProducerName, got %#v", errs)
+	}
+}
+
+func TestValidate_ParamRules(t *testing.T) {
+	errs := Validate(definitionForValidation(Workflow{
+		Name: "deploy",
 		Params: []Param{
-			{Name: "VERSION", Required: true},
-			{Name: "VERSION", Required: false},
+			{Name: "TRACK"},
+			{Name: "TRACK"},
+			{Name: ""},
 		},
-	}
+		Steps: []Step{{Name: "build", Command: "make build"}},
+	}))
 
-	errs := Validate(w)
-	found := false
+	foundDuplicate := false
+	foundEmpty := false
 	for _, err := range errs {
-		if strings.Contains(err.Error(), "duplicate param name") {
-			found = true
+		if err.Code == ErrDuplicateParamName {
+			foundDuplicate = true
+		}
+		if err.Code == ErrEmptyParamName {
+			foundEmpty = true
 		}
 	}
-	if !found {
-		t.Errorf("expected 'duplicate param name' error, got %v", errs)
-	}
-}
-
-func TestValidate_EmptyParamName(t *testing.T) {
-	w := &Workflow{
-		Name: "params",
-		Steps: []Step{
-			{Name: "s1", Command: "echo hi"},
-		},
-		Params: []Param{
-			{Name: "", Required: true},
-		},
-	}
-
-	errs := Validate(w)
-	found := false
-	for _, err := range errs {
-		if strings.Contains(err.Error(), "name must not be empty") {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected param 'name must not be empty' error, got %v", errs)
-	}
-}
-
-func TestValidate_StepsWithoutNames(t *testing.T) {
-	// Steps without names should not trigger duplicate name errors.
-	w := &Workflow{
-		Name: "ok",
-		Steps: []Step{
-			{Name: "", Command: "echo a"},
-			{Name: "", Command: "echo b"},
-		},
-	}
-
-	errs := Validate(w)
-	if len(errs) != 0 {
-		t.Errorf("expected no errors, got %d: %v", len(errs), errs)
+	if !foundDuplicate || !foundEmpty {
+		t.Fatalf("expected duplicate and empty param errors, got %#v", errs)
 	}
 }

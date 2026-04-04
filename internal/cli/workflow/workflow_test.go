@@ -151,12 +151,20 @@ func TestWorkflowListCommand_NonexistentDir(t *testing.T) {
 func TestWorkflowListCommand_WithWorkflows(t *testing.T) {
 	dir := t.TempDir()
 	workflowJSON := `{
-		"name": "deploy",
-		"description": "Deploy the app",
-		"steps": [
-			{"name": "build", "command": "make build"},
-			{"name": "test", "command": "make test"}
-		]
+		"workflows": {
+			"deploy": {
+				"description": "Deploy the app",
+				"steps": [
+					{"name": "build", "command": "make build"},
+					{"name": "test", "command": "make test"}
+				]
+			},
+			"preflight": {
+				"steps": [
+					{"name": "validate", "command": "gplay validate --package com.example.app"}
+				]
+			}
+		}
 	}`
 	if err := os.WriteFile(filepath.Join(dir, "deploy.json"), []byte(workflowJSON), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
@@ -197,14 +205,17 @@ func TestWorkflowListCommand_WithWorkflows(t *testing.T) {
 	if err := json.Unmarshal([]byte(output), &workflows); err != nil {
 		t.Fatalf("invalid JSON output: %v (output: %s)", err, output)
 	}
-	if len(workflows) != 1 {
-		t.Fatalf("expected 1 workflow, got %d", len(workflows))
+	if len(workflows) != 2 {
+		t.Fatalf("expected 2 workflows, got %d", len(workflows))
 	}
 	if workflows[0].Name != "deploy" {
 		t.Errorf("Name = %q, want %q", workflows[0].Name, "deploy")
 	}
 	if workflows[0].StepCount != 2 {
 		t.Errorf("StepCount = %d, want %d", workflows[0].StepCount, 2)
+	}
+	if workflows[1].Name != "preflight" {
+		t.Errorf("Name = %q, want %q", workflows[1].Name, "preflight")
 	}
 }
 
@@ -284,8 +295,11 @@ func TestWorkflowListCommand_UnexpectedArgs(t *testing.T) {
 func TestWorkflowValidateCommand_ValidFile(t *testing.T) {
 	dir := t.TempDir()
 	workflowJSON := `{
-		"name": "test",
-		"steps": [{"name": "s1", "command": "echo hi"}]
+		"workflows": {
+			"test": {
+				"steps": [{"name": "s1", "command": "echo hi"}]
+			}
+		}
 	}`
 	filePath := filepath.Join(dir, "test.json")
 	if err := os.WriteFile(filePath, []byte(workflowJSON), 0o600); err != nil {
@@ -324,5 +338,87 @@ func TestWorkflowValidateCommand_ValidFile(t *testing.T) {
 	}
 	if !res.Valid {
 		t.Error("expected valid workflow")
+	}
+}
+
+func TestWorkflowRunCommand_MultiWorkflowRequiresSelection(t *testing.T) {
+	dir := t.TempDir()
+	workflowJSON := `{
+		"workflows": {
+			"preflight": {"steps": [{"name": "validate", "command": "echo ok"}]},
+			"publish": {"steps": [{"name": "release", "command": "echo ok"}]}
+		}
+	}`
+	filePath := filepath.Join(dir, "release.json")
+	if err := os.WriteFile(filePath, []byte(workflowJSON), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	cmd := WorkflowCommand()
+	runCmd := findSubcmd(cmd, "run")
+	if runCmd == nil {
+		t.Fatal("run subcommand not found")
+	}
+
+	err := runCmd.Exec(context.Background(), []string{filePath})
+	if err == nil {
+		t.Fatal("expected selection error for multi-workflow file")
+	}
+	if !strings.Contains(err.Error(), "workflow name is required") {
+		t.Fatalf("expected selection error, got %v", err)
+	}
+}
+
+func TestWorkflowRunCommand_ExplicitWorkflowSelection(t *testing.T) {
+	dir := t.TempDir()
+	workflowJSON := `{
+		"workflows": {
+			"publish": {
+				"params": [{"name": "TRACK", "required": true}],
+				"steps": [{"name": "release", "run": "echo {{ .TRACK }}"}]
+			}
+		}
+	}`
+	filePath := filepath.Join(dir, "release.json")
+	if err := os.WriteFile(filePath, []byte(workflowJSON), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	cmd := WorkflowCommand()
+	runCmd := findSubcmd(cmd, "run")
+	if runCmd == nil {
+		t.Fatal("run subcommand not found")
+	}
+	if err := runCmd.FlagSet.Parse([]string{"--workflow", "publish", "--param", "TRACK=internal"}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	err := runCmd.Exec(context.Background(), []string{filePath})
+
+	w.Close()
+	os.Stdout = old
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var buf [4096]byte
+	n, _ := r.Read(buf[:])
+	output := string(buf[:n])
+
+	type result struct {
+		Workflow string `json:"workflow"`
+		Success  bool   `json:"success"`
+	}
+	var res result
+	if err := json.Unmarshal([]byte(output), &res); err != nil {
+		t.Fatalf("invalid JSON output: %v (output: %s)", err, output)
+	}
+	if res.Workflow != "publish" || !res.Success {
+		t.Fatalf("unexpected result: %#v", res)
 	}
 }
