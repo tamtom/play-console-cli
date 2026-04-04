@@ -48,6 +48,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/snitch"
+	"github.com/tamtom/play-console-cli/internal/cli/status"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
 	"github.com/tamtom/play-console-cli/internal/cli/systemapks"
@@ -100,6 +101,7 @@ func Subcommands(version string) []*ffcli.Command {
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		status.StatusCommand(),
 		vitals.VitalsCommand(),
 		iap.IAPCommand(),
 		subscriptions.SubscriptionsCommand(),
