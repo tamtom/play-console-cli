@@ -54,6 +54,9 @@
 - [images upload](#images-upload)
 - [images delete](#images-delete)
 - [images delete-all](#images-delete-all)
+- [images plan](#images-plan)
+- [images pull](#images-pull)
+- [images sync](#images-sync)
 - [init](#init)
 - [reviews](#reviews)
 - [reviews list](#reviews-list)
@@ -72,6 +75,8 @@
 - [deobfuscation](#deobfuscation)
 - [deobfuscation upload](#deobfuscation-upload)
 - [release](#release)
+- [publish](#publish)
+- [publish track](#publish-track)
 - [promote](#promote)
 - [rollout](#rollout)
 - [rollout halt](#rollout-halt)
@@ -89,6 +94,7 @@
 - [validate listing](#validate-listing)
 - [validate screenshots](#validate-screenshots)
 - [validate submission](#validate-submission)
+- [status](#status)
 - [vitals](#vitals)
 - [vitals crashes](#vitals-crashes)
 - [vitals crashes query](#vitals-crashes-query)
@@ -1185,13 +1191,13 @@ Examples:
 
 ## gplay images
 
-Manage listing images in an edit.
+Manage listing images and Play media sync.
 
 ```
 gplay images <subcommand> [flags]
 ```
 
-Manage listing images within an edit.
+Manage listing images within an edit and sync Play store media.
 
 Valid --type values:
   phoneScreenshots         Phone screenshots (min 2, max 8)
@@ -1294,6 +1300,90 @@ gplay images delete-all --package <name> --edit <id> --locale <lang> --type <typ
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--type` | Image type | `` |
+
+---
+
+## gplay images plan
+
+Plan deterministic Play media sync operations.
+
+```
+gplay images plan --package <name> --edit <id> [--dir <path>] [--locale <lang>]
+```
+
+Compare local Play media files against the current edit state.
+
+Local directory layout:
+  <dir>/<locale>/images/
+    phoneScreenshots/
+    sevenInchScreenshots/
+    tenInchScreenshots/
+    tvScreenshots/
+    wearScreenshots/
+    featureGraphic.png
+    icon.png
+    promoGraphic.png
+    tvBanner.png
+
+The plan is based on SHA-256 hashes and does not mutate remote state.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Directory containing Play media files | `./metadata` |
+| `--edit` | Edit ID | `` |
+| `--locale` | Specific locale to sync (optional) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay images pull
+
+Pull remote Play media into the local directory layout.
+
+```
+gplay images pull --package <name> --edit <id> [--dir <path>] [--locale <lang>]
+```
+
+Download the current edit's media into the local Play directory layout.
+
+Screenshot files are saved as deterministic numbered files under each device
+type directory. Single-image assets are saved by their conventional names.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Directory containing Play media files | `./metadata` |
+| `--edit` | Edit ID | `` |
+| `--locale` | Specific locale to sync (optional) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay images sync
+
+Upload local Play media to the current edit.
+
+```
+gplay images sync --package <name> --edit <id> [--dir <path>] [--locale <lang>]
+```
+
+Upload local Play media using the deterministic local directory layout.
+
+The command compares local files to remote SHA-256 hashes and only uploads
+assets that are missing or changed. Use `--dry-run` for a transport-level
+preview of the upload calls.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Directory containing Play media files | `./metadata` |
+| `--edit` | Edit ID | `` |
+| `--locale` | Specific locale to sync (optional) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 
@@ -1706,6 +1796,60 @@ Example:
 
 ---
 
+## gplay publish
+
+Canonical Google Play release workflows.
+
+```
+gplay publish <subcommand> [flags]
+```
+
+Publish is the canonical high-level release entry point.
+
+Use gplay publish track for the standard artifact -> track workflow.
+Lower-level commands such as release, promote, and rollout remain available for
+advanced control and debugging.
+
+---
+
+## gplay publish track
+
+Run preflight and publish to a Play track.
+
+```
+gplay publish track --package <name> --track <track> (--bundle <path> | --apk <path>) [flags]
+```
+
+Publish an artifact to a Play track using the canonical API-driven flow.
+
+This command:
+  1. Builds the canonical readiness report
+  2. Stops on blocking issues (and optionally warnings with --strict)
+  3. Executes the lower-level release workflow if preflight passes
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--apk` | Path to .apk file | `` |
+| `--bundle` | Path to .aab bundle file | `` |
+| `--changes-not-sent-for-review` | Changes not sent for review | `false` |
+| `--listings-dir` | Path to listings metadata directory | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--poll-interval` | Polling interval when waiting | `10s` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--release-notes` | Release notes: plain text, JSON array, or @file | `` |
+| `--rollout` | Staged rollout fraction (0.0-1.0) | `1` |
+| `--screenshots-dir` | Path to screenshots directory | `` |
+| `--skip-metadata` | Skip metadata sync even if --listings-dir is set | `false` |
+| `--skip-screenshots` | Skip screenshot sync even if --screenshots-dir is set | `false` |
+| `--status` | Release status: draft, inProgress, halted, completed | `completed` |
+| `--strict` | Treat readiness warnings as publish blockers | `false` |
+| `--track` | Target track | `production` |
+| `--version-name` | Optional version name override | `` |
+| `--wait` | Wait for the published release to appear in the target track | `false` |
+
+---
+
 ## gplay promote
 
 Promote a release from one track to another.
@@ -1972,16 +2116,40 @@ gplay sync diff-listings --package <name> --dir <path> [--edit <id>]
 
 ## gplay validate
 
-Pre-flight validation commands.
+Canonical Google Play release-readiness report.
 
 ```
-gplay validate <subcommand> [flags]
+gplay validate --package <name> [flags]
 ```
 
-Validate resources before uploading to Google Play.
+Validate release readiness for Google Play.
 
-These commands perform local validation to catch common issues
-before making API calls, saving time and reducing errors.
+This is the canonical pre-release verification command. It combines:
+- local artifact checks
+- local metadata and screenshot checks
+- release notes validation
+- remote Play track and listing state
+- manual follow-up items for Console-only checks
+
+Legacy local-only validators remain available as subcommands:
+  gplay validate bundle
+  gplay validate listing
+  gplay validate screenshots
+  gplay validate submission
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--apk` | Path to .apk file to validate | `` |
+| `--bundle` | Path to .aab bundle file to validate | `` |
+| `--dir` | Metadata directory to validate (legacy combined layout) | `` |
+| `--listings-dir` | Directory containing listing metadata | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--release-notes` | Release notes input: plain text, JSON array, or @file | `` |
+| `--screenshots-dir` | Directory containing screenshots grouped by locale/device type | `` |
+| `--strict` | Treat warnings as failures | `false` |
+| `--track` | Target track to validate | `production` |
 
 ---
 
@@ -2063,19 +2231,17 @@ Checks:
 
 ## gplay validate submission
 
-Run all pre-submission validation checks.
+Compatibility alias for the canonical readiness command.
 
 ```
 gplay validate submission --package <name> [--dir <path>] [--output json|table]
 ```
 
-Run a comprehensive set of pre-submission validation checks.
+Run the canonical Google Play release-readiness report using the
+legacy validate submission entry point.
 
-Validates metadata, required fields, and screenshots for all locales.
-Returns a validation report with errors, warnings, and remediation hints.
-
-This command is --dry-run compatible: it reads existing local data
-and does not perform any write operations.
+This command remains for compatibility, but new docs and workflows should use:
+  gplay validate --package <name> [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2084,6 +2250,36 @@ and does not perform any write operations.
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Application package name | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+| `--release-notes` | Release notes input: plain text, JSON array, or @file | `` |
+| `--strict` | Treat warnings as failures | `false` |
+| `--track` | Target track to validate | `production` |
+
+---
+
+## gplay status
+
+Show a deterministic release-health snapshot.
+
+```
+gplay status --package <name> [flags]
+```
+
+Show a single Play-specific status snapshot for the current app.
+
+The snapshot combines current release-track state with a vitals summary.
+Use --watch to refresh the snapshot on an interval until interrupted.
+
+Examples:
+  gplay status --package com.example.app
+  gplay status --package com.example.app --watch --poll-interval 30s
+  gplay status --package com.example.app --pretty
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--package` | Package name (applicationId) | `` |
+| `--poll-interval` | Polling interval for --watch | `30s` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--watch` | Continuously refresh the status snapshot | `false` |
 
 ---
 
@@ -5588,25 +5784,36 @@ Run multi-step automation workflows.
 gplay workflow <subcommand> [flags]
 ```
 
-Define named, multi-step automation sequences in .gplay/workflows/*.json.
-Each workflow composes existing gplay commands and shell commands.
+Define reusable Google Play release workflows in .gplay/workflows/*.json.
+Workflow files can contain one legacy workflow or multiple named workflows.
 
-Example workflow file (.gplay/workflows/deploy.json):
+Example workflow file (.gplay/workflows/release.json):
 
 {
-  "name": "deploy",
-  "description": "Build, test, and deploy the app",
-  "params": [
-    {"name": "VERSION", "required": true}
-  ],
-  "env": {
-    "PACKAGE": "com.example.app"
-  },
-  "steps": [
-    {"name": "build", "command": "make build"},
-    {"name": "test", "command": "make test"},
-    {"name": "deploy", "command": "gplay release create --package {{ .PACKAGE }} --version {{ .VERSION }}"}
-  ]
+  "workflows": {
+    "preflight": {
+      "steps": [
+        {
+          "name": "readiness",
+          "run": "gplay validate --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}",
+          "outputs": {
+            "status": "$.summary.status"
+          }
+        }
+      ]
+    },
+    "publish": {
+      "params": [
+        {"name": "PACKAGE", "required": true},
+        {"name": "TRACK", "required": true},
+        {"name": "BUNDLE", "required": true}
+      ],
+      "steps": [
+        {"name": "preflight", "workflow": "preflight", "with": {"PACKAGE": "{{ .PACKAGE }}", "TRACK": "{{ .TRACK }}", "BUNDLE": "{{ .BUNDLE }}"}},
+        {"name": "release", "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}"}
+      ]
+    }
+  }
 }
 
 Security note:
@@ -5615,13 +5822,13 @@ Security note:
 
 Tips:
   Use gplay workflow validate before running a new workflow file.
-  Preview the plan with gplay workflow run --dry-run <name>.
+  Preview the plan with gplay workflow run --dry-run release --workflow publish.
 
 Examples:
   gplay workflow list
-  gplay workflow validate deploy.json
-  gplay workflow run deploy --param VERSION=1.0.0
-  gplay workflow run --dry-run deploy.json
+  gplay workflow validate release.json
+  gplay workflow run release --workflow publish --param PACKAGE=com.example.app --param TRACK=internal --param BUNDLE=app.aab
+  gplay workflow run --dry-run ./release.json --workflow publish
 
 ---
 
@@ -5630,19 +5837,19 @@ Examples:
 Run a named workflow.
 
 ```
-gplay workflow run <name-or-file> [--param KEY=VALUE ...] [--dry-run] [--resume]
+gplay workflow run <name-or-file> [--workflow <name>] [--param KEY=VALUE ...] [--dry-run] [--resume]
 ```
 
 Run a workflow from .gplay/workflows/ or a direct file path.
 
-The workflow name is resolved by searching .gplay/workflows/<name>.json first.
-If not found, it's treated as a direct file path.
+The workflow file is resolved from .gplay/workflows/<name>.json first unless
+you pass an explicit path. Legacy single-workflow files still work.
 
 Examples:
-  gplay workflow run deploy --param VERSION=1.0.0
-  gplay workflow run ./my-workflow.json --param ENV=staging
-  gplay workflow run --dry-run deploy
-  gplay workflow run deploy --resume
+  gplay workflow run release --workflow publish --param PACKAGE=com.example.app --param TRACK=internal --param BUNDLE=app.aab
+  gplay workflow run ./release.json --workflow publish --param TRACK=production
+  gplay workflow run --dry-run release --workflow publish
+  gplay workflow run release --workflow publish --resume
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -5650,6 +5857,7 @@ Examples:
 | `--param` | Workflow parameter in KEY=VALUE format (repeatable) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--resume` | Resume from last saved state | `false` |
+| `--workflow` | Workflow name when the file contains multiple workflows | `` |
 
 ---
 
@@ -5661,11 +5869,11 @@ Validate a workflow definition for errors.
 gplay workflow validate <name-or-file>
 ```
 
-Validate a workflow JSON file for structure, references, and naming.
+Validate a workflow file for structure, references, output declarations, and cycles.
 
 Examples:
-  gplay workflow validate deploy
-  gplay workflow validate ./my-workflow.json
+  gplay workflow validate release
+  gplay workflow validate ./release.json
 
 | Flag | Description | Default |
 |------|-------------|---------|
