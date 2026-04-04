@@ -20,8 +20,8 @@ func ImagesCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "images",
 		ShortUsage: "gplay images <subcommand> [flags]",
-		ShortHelp:  "Manage listing images in an edit.",
-		LongHelp: `Manage listing images within an edit.
+		ShortHelp:  "Manage listing images and Play media sync.",
+		LongHelp: `Manage listing images within an edit and sync Play store media.
 
 Valid --type values:
   phoneScreenshots         Phone screenshots (min 2, max 8)
@@ -42,6 +42,9 @@ Images must be PNG or JPEG. Max file size: 15MB.`,
 			UploadCommand(),
 			DeleteCommand(),
 			DeleteAllCommand(),
+			PlanCommand(),
+			PullCommand(),
+			SyncCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {

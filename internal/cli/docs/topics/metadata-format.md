@@ -66,6 +66,26 @@ Minimum 2 screenshots are recommended per device type.
 - PNG
 - JPEG/JPG
 
+## Images Sync Layout
+
+The `gplay images plan`, `gplay images pull`, and `gplay images sync`
+commands use the same locale layout under each locale directory:
+
+```
+metadata/
+  en-US/
+    images/
+      phoneScreenshots/
+        1.png
+      featureGraphic.png
+      icon.png
+      promoGraphic.png
+      tvBanner.png
+```
+
+Screenshots stay grouped by device type. Single assets stay as one file per
+locale so deterministic sync can compare by SHA-256 hash.
+
 ## Migrating from Fastlane
 
 If you have existing Fastlane metadata, use the migration command:
