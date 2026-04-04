@@ -46,3 +46,17 @@ func TestVitals_Performance_SubcommandExists(t *testing.T) {
 		t.Errorf("vitals performance should be a valid subcommand, parse error: %v", parseErr)
 	}
 }
+
+func TestVitals_Performance_HelpListsLeafCommands(t *testing.T) {
+	root := RootCommand("test")
+	stdout, stderr := captureOutput(t, func() {
+		_ = root.Parse([]string{"vitals", "performance"})
+		_ = root.Run(context.Background())
+	})
+	combined := stdout + stderr
+	for _, token := range []string{"startup", "rendering", "battery"} {
+		if !strings.Contains(combined, token) {
+			t.Fatalf("performance help should mention %q, got %q", token, combined)
+		}
+	}
+}

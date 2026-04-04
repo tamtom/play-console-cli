@@ -97,3 +97,17 @@ func captureOutput(t *testing.T, fn func()) (stdout, stderr string) {
 
 	return outBuf.String(), errBuf.String()
 }
+
+func runCommand(t *testing.T, args ...string) (stdout, stderr string, err error) {
+	t.Helper()
+
+	root := RootCommand("test")
+	if parseErr := root.Parse(args); parseErr != nil {
+		return "", "", parseErr
+	}
+
+	stdout, stderr = captureOutput(t, func() {
+		err = root.Run(context.Background())
+	})
+	return stdout, stderr, err
+}
