@@ -45,6 +45,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/reports"
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/snitch"
 	"github.com/tamtom/play-console-cli/internal/cli/subscriptions"
@@ -76,9 +77,15 @@ func VersionCommand(version string) *ffcli.Command {
 
 // Subcommands returns all root subcommands in display order.
 func Subcommands(version string) []*ffcli.Command {
+	return SubcommandsWithRuntime(version, nil)
+}
+
+// SubcommandsWithRuntime returns all root subcommands in display order using the
+// provided runtime for migrated command families.
+func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Command {
 	return []*ffcli.Command{
 		auth.AuthCommand(),
-		apps.AppsCommand(),
+		apps.AppsCommand(rt),
 		edits.EditsCommand(),
 		bundles.BundlesCommand(),
 		apks.APKsCommand(),

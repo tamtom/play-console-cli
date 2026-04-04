@@ -7,7 +7,7 @@ import (
 )
 
 func TestAppsCommand_Help(t *testing.T) {
-	cmd := AppsCommand()
+	cmd := AppsCommand(nil)
 	if cmd.Name != "apps" {
 		t.Errorf("Name = %q, want %q", cmd.Name, "apps")
 	}
@@ -17,7 +17,7 @@ func TestAppsCommand_Help(t *testing.T) {
 }
 
 func TestListCommand_Flags(t *testing.T) {
-	cmd := ListCommand()
+	cmd := ListCommand(nil)
 	if cmd.Name != "list" {
 		t.Errorf("Name = %q, want %q", cmd.Name, "list")
 	}
@@ -26,7 +26,7 @@ func TestListCommand_Flags(t *testing.T) {
 }
 
 func TestAppsCommand_UnknownSubcommand(t *testing.T) {
-	cmd := AppsCommand()
+	cmd := AppsCommand(nil)
 	err := cmd.ParseAndRun(context.Background(), []string{"nonexistent"})
 	if err == nil {
 		t.Error("expected error for unknown subcommand")

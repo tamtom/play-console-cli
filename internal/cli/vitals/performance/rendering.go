@@ -20,7 +20,7 @@ func RenderingCommand() *ffcli.Command {
 	dimension := fs.String("dimension", "", "Breakdown dimension (e.g. apiLevel, deviceModel, country)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
-	_ = fs.Bool("paginate", false, "Fetch all pages")
+	paginate := fs.Bool("paginate", false, "Fetch all pages")
 
 	return &ffcli.Command{
 		Name:       "rendering",
@@ -40,18 +40,12 @@ device model, or country.`,
 			if strings.TrimSpace(*packageName) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			// Stub: API client not connected yet.
-			_ = from
-			_ = to
-			_ = dimension
-
-			result := map[string]string{
-				"status":  "stub",
-				"message": "vitals performance rendering: API client not connected yet",
-				"package": *packageName,
-			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return executeRenderingQuery(ctx, *packageName, queryOptions{
+				from:      *from,
+				to:        *to,
+				dimension: *dimension,
+				paginate:  *paginate,
+			}, *outputFlag, *pretty)
 		},
 	}
 }

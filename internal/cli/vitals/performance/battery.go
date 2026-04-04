@@ -21,7 +21,7 @@ func BatteryCommand() *ffcli.Command {
 	metricType := fs.String("type", "", "Battery metric type: wakeup or wakelock")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
-	_ = fs.Bool("paginate", false, "Fetch all pages")
+	paginate := fs.Bool("paginate", false, "Fetch all pages")
 
 	return &ffcli.Command{
 		Name:       "battery",
@@ -47,19 +47,12 @@ Use --dimension to break down results by API level, device model, or country.`,
 					return fmt.Errorf("--type must be 'wakeup' or 'wakelock'")
 				}
 			}
-
-			// Stub: API client not connected yet.
-			_ = from
-			_ = to
-			_ = dimension
-
-			result := map[string]string{
-				"status":  "stub",
-				"message": "vitals performance battery: API client not connected yet",
-				"package": *packageName,
-				"type":    *metricType,
-			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return executeBatteryQuery(ctx, *packageName, *metricType, queryOptions{
+				from:      *from,
+				to:        *to,
+				dimension: *dimension,
+				paginate:  *paginate,
+			}, *outputFlag, *pretty)
 		},
 	}
 }
