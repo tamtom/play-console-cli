@@ -36,7 +36,7 @@ jobs:
       - name: Run tests with coverage
         run: go test -v -race -coverprofile=coverage.out ./...
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.out
           fail_ci_if_error: false
