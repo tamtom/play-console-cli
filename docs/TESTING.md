@@ -56,7 +56,7 @@ Standard `_test.go` files. Run offline, no credentials needed. Use table-driven 
 Files with `//go:build integration` tag. Require real API credentials. Also call `testutil.SkipUnlessIntegration(t)` as a safety net.
 
 ### CLI Tests
-Test command-line behavior by verifying flag parsing, output format, and error messages. Use `bytes.Buffer` for capturing stdout/stderr. Help and usage output should be asserted from stderr, and JSON output should be decoded for representative success cases instead of relying on `strings.Contains` checks alone.
+Test command-line behavior by verifying flag parsing, output format, and error messages. Use `bytes.Buffer` for capturing stdout/stderr.
 
 ## Test Helpers (`internal/testutil`)
 
