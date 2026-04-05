@@ -21,6 +21,8 @@ jobs:
       - run: go install mvdan.cc/gofumpt@latest
       - name: Check formatting
         run: make format && git diff --exit-code || (echo "Run 'make format' to fix." && exit 1)
+      - name: Check docs
+        run: make check-docs
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
