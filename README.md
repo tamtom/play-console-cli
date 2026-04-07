@@ -12,29 +12,35 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
 
 Stop clicking through Play Console. Ship your Android apps with a single command.
 
-### gplay vs Fastlane vs Raw API
+### gplay vs Fastlane
 
-| Capability | gplay | Fastlane (`supply`) | Raw API + Agent |
-|---|:---:|:---:|:---:|
-| **Setup** | ✅ Single binary, zero deps | ⚠️ Ruby + gems + bundler | ❌ OAuth2 + HTTP + custom code |
-| **Agent-friendly output** | ✅ JSON by default (saves tokens) | ❌ Human-oriented, colorized | ⚠️ Raw HTTP, must parse |
-| **No interactive prompts** | ✅ `--confirm` flags, never blocks | ❌ Interactive by default | ✅ N/A |
-| **Dry-run mode** | ✅ Built-in `--dry-run` | ❌ No | ❌ Must build yourself |
-| **Releases & tracks** | ✅ Upload, promote, staged rollout | ⚠️ Upload only | ⚠️ Full (manual implementation) |
-| **Store listings & screenshots** | ✅ Full CRUD + sync + validation | ⚠️ Metadata upload only | ⚠️ Full (manual implementation) |
-| **Monetization** | ✅ Subscriptions, plans, offers, IAPs | ❌ No | ⚠️ Full (manual implementation) |
-| **Purchase verification** | ✅ Built-in | ❌ No | ⚠️ Full (manual implementation) |
-| **Vitals (crashes, ANRs, perf)** | ✅ Built-in | ❌ No | ⚠️ Separate Reporting API |
-| **Review management** | ✅ Read + reply | ❌ No | ⚠️ Full (manual implementation) |
-| **Financial & stats reports** | ✅ GCS download built-in | ❌ No | ❌ Not available via API |
-| **User & permission management** | ✅ Built-in | ❌ No | ⚠️ Full (manual implementation) |
-| **Fastlane migration** | ✅ `gplay migrate fastlane` | ➖ N/A | ❌ No |
-| **CI/CD ready** | ✅ Works everywhere, no runtime | ⚠️ Needs Ruby in CI | ⚠️ Custom per-pipeline |
-| **Retries & timeouts** | ✅ Configurable (`GPLAY_MAX_RETRIES`) | ⚠️ Basic | ❌ Must build yourself |
-| **Self-documenting** | ✅ `--help` on every command | ⚠️ `fastlane actions` | ❌ Read API docs (1000s of tokens) |
-| **Startup time** | ✅ Instant (compiled Go) | ❌ Slow (Ruby + gem loading) | ⚠️ Depends |
-| **Self-update** | ✅ `gplay update` | ⚠️ `gem update fastlane` | ➖ N/A |
-| | **✅ 18 / 18** | **❌ 8 wins / 18** | **❌ 2 wins / 18** |
+| Capability | gplay | Fastlane (`supply` / `screengrab`) |
+|---|---|---|
+| **Setup** | Single binary, zero dependencies | Ruby + gems + bundler |
+| **Agent-friendly output** | JSON by default (saves tokens) | Human-oriented, colorized output |
+| **No interactive prompts** | `--confirm` flags, never blocks | Interactive by default |
+| **Dry-run mode** | Built-in `--dry-run` on all commands | `validate_only` on uploads only |
+| **Releases & tracks** | Upload, promote, staged rollout, halt, resume | Upload, promote, staged rollout |
+| **Store listings** | Full CRUD + sync + diff + validation | 4 text fields only (title, short/full description, video) |
+| **Screenshots & images** | Upload, list, delete per locale and type | Upload with SHA256 dedup; capture via `screengrab` |
+| **Release notes** | Per-locale JSON, plain text, or auto-generated from git | Per-version-code text files, default fallback |
+| **Monetization** | Subscriptions, base plans, offers, IAPs, pricing | No support |
+| **Purchase verification** | Built-in (products + subscriptions) | No support |
+| **Vitals (crashes, ANRs, perf)** | Built-in (clusters, reports, metrics) | No support |
+| **Review management** | Read + reply | No support |
+| **Financial & stats reports** | GCS download built-in | No support |
+| **User & permission management** | Full CRUD for users and per-app grants | No support |
+| **Data safety & app details** | Contact info, category, privacy policy | No support |
+| **Tester management** | List and update testers per track | No support (uploads to tracks only) |
+| **Internal app sharing** | Upload bundle/APK, get download URL | Upload bundle/APK, get download URL |
+| **Deobfuscation files** | Upload mapping files with releases | Upload mapping and native debug symbols |
+| **Fastlane migration** | `gplay migrate fastlane` imports metadata | N/A |
+| **CI/CD ready** | Works everywhere, no runtime needed | Needs Ruby runtime in CI |
+| **Retries & timeouts** | Configurable (`GPLAY_MAX_RETRIES`, `GPLAY_TIMEOUT`) | Basic (`SUPPLY_UPLOAD_MAX_RETRIES`) |
+| **Self-documenting** | `--help` on every command, `docs generate` | `fastlane actions`, per-action docs |
+| **Startup time** | Instant (compiled Go) | Slow (Ruby + gem loading) |
+| **Self-update** | `gplay update` | `gem update fastlane` |
+| **Automated screenshot capture** | No (use `screengrab` or `maestro`) | Yes (`screengrab` with Espresso) |
 
 **Publish & Release**
 - One-command releases: upload, configure track, and go live in a single step
