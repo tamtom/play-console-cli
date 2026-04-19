@@ -14,26 +14,28 @@ Stop clicking through Play Console. Ship your Android apps with a single command
 
 ### Where gplay wins
 
-Compared against [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gradle-play-publisher (GPP)](https://github.com/Triple-T/gradle-play-publisher). Rows where all three are equivalent (e.g. track management, staged rollout, internal app sharing, mapping upload) are omitted.
+Compared against [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gradle-play-publisher (GPP)](https://github.com/Triple-T/gradle-play-publisher). Areas where all three wrap the same Play Publisher API equivalently (APK/AAB upload, tracks, staged rollout, release notes, store listing text fields, app details, screenshots, mapping files, internal app sharing) are omitted.
+
+**API coverage gplay has that the others lack**
 
 | Capability | gplay | Fastlane | gradle-play-publisher |
 |---|---|---|---|
-| **Runtime** | Single binary, no deps | Ruby + gems + bundler | Requires Gradle + AGP project |
-| **Standalone CLI** | Works anywhere | Works anywhere | Must run inside an Android Gradle project |
-| **Agent-friendly output** | JSON by default (saves tokens) | Human-oriented, colorized | Gradle task logs |
-| **Store listings** | Full CRUD + sync + diff + validation | 4 text fields only | 4 text fields + contact info |
-| **App details** | Category, contact info, privacy policy, etc. | No support | Contact email/phone/website only |
-| **Monetization** | IAPs, subscriptions, base plans, offers, pricing | No support | IAPs + subscriptions (no base plans/offers) |
-| **Purchase verification** | Products + subscriptions + acknowledge | No support | No support |
-| **Vitals (crashes, ANRs, perf)** | Built-in (clusters, reports, metrics) | No support | No support |
+| **Monetization depth** | IAPs, subscriptions, base plans, offers, pricing | No support | Basic IAPs + subscriptions (no base plans or offers) |
+| **Purchase verification** | Products + subscriptions + acknowledge + orders refund | No support | No support |
+| **Vitals (crashes, ANRs, perf)** | Clusters, reports, startup/rendering/battery metrics | No support | No support |
 | **Review management** | Read + reply | No support | No support |
-| **Financial & stats reports** | GCS download built-in | No support | No support |
-| **User & permission management** | Full CRUD for users and per-app grants | No support | No support |
-| **Tester management** | List and update testers per track | No support | No support |
+| **Financial & stats reports** | GCS download (earnings, sales, installs, ratings) | No support | No support |
+| **User & permission management** | Developer users + per-app grants CRUD | No support | No support |
+| **Tester management** | List and update closed-track tester emails | No support | No support |
 | **Data safety** | Declarations management | No support | No support |
-| **Release notes** | Per-locale JSON, plain text, or auto-generated from git | Text files per version code | Text files per track |
 | **Webhook notifications** | Slack, Discord, generic (`gplay notify`) | No support | No support |
-| **Startup time** | Instant (compiled Go) | Slow (Ruby + gem loading) | Slow (JVM + Gradle daemon) |
+
+**Runtime and ergonomics**
+
+| Capability | gplay | Fastlane | gradle-play-publisher |
+|---|---|---|---|
+| **Runtime** | Compiled Go binary, instant startup, no deps | Ruby + gems + bundler, slow to load | JVM + Gradle daemon, must run inside an AGP project |
+| **Agent-friendly output** | JSON by default (saves tokens) | Human-oriented, colorized | Gradle task logs |
 
 **Publish & Release**
 - One-command releases: upload, configure track, and go live in a single step
