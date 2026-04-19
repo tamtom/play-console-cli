@@ -11,9 +11,10 @@
 ## Authentication
 
 - Requires a Google Cloud service account with Play Console access
-- `gplay auth login --service-account /path/to/key.json`
-- `gplay auth doctor` validates credentials and permissions
-- `gplay auth doctor --fix --confirm` auto-fixes issues
+- `gplay auth setup --auto --project <gcp-project>` — automated setup: creates the service account, enables the API, downloads the key, and wires the profile (wraps gcloud); `--dry-run` previews steps
+- `gplay auth login --service-account /path/to/key.json` — manual alternative
+- `gplay auth doctor` validates credentials and permissions (`--fix --confirm` auto-fixes)
+- `gplay doctor` runs 16 environment health checks (config, SA, DNS, disk, clock, audit, timeouts, etc.)
 - Environment variable: `GPLAY_SERVICE_ACCOUNT=/path/to/key.json`
 
 ## Usage Patterns
@@ -45,6 +46,13 @@
 - `gplay migrate fastlane` — migrate metadata from Fastlane directory structure
 - `gplay release-notes set` — set release notes (plain text auto-assigned to en-US)
 - `gplay validate` — pre-submission validation checks
+- `gplay preflight --file <app.aab>` — offline compliance scan (manifest, size, native ABIs, dex, debuggable/testOnly flags, cleartext, dangerous perms, secret scan); `--fail-on` severity for CI
+- `gplay bundles analyze --file <app.aab>` — offline size breakdown per module/bucket, top largest files
+- `gplay bundles compare --base <a.aab> --candidate <b.aab> --threshold 2M` — size regression gate
+- `gplay audit list/search/clear/path` — local journal of every invocation at `~/.gplay/audit.log` (disable with `GPLAY_AUDIT=0`)
+- `gplay quota status` — daily + per-minute Play API quota usage derived from audit log
+- `gplay rtdn setup/status/decode` — Real-Time Developer Notifications: Pub/Sub topic + Play publisher role, IAM status, typed payload decoder
+- `gplay vitals crashes anomalies` — detected deviations in crash/ANR/error/performance metrics
 - `gplay init` — initialize project configuration
 - `gplay docs generate` — generate markdown command reference
 
