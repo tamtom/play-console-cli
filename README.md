@@ -12,35 +12,28 @@ A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Aut
 
 Stop clicking through Play Console. Ship your Android apps with a single command.
 
-### gplay vs Fastlane
+### Where gplay wins
 
-| Capability | gplay | Fastlane (`supply` / `screengrab`) |
-|---|---|---|
-| **Setup** | Single binary, zero dependencies | Ruby + gems + bundler |
-| **Agent-friendly output** | JSON by default (saves tokens) | Human-oriented, colorized output |
-| **No interactive prompts** | `--confirm` flags, never blocks | Interactive by default |
-| **Dry-run mode** | Built-in `--dry-run` on all commands | `validate_only` on uploads only |
-| **Releases & tracks** | Upload, promote, staged rollout, halt, resume | Upload, promote, staged rollout |
-| **Store listings** | Full CRUD + sync + diff + validation | 4 text fields only (title, short/full description, video) |
-| **Screenshots & images** | Upload, list, delete per locale and type | Upload with SHA256 dedup; capture via `screengrab` |
-| **Release notes** | Per-locale JSON, plain text, or auto-generated from git | Per-version-code text files, default fallback |
-| **Monetization** | Subscriptions, base plans, offers, IAPs, pricing | No support |
-| **Purchase verification** | Built-in (products + subscriptions) | No support |
-| **Vitals (crashes, ANRs, perf)** | Built-in (clusters, reports, metrics) | No support |
-| **Review management** | Read + reply | No support |
-| **Financial & stats reports** | GCS download built-in | No support |
-| **User & permission management** | Full CRUD for users and per-app grants | No support |
-| **Data safety & app details** | Contact info, category, privacy policy | No support |
-| **Tester management** | List and update testers per track | No support (uploads to tracks only) |
-| **Internal app sharing** | Upload bundle/APK, get download URL | Upload bundle/APK, get download URL |
-| **Deobfuscation files** | Upload mapping files with releases | Upload mapping and native debug symbols |
-| **Fastlane migration** | `gplay migrate fastlane` imports metadata | N/A |
-| **CI/CD ready** | Works everywhere, no runtime needed | Needs Ruby runtime in CI |
-| **Retries & timeouts** | Configurable (`GPLAY_MAX_RETRIES`, `GPLAY_TIMEOUT`) | Basic (`SUPPLY_UPLOAD_MAX_RETRIES`) |
-| **Self-documenting** | `--help` on every command, `docs generate` | `fastlane actions`, per-action docs |
-| **Startup time** | Instant (compiled Go) | Slow (Ruby + gem loading) |
-| **Self-update** | `gplay update` | `gem update fastlane` |
-| **Automated screenshot capture** | No (use `screengrab` or `maestro`) | Yes (`screengrab` with Espresso) |
+Compared against [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gradle-play-publisher (GPP)](https://github.com/Triple-T/gradle-play-publisher). Rows where all three are equivalent (e.g. track management, staged rollout, internal app sharing, mapping upload) are omitted.
+
+| Capability | gplay | Fastlane | gradle-play-publisher |
+|---|---|---|---|
+| **Runtime** | Single binary, no deps | Ruby + gems + bundler | Requires Gradle + AGP project |
+| **Standalone CLI** | Works anywhere | Works anywhere | Must run inside an Android Gradle project |
+| **Agent-friendly output** | JSON by default (saves tokens) | Human-oriented, colorized | Gradle task logs |
+| **Store listings** | Full CRUD + sync + diff + validation | 4 text fields only | 4 text fields + contact info |
+| **App details** | Category, contact info, privacy policy, etc. | No support | Contact email/phone/website only |
+| **Monetization** | IAPs, subscriptions, base plans, offers, pricing | No support | IAPs + subscriptions (no base plans/offers) |
+| **Purchase verification** | Products + subscriptions + acknowledge | No support | No support |
+| **Vitals (crashes, ANRs, perf)** | Built-in (clusters, reports, metrics) | No support | No support |
+| **Review management** | Read + reply | No support | No support |
+| **Financial & stats reports** | GCS download built-in | No support | No support |
+| **User & permission management** | Full CRUD for users and per-app grants | No support | No support |
+| **Tester management** | List and update testers per track | No support | No support |
+| **Data safety** | Declarations management | No support | No support |
+| **Release notes** | Per-locale JSON, plain text, or auto-generated from git | Text files per version code | Text files per track |
+| **Webhook notifications** | Slack, Discord, generic (`gplay notify`) | No support | No support |
+| **Startup time** | Instant (compiled Go) | Slow (Ruby + gem loading) | Slow (JVM + Gradle daemon) |
 
 **Publish & Release**
 - One-command releases: upload, configure track, and go live in a single step
