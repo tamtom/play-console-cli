@@ -8,6 +8,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/apks"
 	"github.com/tamtom/play-console-cli/internal/cli/apps"
+	"github.com/tamtom/play-console-cli/internal/cli/auditcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/auth"
 	"github.com/tamtom/play-console-cli/internal/cli/availability"
 	"github.com/tamtom/play-console-cli/internal/cli/baseplans"
@@ -18,6 +19,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/details"
 	"github.com/tamtom/play-console-cli/internal/cli/devicetiers"
 	"github.com/tamtom/play-console-cli/internal/cli/docs"
+	"github.com/tamtom/play-console-cli/internal/cli/doctor"
 	"github.com/tamtom/play-console-cli/internal/cli/edits"
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
@@ -35,17 +37,20 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/onetimeproducts"
 	"github.com/tamtom/play-console-cli/internal/cli/orders"
 	"github.com/tamtom/play-console-cli/internal/cli/otpoffers"
+	"github.com/tamtom/play-console-cli/internal/cli/preflight"
 	"github.com/tamtom/play-console-cli/internal/cli/pricing"
 	"github.com/tamtom/play-console-cli/internal/cli/promote"
 	"github.com/tamtom/play-console-cli/internal/cli/publish"
 	"github.com/tamtom/play-console-cli/internal/cli/purchaseoptions"
 	"github.com/tamtom/play-console-cli/internal/cli/purchases"
+	"github.com/tamtom/play-console-cli/internal/cli/quota"
 	"github.com/tamtom/play-console-cli/internal/cli/recovery"
 	"github.com/tamtom/play-console-cli/internal/cli/release"
 	releasenotes "github.com/tamtom/play-console-cli/internal/cli/releasenotes"
 	"github.com/tamtom/play-console-cli/internal/cli/reports"
 	"github.com/tamtom/play-console-cli/internal/cli/reviews"
 	"github.com/tamtom/play-console-cli/internal/cli/rollout"
+	rtdncmd "github.com/tamtom/play-console-cli/internal/cli/rtdn"
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/snitch"
@@ -88,6 +93,11 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 	return []*ffcli.Command{
 		auth.AuthCommand(),
 		apps.AppsCommand(rt),
+		auditcmd.AuditCommand(),
+		quota.QuotaCommand(),
+		doctor.DoctorCommand(),
+		preflight.PreflightCommand(),
+		rtdncmd.RtdnCommand(),
 		edits.EditsCommand(),
 		bundles.BundlesCommand(),
 		apks.APKsCommand(),

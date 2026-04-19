@@ -39,8 +39,10 @@ func TestBundlesCommand_HasSubcommands(t *testing.T) {
 func TestBundlesCommand_SubcommandNames(t *testing.T) {
 	cmd := BundlesCommand()
 	expected := map[string]bool{
-		"upload": false,
-		"list":   false,
+		"upload":  false,
+		"list":    false,
+		"analyze": false,
+		"compare": false,
 	}
 	for _, sub := range cmd.Subcommands {
 		if _, ok := expected[sub.Name]; ok {

@@ -45,6 +45,7 @@ func TestAuthCommand_SubcommandNames(t *testing.T) {
 	cmd := AuthCommand()
 	expected := map[string]bool{
 		"init":   false,
+		"setup":  false,
 		"login":  false,
 		"switch": false,
 		"logout": false,

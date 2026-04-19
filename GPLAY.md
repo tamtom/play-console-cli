@@ -6,6 +6,7 @@
 
 - [auth](#auth)
 - [auth init](#auth-init)
+- [auth setup](#auth-setup)
 - [auth login](#auth-login)
 - [auth switch](#auth-switch)
 - [auth logout](#auth-logout)
@@ -13,6 +14,19 @@
 - [auth doctor](#auth-doctor)
 - [apps](#apps)
 - [apps list](#apps-list)
+- [audit](#audit)
+- [audit list](#audit-list)
+- [audit search](#audit-search)
+- [audit clear](#audit-clear)
+- [audit path](#audit-path)
+- [quota](#quota)
+- [quota status](#quota-status)
+- [doctor](#doctor)
+- [preflight](#preflight)
+- [rtdn](#rtdn)
+- [rtdn setup](#rtdn-setup)
+- [rtdn status](#rtdn-status)
+- [rtdn decode](#rtdn-decode)
 - [edits](#edits)
 - [edits create](#edits-create)
 - [edits get](#edits-get)
@@ -22,6 +36,8 @@
 - [bundles](#bundles)
 - [bundles upload](#bundles-upload)
 - [bundles list](#bundles-list)
+- [bundles analyze](#bundles-analyze)
+- [bundles compare](#bundles-compare)
 - [apks](#apks)
 - [apks upload](#apks-upload)
 - [apks list](#apks-list)
@@ -278,6 +294,45 @@ gplay auth init [flags]
 
 ---
 
+## gplay auth setup
+
+Create a Google Cloud service account and link it to this CLI.
+
+```
+gplay auth setup --auto [--project <id>] [flags]
+```
+
+Automated setup for Google Play authentication.
+
+With --auto, runs these steps via gcloud:
+  1. Detect/confirm GCP project
+  2. Enable the androidpublisher API
+  3. Create a service account (--sa-name)
+  4. Download a JSON key (--key-out)
+  5. Store the profile in ~/.gplay/config.json
+
+You still need to link the service account email in Play Console afterwards;
+the URL is printed at the end.
+
+Example:
+  gplay auth setup --auto --project my-gcp-project
+  gplay auth setup --auto --dry-run        # preview commands
+  gplay auth setup                          # open a how-to instead (no gcloud)
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--auto` | Automate GCP service-account creation using gcloud | `false` |
+| `--dry-run` | Print the gcloud commands without executing them | `false` |
+| `--key-out` | Path to write the service-account JSON (defaults to ~/.gplay/<sa>.json) | `` |
+| `--output` | Output format: text (default), json | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--profile` | gplay auth profile to create | `default` |
+| `--project` | GCP project ID (defaults to gcloud default) | `` |
+| `--sa-name` | Service account name | `play-console-cli` |
+| `--set-default` | Set as default profile in config | `true` |
+
+---
+
 ## gplay auth login
 
 Authenticate with Google Play Console using a service account.
@@ -388,6 +443,255 @@ gplay apps list [flags]
 |------|-------------|---------|
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay audit
+
+Query and manage the local command audit log.
+
+```
+gplay audit <subcommand> [flags]
+```
+
+Query and manage the local command audit log.
+
+Every gplay command invocation appends a JSON entry to ~/.gplay/audit.log.
+Disable with GPLAY_AUDIT=0. Override the path with GPLAY_AUDIT_LOG.
+
+---
+
+## gplay audit list
+
+List recent audit entries (newest first).
+
+```
+gplay audit list [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--limit` | Maximum number of entries to show (0 = all) | `50` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--since` | Only include entries newer than this (RFC3339 or duration like 24h) | `` |
+| `--status` | Filter by status (ok, error, started) | `` |
+
+---
+
+## gplay audit search
+
+Search audit entries by command or status.
+
+```
+gplay audit search --command <substr> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--command` | Substring to match against command name | `` |
+| `--limit` | Maximum number of results | `100` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--status` | Filter by status | `` |
+
+---
+
+## gplay audit clear
+
+Truncate the audit log.
+
+```
+gplay audit clear --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Required to actually truncate the log | `false` |
+
+---
+
+## gplay audit path
+
+Print the active audit log path.
+
+```
+gplay audit path
+```
+
+---
+
+## gplay quota
+
+Inspect local API quota usage derived from the audit log.
+
+```
+gplay quota <subcommand> [flags]
+```
+
+---
+
+## gplay quota status
+
+Show current API quota usage (daily and per-minute).
+
+```
+gplay quota status [flags]
+```
+
+Show current API quota usage derived from the local audit log.
+
+Google Play Developer API enforces ~200,000 calls/day and ~6,000/minute
+(roughly 100/s sustained) per developer account. This command counts audit
+entries to estimate usage; it can only see calls made by this machine.
+
+Disable audit with GPLAY_AUDIT=0.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--days` | Window in days to include in daily totals | `1` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--top` | Show this many top commands by call count | `5` |
+
+---
+
+## gplay doctor
+
+Diagnose CLI setup, network, credentials, and configuration.
+
+```
+gplay doctor [flags]
+```
+
+Run 15+ checks across config, credentials, network, disk, and environment.
+
+Examples:
+  gplay doctor
+  gplay doctor --output json --pretty
+  gplay doctor --output markdown
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: text (default), json, markdown, table | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay preflight
+
+Run offline compliance and hygiene checks against an AAB/APK.
+
+```
+gplay preflight --file <app.aab> [flags]
+```
+
+Run offline checks against an AAB or APK without any API calls.
+
+Checks include: manifest presence, bundle size, native lib coverage,
+dex count/size, debuggable flag, testOnly flag, cleartext traffic,
+dangerous permissions, secret scan (API keys/private keys/etc.),
+and developer-environment artifacts.
+
+Exit codes:
+  0   clean
+  1   findings at or above --fail-on severity
+
+Example:
+  gplay preflight --file app.aab
+  gplay preflight --file app.aab --max-size 100M --fail-on warning
+  gplay preflight --file app.aab --output json | jq .
+
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--fail-on` | Exit non-zero when findings reach this severity: info, warning, error | `error` |
+| `--file` | Path to .aab or .apk to scan (required) | `` |
+| `--max-dex` | Max allowed size per dex file (e.g. 64M) | `` |
+| `--max-size` | Max allowed bundle size (e.g. 150M) | `` |
+| `--output` | Output format: text (default), json, markdown | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--skip-secrets` | Skip secret-pattern scan (faster) | `false` |
+
+---
+
+## gplay rtdn
+
+Real-Time Developer Notifications: setup, status, decode.
+
+```
+gplay rtdn <subcommand> [flags]
+```
+
+---
+
+## gplay rtdn setup
+
+Create the Pub/Sub topic and grant Play publisher access.
+
+```
+gplay rtdn setup --project <id> [--topic <name>] [--dry-run]
+```
+
+Create a Pub/Sub topic and grant Google Play's system service account
+the Pub/Sub Publisher role so it can push notifications.
+
+You still need to paste the topic name (projects/<id>/topics/<topic>) into the
+Play Console -> Monetization setup page afterwards. The topic name is printed
+at the end.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Print gcloud commands without executing | `false` |
+| `--output` | Output format: text (default), json | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--project` | GCP project ID (required) | `` |
+| `--topic` | Pub/Sub topic name | `play-rtdn` |
+
+---
+
+## gplay rtdn status
+
+Show Pub/Sub topic configuration and Play publisher binding.
+
+```
+gplay rtdn status --project <id> [--topic <name>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: text (default), json | `text` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--project` | GCP project ID (required) | `` |
+| `--topic` | Pub/Sub topic name | `play-rtdn` |
+
+---
+
+## gplay rtdn decode
+
+Decode a Pub/Sub RTDN payload into a typed notification.
+
+```
+gplay rtdn decode --file <payload.json>
+```
+
+Decode a Pub/Sub RTDN payload into a typed notification.
+
+Accepts either a full Pub/Sub envelope (message.data is base64) or the raw
+inner JSON (packageName/subscriptionNotification/etc.).
+
+Examples:
+  gplay rtdn decode --file payload.json
+  cat payload.json | gplay rtdn decode --file -
+  gplay rtdn decode --data '{"message":{"data":"..."}}'
+
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--data` | Inline payload JSON (overrides --file) | `` |
+| `--file` | Path to payload JSON file ('-' for stdin) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `true` |
 
 ---
 
@@ -568,6 +872,51 @@ gplay bundles list --package <name> --edit <id>
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay bundles analyze
+
+Analyze a local AAB/APK: size per module, bucket, and largest files.
+
+```
+gplay bundles analyze --file <app.aab>
+```
+
+Analyze an AAB/APK offline (no Play API calls).
+
+The analyzer parses the archive's ZIP structure and groups entries into
+buckets (dex/resources/native/assets/etc.) and AAB modules. Use --top-files
+to surface the largest individual entries.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--file` | Path to .aab or .apk (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--top-files` | Number of largest individual files to include | `20` |
+
+---
+
+## gplay bundles compare
+
+Diff two AAB/APK files and flag size regressions.
+
+```
+gplay bundles compare --base <a.aab> --candidate <b.aab> [--threshold 2M]
+```
+
+Diff two AAB/APK files and flag size regressions for CI.
+
+When --threshold is set, exits non-zero if the uncompressed delta exceeds it.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--base` | Baseline AAB/APK (required) | `` |
+| `--candidate` | Candidate AAB/APK (required) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--threshold` | Regression threshold in bytes (e.g. 500K, 2M, 1G) | `` |
 
 ---
 
@@ -2335,25 +2684,34 @@ separate from the Android Publisher API used by other commands.
 
 ## gplay vitals crashes anomalies
 
-List detected anomalies for crash and ANR metrics.
+List detected anomalies for crash, ANR, errors, and performance metrics.
 
 ```
-gplay vitals crashes anomalies --package <pkg>
+gplay vitals crashes anomalies --package <pkg> [flags]
 ```
 
-List detected anomalies for crash and ANR metrics.
+List detected anomalies for vitals metrics.
 
-Anomalies are automatically detected deviations in crash or ANR rates
-that may indicate a regression introduced by a new release.
+Anomalies are automatically detected deviations in vitals metrics that may
+indicate a regression introduced by a new release.
 
-Note: This command uses the Play Developer Reporting API, which is
-separate from the Android Publisher API used by other commands.
+Examples:
+  gplay vitals crashes anomalies --package com.example.app
+  gplay vitals crashes anomalies --package com.example.app --type anr
+  gplay vitals crashes anomalies --package com.example.app --from 2026-03-01 --to 2026-03-31
+
+Note: This command uses the Play Developer Reporting API, which is separate
+from the Android Publisher API used by other commands.
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--from` | Start date (YYYY-MM-DD); defaults to 7d ago | `` |
+| `--limit` | Maximum anomalies to return (1-1000) | `50` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date (YYYY-MM-DD); defaults to today | `` |
+| `--type` | Metric set: crash, anr, errors, performance, all | `all` |
 
 ---
 

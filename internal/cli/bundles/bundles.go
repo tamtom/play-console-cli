@@ -25,6 +25,8 @@ func BundlesCommand() *ffcli.Command {
 		Subcommands: []*ffcli.Command{
 			UploadCommand(),
 			ListCommand(),
+			AnalyzeCommand(),
+			CompareCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
