@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/tamtom/play-console-cli/internal/audit"
@@ -334,13 +333,4 @@ func checkHomeWritable(env Env) CheckResult {
 	return CheckResult{Name: "home writable", Severity: SeverityOK, Detail: tmpDir}
 }
 
-// diskFree is a cross-platform free-bytes helper. Falls back to skipping on
-// unsupported systems.
-func diskFree(path string) (uint64, error) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(path, &stat); err != nil {
-		return 0, err
-	}
-	// Bavail * Bsize; cast via uint64 for safety on 32-bit systems.
-	return uint64(stat.Bavail) * uint64(stat.Bsize), nil
-}
+// diskFree is implemented per-OS in checks_unix.go / checks_windows.go.
