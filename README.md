@@ -115,6 +115,7 @@ Compared against [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/
   - [Reviews](#reviews)
   - [Testing](#testing)
   - [App Management](#app-management)
+  - [Diagnostics & Observability](#diagnostics--observability)
   - [Vitals & Quality](#vitals--quality)
   - [User & Permission Management](#user--permission-management)
   - [Reports](#reports)
@@ -155,6 +156,21 @@ make build
 `gplay` checks for updates on startup and shows upgrade hints. Disable with `--no-update` or `GPLAY_NO_UPDATE=1`.
 
 ### Authenticate (Service Account)
+
+**Fastest path — automated setup (recommended):**
+
+```bash
+# One command: creates a GCP service account, enables the API, downloads the key,
+# and wires the profile into ~/.gplay/config.json.
+gplay auth setup --auto --project <your-gcp-project-id>
+
+# Preview the gcloud commands without running them
+gplay auth setup --auto --project <your-gcp-project-id> --dry-run
+```
+
+Requirements: `gcloud` installed and authenticated (`gcloud auth login`). After the wizard finishes, it prints a Play Console link to grant the service account access — that's the only manual step left.
+
+**Manual path — full control:**
 
 **Step 1: Create a Google Cloud Project**
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
@@ -254,6 +270,40 @@ gplay apps list
 # Initialize project configuration
 gplay init
 gplay init --package com.example.app --service-account /path/to/sa.json
+```
+
+### Diagnostics & Observability
+
+```bash
+# Full environment health check (16 checks: gcloud, config, SA, DNS, disk, clock, ...)
+gplay doctor
+gplay doctor --output json --pretty
+
+# Offline compliance scan on an AAB or APK (no API calls)
+# Checks: manifest, bundle size, native ABIs, dex, debuggable, testOnly,
+# cleartext traffic, dangerous permissions, secret scan, misplaced files.
+gplay preflight --file app.aab
+gplay preflight --file app.aab --max-size 100M --fail-on warning   # CI gate
+
+# Bundle size analysis (offline)
+gplay bundles analyze --file app.aab --top-files 20
+gplay bundles compare --base old.aab --candidate new.aab --threshold 2M
+
+# Local audit log of every invocation (auto-written to ~/.gplay/audit.log)
+gplay audit list --limit 50
+gplay audit search --command vitals --status error
+gplay audit clear --confirm
+# Disable with GPLAY_AUDIT=0; override path with GPLAY_AUDIT_LOG.
+
+# API quota usage (derived from audit log)
+gplay quota status                 # daily + per-minute windows
+gplay quota status --top 10
+
+# Real-Time Developer Notifications (RTDN)
+gplay rtdn setup --project <gcp-project> --topic play-rtdn
+gplay rtdn status --project <gcp-project>
+gplay rtdn decode --file payload.json      # typed subscription/one-time/voided decoder
+cat payload.json | gplay rtdn decode --file -
 ```
 
 ### Vitals & Quality

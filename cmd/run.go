@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tamtom/play-console-cli/internal/audit"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/shared/errfmt"
 )
@@ -51,6 +52,8 @@ func Run(args []string, versionInfo string) int {
 	runErr := root.Run(ctx)
 
 	elapsed := time.Since(startTime)
+
+	logAudit(commandName, args, runErr, elapsed)
 
 	// Write JUnit report if requested
 	if rt.RootFlags != nil &&
@@ -95,6 +98,63 @@ func getCommandName(args []string) string {
 		return "gplay"
 	}
 	return "gplay " + strings.Join(parts, " ")
+}
+
+// logAudit writes an audit entry for the completed command invocation.
+// Errors are swallowed so the audit log never breaks a user command.
+func logAudit(commandName string, args []string, runErr error, elapsed time.Duration) {
+	if !audit.Enabled() {
+		return
+	}
+	// Skip logging the audit command itself to avoid self-noise.
+	if strings.HasPrefix(commandName, "gplay audit") {
+		return
+	}
+	entry := audit.Entry{
+		Command:   commandName,
+		Args:      scrubArgs(args),
+		Status:    "ok",
+		DurationM: elapsed.Milliseconds(),
+	}
+	if runErr != nil && !errors.Is(runErr, flag.ErrHelp) {
+		entry.Status = "error"
+		entry.Error = runErr.Error()
+	}
+	_ = audit.Write(entry)
+}
+
+// scrubArgs removes flag values that might contain secrets.
+func scrubArgs(args []string) []string {
+	if len(args) == 0 {
+		return nil
+	}
+	sensitive := map[string]bool{
+		"--service-account": true,
+		"--client-secret":   true,
+		"--token":           true,
+		"--key":             true,
+	}
+	out := make([]string, 0, len(args))
+	skipNext := false
+	for _, a := range args {
+		if skipNext {
+			out = append(out, "<redacted>")
+			skipNext = false
+			continue
+		}
+		if eq := strings.IndexByte(a, '='); eq > 0 {
+			if sensitive[a[:eq]] {
+				out = append(out, a[:eq]+"=<redacted>")
+				continue
+			}
+		} else if sensitive[a] {
+			out = append(out, a)
+			skipNext = true
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }
 
 // writeJUnitReport writes a JUnit XML report for CI integration.

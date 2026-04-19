@@ -27,6 +27,7 @@ func AuthCommand() *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			AuthInitCommand(),
+			AuthSetupCommand(),
 			AuthLoginCommand(),
 			AuthSwitchCommand(),
 			AuthLogoutCommand(),
