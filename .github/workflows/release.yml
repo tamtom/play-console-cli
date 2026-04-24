@@ -84,9 +84,80 @@ jobs:
           path: gplay-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
           retention-days: 1
 
+  sign-macos:
+    name: Sign macOS ${{ matrix.arch }}
+    runs-on: macos-latest
+    needs: [build]
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Download unsigned binary
+        uses: actions/download-artifact@v4
+        with:
+          name: gplay-darwin-${{ matrix.arch }}
+
+      - name: Import certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          echo "$CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Sign binary
+        env:
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          chmod +x gplay-darwin-${{ matrix.arch }}
+          codesign --force --options runtime \
+            --sign "$SIGNING_IDENTITY" \
+            --timestamp \
+            gplay-darwin-${{ matrix.arch }}
+
+      - name: Verify signature
+        run: codesign --verify --verbose=2 gplay-darwin-${{ matrix.arch }}
+
+      - name: Notarize binary
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        if: ${{ env.APPLE_ID != '' }}
+        run: |
+          # Create ZIP for notarization
+          zip gplay-darwin-${{ matrix.arch }}.zip gplay-darwin-${{ matrix.arch }}
+          xcrun notarytool submit gplay-darwin-${{ matrix.arch }}.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/signing.keychain-db
+
+      - name: Upload signed binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: gplay-darwin-${{ matrix.arch }}
+          path: gplay-darwin-${{ matrix.arch }}
+          overwrite: true
+
   release:
     name: Create Release
-    needs: build
+    needs: [build, sign-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
