@@ -2181,6 +2181,7 @@ This command:
 | `--apk` | Path to .apk file | `` |
 | `--bundle` | Path to .aab bundle file | `` |
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
+| `--dry-run` | Preview the canonical publish workflow without making changes | `false` |
 | `--listings-dir` | Path to listings metadata directory | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
@@ -2193,7 +2194,7 @@ This command:
 | `--skip-screenshots` | Skip screenshot sync even if --screenshots-dir is set | `false` |
 | `--status` | Release status: draft, inProgress, halted, completed | `completed` |
 | `--strict` | Treat readiness warnings as publish blockers | `false` |
-| `--track` | Target track | `production` |
+| `--track` | Target track | `` |
 | `--version-name` | Optional version name override | `` |
 | `--wait` | Wait for the published release to appear in the target track | `false` |
 

@@ -237,12 +237,12 @@ gplay tracks update --package com.example.app --edit <id> --track internal --jso
 ### High-Level Workflow
 
 ```bash
-# One-command release (creates edit, uploads, updates track, commits)
-gplay release --package com.example.app --track internal --bundle app.aab
+# Canonical one-command release (preflight, creates edit, uploads, updates track, commits)
+gplay publish track --package com.example.app --track internal --bundle app.aab
 
 # With release notes and staged rollout
-gplay release --package com.example.app --track production --bundle app.aab \
-  --release-notes @notes.json --rollout 10
+gplay publish track --package com.example.app --track production --bundle app.aab \
+  --release-notes @notes.json --rollout 0.1
 
 # Promote between tracks
 gplay promote --package com.example.app --from internal --to beta
@@ -254,11 +254,14 @@ gplay rollout resume --package com.example.app --track production
 gplay rollout complete --package com.example.app --track production
 
 # Release with metadata and screenshots
-gplay release --package com.example.app --track production --bundle app.aab \
+gplay publish track --package com.example.app --track production --bundle app.aab \
   --listings-dir ./metadata --screenshots-dir ./screenshots
 
-# Dry-run any command (intercepts write operations)
-gplay --dry-run release --package com.example.app --track internal --bundle app.aab
+# Dry-run the canonical publish workflow
+gplay publish track --package com.example.app --track internal --bundle app.aab --dry-run
+
+# Lower-level release remains available for advanced control and debugging
+gplay release --package com.example.app --track internal --bundle app.aab
 ```
 
 ### App Management
@@ -691,7 +694,7 @@ deploy:
     - curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash
     - export PATH="$HOME/.local/bin:$PATH"
   script:
-    - gplay release --package $PACKAGE_NAME --track internal --bundle app.aab
+    - gplay publish track --package $PACKAGE_NAME --track internal --bundle app.aab
   variables:
     GPLAY_SERVICE_ACCOUNT: $PLAY_SERVICE_ACCOUNT
 ```

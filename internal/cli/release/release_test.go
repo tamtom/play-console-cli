@@ -2,8 +2,21 @@ package release
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+
+	"google.golang.org/api/androidpublisher/v3"
+	"google.golang.org/api/option"
+
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestReleaseCommand_Name(t *testing.T) {
@@ -180,4 +193,155 @@ func TestReleaseCommand_RolloutBoundary_One(t *testing.T) {
 	if strings.Contains(err.Error(), "--rollout") {
 		t.Errorf("rollout=1.0 should be valid, got: %s", err.Error())
 	}
+}
+
+func TestExecute_DryRunBuildsPlanWithoutService(t *testing.T) {
+	origNewService := newServiceFn
+	newServiceFn = func(context.Context) (*playclient.Service, error) {
+		t.Fatal("dry-run should not create an authenticated Play service")
+		return nil, nil
+	}
+	t.Cleanup(func() { newServiceFn = origNewService })
+
+	bundlePath := filepath.Join(t.TempDir(), "app.aab")
+	if err := os.WriteFile(bundlePath, []byte("bundle"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := Execute(shared.ContextWithDryRun(context.Background(), true), Options{
+		PackageName:  "com.example",
+		Track:        "internal",
+		BundlePath:   bundlePath,
+		ReleaseNotes: "Bug fixes",
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if result["dryRun"] != true {
+		t.Fatalf("dryRun = %#v, want true", result["dryRun"])
+	}
+	steps, ok := result["steps"].([]string)
+	if !ok || len(steps) == 0 {
+		t.Fatalf("expected dry-run steps, got %#v", result["steps"])
+	}
+	if !containsString(steps, "commit edit") {
+		t.Fatalf("expected commit step in dry-run plan, got %#v", steps)
+	}
+}
+
+func TestExecute_UpdatesListingsAndReplacesScreenshots(t *testing.T) {
+	bundlePath := filepath.Join(t.TempDir(), "app.aab")
+	if err := os.WriteFile(bundlePath, []byte("bundle"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	listingsDir := t.TempDir()
+	localeDir := filepath.Join(listingsDir, "en-US")
+	if err := os.MkdirAll(localeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(localeDir, "title.txt"), []byte("Updated Title"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(localeDir, "short_description.txt"), []byte("Updated Short"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(localeDir, "full_description.txt"), []byte("Updated Full"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	screenshotsDir := t.TempDir()
+	phoneDir := filepath.Join(screenshotsDir, "en-US", "phoneScreenshots")
+	if err := os.MkdirAll(phoneDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(phoneDir, "01.png"), []byte("png"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var listingUpdates atomic.Int32
+	var imageDeletes atomic.Int32
+	var imageUploads atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/androidpublisher/v3/applications/com.example/edits"):
+			_ = json.NewEncoder(w).Encode(androidpublisher.AppEdit{Id: "edit-123"})
+		case r.Method == http.MethodPost && strings.Contains(path, "/upload/androidpublisher/v3/applications/com.example/edits/edit-123/bundles"):
+			_ = json.NewEncoder(w).Encode(androidpublisher.Bundle{VersionCode: 42})
+		case r.Method == http.MethodPut && strings.Contains(path, "/androidpublisher/v3/applications/com.example/edits/edit-123/listings/en-US"):
+			listingUpdates.Add(1)
+			var listing androidpublisher.Listing
+			if err := json.NewDecoder(r.Body).Decode(&listing); err != nil {
+				t.Errorf("decode listing: %v", err)
+			}
+			if listing.Title != "Updated Title" {
+				t.Errorf("Title = %q, want Updated Title", listing.Title)
+			}
+			_ = json.NewEncoder(w).Encode(listing)
+		case r.Method == http.MethodDelete && strings.Contains(path, "/androidpublisher/v3/applications/com.example/edits/edit-123/listings/en-US/phoneScreenshots"):
+			imageDeletes.Add(1)
+			_ = json.NewEncoder(w).Encode(androidpublisher.ImagesDeleteAllResponse{})
+		case r.Method == http.MethodPost && strings.Contains(path, "/upload/androidpublisher/v3/applications/com.example/edits/edit-123/listings/en-US/phoneScreenshots"):
+			imageUploads.Add(1)
+			_ = json.NewEncoder(w).Encode(androidpublisher.ImagesUploadResponse{Image: &androidpublisher.Image{Id: "img-1"}})
+		case r.Method == http.MethodPut && strings.Contains(path, "/androidpublisher/v3/applications/com.example/edits/edit-123/tracks/internal"):
+			_ = json.NewEncoder(w).Encode(androidpublisher.Track{Track: "internal"})
+		case r.Method == http.MethodPost && strings.Contains(path, "/androidpublisher/v3/applications/com.example/edits/edit-123:validate"):
+			_ = json.NewEncoder(w).Encode(androidpublisher.AppEdit{Id: "edit-123"})
+		case r.Method == http.MethodPost && strings.Contains(path, "/androidpublisher/v3/applications/com.example/edits/edit-123:commit"):
+			_ = json.NewEncoder(w).Encode(androidpublisher.AppEdit{Id: "edit-123"})
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, path)
+			http.Error(w, "unexpected request", http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	api, err := androidpublisher.NewService(context.Background(), option.WithHTTPClient(server.Client()), option.WithEndpoint(server.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	origNewService := newServiceFn
+	newServiceFn = func(context.Context) (*playclient.Service, error) {
+		return &playclient.Service{API: api, Cfg: &config.Config{}}, nil
+	}
+	t.Cleanup(func() { newServiceFn = origNewService })
+
+	result, err := Execute(context.Background(), Options{
+		PackageName:    "com.example",
+		Track:          "internal",
+		BundlePath:     bundlePath,
+		ListingsDir:    listingsDir,
+		ScreenshotsDir: screenshotsDir,
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if listingUpdates.Load() != 1 {
+		t.Fatalf("listing updates = %d, want 1", listingUpdates.Load())
+	}
+	if imageDeletes.Load() != 1 {
+		t.Fatalf("image deletes = %d, want 1", imageDeletes.Load())
+	}
+	if imageUploads.Load() != 1 {
+		t.Fatalf("image uploads = %d, want 1", imageUploads.Load())
+	}
+	if result["metadataLocales"] != 1 {
+		t.Fatalf("metadataLocales = %#v, want 1", result["metadataLocales"])
+	}
+	if result["screenshotImages"] != 1 {
+		t.Fatalf("screenshotImages = %#v, want 1", result["screenshotImages"])
+	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }

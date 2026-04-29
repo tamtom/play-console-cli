@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +15,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
+
+var newServiceFn = playclient.NewService
 
 // Options describes the high-level release workflow inputs.
 type Options struct {
@@ -35,13 +39,24 @@ type Options struct {
 
 // Execute runs the high-level release workflow and returns the resulting payload.
 func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) {
-	service, err := playclient.NewService(ctx)
+	if shared.IsDryRun(ctx) {
+		return dryRunReleasePlan(opts)
+	}
+	if err := validateArtifactPaths(opts); err != nil {
+		return nil, err
+	}
+
+	service, err := newServiceFn(ctx)
 	if err != nil {
 		return nil, err
 	}
 	pkg := shared.ResolvePackageName(opts.PackageName, service.Cfg)
 	if strings.TrimSpace(pkg) == "" {
 		return nil, fmt.Errorf("--package is required")
+	}
+	opts.Track = strings.TrimSpace(opts.Track)
+	if opts.Track == "" {
+		return nil, fmt.Errorf("--track is required")
 	}
 
 	fmt.Fprintf(os.Stderr, "Creating edit...\n")
@@ -89,6 +104,27 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		}
 		versionCode = int64(apk.VersionCode)
 		fmt.Fprintf(os.Stderr, "APK uploaded: version code %d\n", versionCode)
+	}
+
+	metadataLocales := 0
+	if strings.TrimSpace(opts.ListingsDir) != "" && !opts.SkipMetadata {
+		fmt.Fprintf(os.Stderr, "Updating listing metadata: %s\n", opts.ListingsDir)
+		metadataLocales, err = updateListings(ctx, service, pkg, edit.Id, opts.ListingsDir)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(os.Stderr, "Listing metadata updated: %d locale(s)\n", metadataLocales)
+	}
+
+	screenshotReplacements := 0
+	screenshotImages := 0
+	if strings.TrimSpace(opts.ScreenshotsDir) != "" && !opts.SkipScreenshots {
+		fmt.Fprintf(os.Stderr, "Replacing screenshots: %s\n", opts.ScreenshotsDir)
+		screenshotReplacements, screenshotImages, err = replaceScreenshots(ctx, service, pkg, edit.Id, opts.ScreenshotsDir)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(os.Stderr, "Screenshots replaced: %d type(s), %d image(s)\n", screenshotReplacements, screenshotImages)
 	}
 
 	fmt.Fprintf(os.Stderr, "Configuring track: %s\n", opts.Track)
@@ -198,12 +234,224 @@ done:
 	if release.UserFraction > 0 && release.UserFraction < 1 {
 		result["rolloutFraction"] = release.UserFraction
 	}
-
-	// These flags are validated up-front and reserved for future release-media wiring.
-	_ = opts.ListingsDir
-	_ = opts.ScreenshotsDir
-	_ = opts.SkipMetadata
-	_ = opts.SkipScreenshots
+	if metadataLocales > 0 {
+		result["metadataLocales"] = metadataLocales
+	}
+	if screenshotReplacements > 0 {
+		result["screenshotReplacements"] = screenshotReplacements
+		result["screenshotImages"] = screenshotImages
+	}
 
 	return result, nil
+}
+
+func dryRunReleasePlan(opts Options) (map[string]interface{}, error) {
+	pkg, err := shared.RequirePackageName(opts.PackageName, nil)
+	if err != nil {
+		return nil, err
+	}
+	opts.Track = strings.TrimSpace(opts.Track)
+	if opts.Track == "" {
+		return nil, fmt.Errorf("--track is required")
+	}
+	if err := validateArtifactPaths(opts); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(opts.ReleaseNotes) != "" {
+		if _, err := ParseReleaseNotes(opts.ReleaseNotes); err != nil {
+			return nil, fmt.Errorf("--release-notes: %w", err)
+		}
+	}
+
+	artifactType := "bundle"
+	artifactPath := strings.TrimSpace(opts.BundlePath)
+	if artifactPath == "" {
+		artifactType = "apk"
+		artifactPath = strings.TrimSpace(opts.APKPath)
+	}
+
+	metadataLocales := 0
+	if strings.TrimSpace(opts.ListingsDir) != "" && !opts.SkipMetadata {
+		listings, err := ParseListingsDir(opts.ListingsDir)
+		if err != nil {
+			return nil, fmt.Errorf("--listings-dir: %w", err)
+		}
+		metadataLocales = len(listings)
+	}
+
+	screenshotReplacements := 0
+	screenshotImages := 0
+	if strings.TrimSpace(opts.ScreenshotsDir) != "" && !opts.SkipScreenshots {
+		screenshots, err := ParseScreenshotsDir(opts.ScreenshotsDir)
+		if err != nil {
+			return nil, fmt.Errorf("--screenshots-dir: %w", err)
+		}
+		for _, deviceTypes := range screenshots {
+			screenshotReplacements += len(deviceTypes)
+			for _, files := range deviceTypes {
+				screenshotImages += len(files)
+			}
+		}
+	}
+
+	steps := []string{
+		"create edit",
+		"upload " + artifactType,
+	}
+	if metadataLocales > 0 {
+		steps = append(steps, "update listings")
+	}
+	if screenshotReplacements > 0 {
+		steps = append(steps, "replace screenshots")
+	}
+	steps = append(steps, "update track", "validate edit", "commit edit")
+	if opts.Wait {
+		steps = append(steps, "wait for track")
+	}
+
+	result := map[string]interface{}{
+		"dryRun":      true,
+		"packageName": pkg,
+		"track":       opts.Track,
+		"artifact": map[string]string{
+			"type": artifactType,
+			"path": artifactPath,
+		},
+		"status": opts.Status,
+		"steps":  steps,
+	}
+	if opts.RolloutFraction > 0 && opts.RolloutFraction < 1 {
+		result["rolloutFraction"] = opts.RolloutFraction
+	}
+	if metadataLocales > 0 {
+		result["metadataLocales"] = metadataLocales
+	}
+	if screenshotReplacements > 0 {
+		result["screenshotReplacements"] = screenshotReplacements
+		result["screenshotImages"] = screenshotImages
+	}
+	return result, nil
+}
+
+func validateArtifactPaths(opts Options) error {
+	bundlePath := strings.TrimSpace(opts.BundlePath)
+	apkPath := strings.TrimSpace(opts.APKPath)
+	if bundlePath == "" && apkPath == "" {
+		return fmt.Errorf("either --bundle or --apk is required")
+	}
+	if bundlePath != "" && apkPath != "" {
+		return fmt.Errorf("use either --bundle or --apk, not both")
+	}
+	if bundlePath != "" {
+		if _, err := os.Stat(bundlePath); err != nil {
+			return shared.WrapActionable(err, "failed to open bundle", "Check that the file exists and is readable.")
+		}
+	}
+	if apkPath != "" {
+		if _, err := os.Stat(apkPath); err != nil {
+			return shared.WrapActionable(err, "failed to open APK", "Check that the file exists and is readable.")
+		}
+	}
+	return nil
+}
+
+func updateListings(ctx context.Context, service *playclient.Service, pkg, editID, dir string) (int, error) {
+	listings, err := ParseListingsDir(dir)
+	if err != nil {
+		return 0, fmt.Errorf("--listings-dir: %w", err)
+	}
+
+	locales := make([]string, 0, len(listings))
+	for locale := range listings {
+		locales = append(locales, locale)
+	}
+	sort.Strings(locales)
+
+	for _, locale := range locales {
+		data := listings[locale]
+		listing := &androidpublisher.Listing{
+			Title:            data.Title,
+			ShortDescription: data.ShortDescription,
+			FullDescription:  data.FullDescription,
+			Video:            data.Video,
+		}
+		reqCtx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+		_, err := service.API.Edits.Listings.Update(pkg, editID, locale, listing).Context(reqCtx).Do()
+		cancel()
+		if err != nil {
+			return 0, fmt.Errorf("failed to update listing for %s: %w", locale, err)
+		}
+	}
+	return len(locales), nil
+}
+
+func replaceScreenshots(ctx context.Context, service *playclient.Service, pkg, editID, dir string) (int, int, error) {
+	screenshots, err := ParseScreenshotsDir(dir)
+	if err != nil {
+		return 0, 0, fmt.Errorf("--screenshots-dir: %w", err)
+	}
+
+	locales := make([]string, 0, len(screenshots))
+	for locale := range screenshots {
+		locales = append(locales, locale)
+	}
+	sort.Strings(locales)
+
+	replacements := 0
+	uploads := 0
+	for _, locale := range locales {
+		deviceTypes := screenshots[locale]
+		types := make([]string, 0, len(deviceTypes))
+		for imageType := range deviceTypes {
+			types = append(types, imageType)
+		}
+		sort.Strings(types)
+
+		for _, imageType := range types {
+			deleteCtx, deleteCancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			_, err := service.API.Edits.Images.Deleteall(pkg, editID, locale, imageType).Context(deleteCtx).Do()
+			deleteCancel()
+			if err != nil {
+				return replacements, uploads, fmt.Errorf("failed to clear screenshots for %s/%s: %w", locale, imageType, err)
+			}
+			replacements++
+
+			for _, filePath := range deviceTypes[imageType] {
+				file, err := os.Open(filePath)
+				if err != nil {
+					return replacements, uploads, shared.WrapActionable(err, "failed to open screenshot", "Check that the file exists and is readable.")
+				}
+				uploadCtx, uploadCancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
+				call := service.API.Edits.Images.Upload(pkg, editID, locale, imageType)
+				call.Media(file, googleapi.ContentType(mimeTypeForUpload(filePath)))
+				_, err = call.Context(uploadCtx).Do()
+				uploadCancel()
+				closeErr := file.Close()
+				if err != nil {
+					return replacements, uploads, shared.WrapGoogleAPIError(fmt.Sprintf("failed to upload screenshot %s", filepath.Base(filePath)), err)
+				}
+				if closeErr != nil {
+					return replacements, uploads, closeErr
+				}
+				uploads++
+			}
+		}
+	}
+
+	return replacements, uploads, nil
+}
+
+func mimeTypeForUpload(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".webp":
+		return "image/webp"
+	case ".gif":
+		return "image/gif"
+	default:
+		return "application/octet-stream"
+	}
 }
