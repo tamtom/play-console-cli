@@ -7,7 +7,7 @@ require (
 	github.com/peterbourgon/ff/v3 v3.4.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/term v0.42.0
-	google.golang.org/api v0.275.0
+	google.golang.org/api v0.276.0
 )
 
 require (
