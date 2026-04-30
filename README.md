@@ -1,4 +1,4 @@
-# Google Play Console CLI (gplay)
+# Google Play Console CLI (gplay) optimized for your AI agentic development flows, claude code, codex
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go" alt="Go Version">
@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/Homebrew-compatible-blue?style=for-the-badge" alt="Homebrew">
 </p>
 
-A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Automate your Android app workflows from your terminal.
+A **fast**, **lightweight**, and **scriptable** CLI for Google Play Console. Automate your Android app workflows from your terminal,optimized for your AI agentic development flows, claude code, codex, cursor
 
 ## Why gplay?
 
