@@ -35,10 +35,25 @@ func TestPublishTrack_RequiresArtifact(t *testing.T) {
 	}
 }
 
+func TestPublishTrack_RequiresTrack(t *testing.T) {
+	_, _, err := runCommand(t,
+		"publish", "track",
+		"--package", "com.example.app",
+		"--bundle", "app.aab",
+	)
+	if err == nil {
+		t.Fatal("expected missing track error")
+	}
+	if !strings.Contains(err.Error(), "--track is required") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestPublishTrack_RejectsBothArtifactFlags(t *testing.T) {
 	_, _, err := runCommand(t,
 		"publish", "track",
 		"--package", "com.example.app",
+		"--track", "internal",
 		"--bundle", "app.aab",
 		"--apk", "app.apk",
 	)

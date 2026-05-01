@@ -47,7 +47,7 @@ advanced control and debugging.`,
 func TrackCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("publish track", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	track := fs.String("track", "production", "Target track")
+	track := fs.String("track", "", "Target track")
 	bundlePath := fs.String("bundle", "", "Path to .aab bundle file")
 	apkPath := fs.String("apk", "", "Path to .apk file")
 	releaseNotes := fs.String("release-notes", "", "Release notes: plain text, JSON array, or @file")
@@ -62,6 +62,7 @@ func TrackCommand() *ffcli.Command {
 	skipMetadata := fs.Bool("skip-metadata", false, "Skip metadata sync even if --listings-dir is set")
 	skipScreenshots := fs.Bool("skip-screenshots", false, "Skip screenshot sync even if --screenshots-dir is set")
 	strict := fs.Bool("strict", false, "Treat readiness warnings as publish blockers")
+	dryRun := fs.Bool("dry-run", false, "Preview the canonical publish workflow without making changes")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -78,8 +79,15 @@ This command:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			if *dryRun {
+				ctx = shared.ContextWithDryRun(ctx, true)
+			}
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
+			}
+			trackName := strings.TrimSpace(*track)
+			if trackName == "" {
+				return fmt.Errorf("--track is required")
 			}
 			if strings.TrimSpace(*bundlePath) == "" && strings.TrimSpace(*apkPath) == "" {
 				return fmt.Errorf("either --bundle or --apk is required")
@@ -96,22 +104,34 @@ This command:
 				return err
 			}
 
+			readinessListingsDir := *listingsDir
+			if *skipMetadata {
+				readinessListingsDir = ""
+			}
+			readinessScreenshotsDir := *screenshotsDir
+			if *skipScreenshots {
+				readinessScreenshotsDir = ""
+			}
+
 			preflight := buildReadinessReportFn(ctx, validatecli.ReadinessOptions{
 				PackageName:    pkgName,
-				Track:          *track,
+				Track:          trackName,
 				BundlePath:     *bundlePath,
 				APKPath:        *apkPath,
-				ListingsDir:    *listingsDir,
-				ScreenshotsDir: *screenshotsDir,
+				ListingsDir:    readinessListingsDir,
+				ScreenshotsDir: readinessScreenshotsDir,
 				ReleaseNotes:   *releaseNotes,
 				Strict:         *strict,
 			})
 
 			result := map[string]interface{}{
 				"packageName": pkgName,
-				"track":       *track,
+				"track":       trackName,
 				"published":   false,
 				"preflight":   preflight,
+			}
+			if shared.IsDryRun(ctx) {
+				result["dryRun"] = true
 			}
 
 			if preflight.Summary.Blocking > 0 {
@@ -129,7 +149,7 @@ This command:
 
 			releaseResult, err := executeReleaseFn(ctx, release.Options{
 				PackageName:     pkgName,
-				Track:           *track,
+				Track:           trackName,
 				BundlePath:      *bundlePath,
 				APKPath:         *apkPath,
 				ReleaseNotes:    *releaseNotes,
@@ -148,7 +168,7 @@ This command:
 				return err
 			}
 
-			result["published"] = true
+			result["published"] = !shared.IsDryRun(ctx)
 			result["release"] = releaseResult
 
 			return shared.PrintOutput(result, *outputFlag, *pretty)

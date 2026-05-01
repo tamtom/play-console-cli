@@ -281,6 +281,17 @@ func addReleaseNotesChecks(report *validation.ReadinessReport, input string) {
 }
 
 func addRemoteChecks(ctx context.Context, report *validation.ReadinessReport, opts readinessOptions) {
+	if shared.IsDryRun(ctx) {
+		report.AddCheck(validation.ReadinessCheck{
+			ID:          "remote-play-state-skipped-dry-run",
+			Section:     "remote",
+			State:       validation.ReadinessInfo,
+			Message:     "Remote Play state check skipped for dry-run.",
+			Remediation: "Run without --dry-run before publishing if you need to verify current Play track and listing state.",
+		})
+		return
+	}
+
 	state, err := fetchRemoteReadinessStateFn(ctx, opts.PackageName, normalizedTrack(opts.Track))
 	if err != nil {
 		report.AddCheck(validation.ReadinessCheck{
