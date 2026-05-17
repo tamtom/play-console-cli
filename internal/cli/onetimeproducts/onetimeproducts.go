@@ -10,6 +10,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"google.golang.org/api/androidpublisher/v3"
 
+	"github.com/tamtom/play-console-cli/internal/cli/monetizationpricing"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
@@ -157,6 +158,9 @@ func CreateCommand() *ffcli.Command {
 	productID := fs.String("product-id", "", "Product ID")
 	jsonFlag := fs.String("json", "", "OneTimeProduct JSON (or @file)")
 	regionsVersion := fs.String("regions-version", "", "Regions version for price migration")
+	autoConvertRegionalPrices := fs.Bool("auto-convert-regional-prices", false, "Generate regional pricing from --base-price-json")
+	basePriceJSON := fs.String("base-price-json", "", "Base Money JSON for --auto-convert-regional-prices (or @file)")
+	productTaxCategoryCode := fs.String("product-tax-category-code", "", "Product tax category code for price conversion")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -167,6 +171,16 @@ func CreateCommand() *ffcli.Command {
 		LongHelp: `Create a one-time product (or update if it already exists).
 
 The --regions-version flag is required when setting regional pricing.
+Use gplay pricing convert to get Google's current regionVersion and
+region-specific converted prices.
+
+The --package and --product-id flag values are applied to the request body,
+so they do not need to be repeated in the JSON.
+
+Use --auto-convert-regional-prices with --base-price-json to let Google Play
+generate valid regionalPricingAndAvailabilityConfigs, newRegionsConfig, and
+regionsVersion from one base price. This replaces any regional pricing in the
+JSON with the billable regions returned by Google for the current regionVersion.
 
 JSON format:
 {
@@ -200,8 +214,9 @@ JSON format:
 }
 
 Examples:
-  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
-  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --regions-version 2025/02`,
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"1","nanos":990000000}'
+  gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"1","nanos":990000000}' --output table
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -226,6 +241,21 @@ Examples:
 			if err := json.Unmarshal(raw, &product); err != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
+			var basePrice *androidpublisher.Money
+			resolvedRegionsVersion := strings.TrimSpace(*regionsVersion)
+			if *autoConvertRegionalPrices {
+				if resolvedRegionsVersion != "" {
+					return fmt.Errorf("--regions-version cannot be used with --auto-convert-regional-prices; Google Play returns the matching regionVersion")
+				}
+				if len(product.PurchaseOptions) == 0 {
+					return fmt.Errorf("--auto-convert-regional-prices requires at least one purchase option in --json")
+				}
+				var err error
+				basePrice, err = monetizationpricing.LoadMoney(*basePriceJSON)
+				if err != nil {
+					return fmt.Errorf("--base-price-json is required for --auto-convert-regional-prices: %w", err)
+				}
+			}
 
 			service, err := playclient.NewService(ctx)
 			if err != nil {
@@ -235,13 +265,32 @@ Examples:
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
+			product.PackageName = pkg
+			product.ProductId = *productID
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
+			if *autoConvertRegionalPrices {
+				converted, err := monetizationpricing.ConvertRegionPrices(ctx, service, pkg, basePrice, *productTaxCategoryCode)
+				if err != nil {
+					return err
+				}
+				resolvedRegionsVersion, err = monetizationpricing.RegionVersion(converted)
+				if err != nil {
+					return err
+				}
+				regionalConfigs := monetizationpricing.OneTimeProductRegionalConfigs(converted, monetizationpricing.DefaultRegionalAvailability)
+				newRegionsConfig := monetizationpricing.OneTimeProductNewRegionsConfig(converted, monetizationpricing.DefaultRegionalAvailability)
+				for _, purchaseOption := range product.PurchaseOptions {
+					purchaseOption.RegionalPricingAndAvailabilityConfigs = regionalConfigs
+					purchaseOption.NewRegionsConfig = newRegionsConfig
+				}
+			}
+
 			call := service.API.Monetization.Onetimeproducts.Patch(pkg, *productID, &product).Context(ctx).AllowMissing(true).UpdateMask(updateMask)
-			if strings.TrimSpace(*regionsVersion) != "" {
-				call = call.RegionsVersionVersion(*regionsVersion)
+			if resolvedRegionsVersion != "" {
+				call = call.RegionsVersionVersion(resolvedRegionsVersion)
 			}
 			resp, err := call.Do()
 			if err != nil {
@@ -326,6 +375,8 @@ Examples:
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
+			product.PackageName = pkg
+			product.ProductId = *productID
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()

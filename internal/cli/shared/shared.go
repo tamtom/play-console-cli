@@ -98,6 +98,9 @@ func StrictAuthEnabled() bool {
 }
 
 func ParseTimeouts(cfg *config.Config) (time.Duration, time.Duration) {
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
 	return parseTimeout(timeoutEnvVar, timeoutSecondsEnvVar, cfg.Timeout, cfg.TimeoutSeconds),
 		parseTimeout(uploadTimeoutEnvVar, uploadTimeoutSecondsEnvVar, cfg.UploadTimeout, cfg.UploadTimeoutSeconds)
 }

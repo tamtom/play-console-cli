@@ -55,6 +55,11 @@ Standard `_test.go` files. Run offline, no credentials needed. Use table-driven 
 ### Integration Tests
 Files with `//go:build integration` tag. Require real API credentials. Also call `testutil.SkipUnlessIntegration(t)` as a safety net.
 
+Mutating integration tests require `GPLAY_MUTATING_INTEGRATION_TEST=1` in
+addition to `GPLAY_INTEGRATION_TEST=1`. These tests write to the configured Play
+Console app and may permanently reserve product IDs even when cleanup succeeds.
+Use `GPLAY_INTEGRATION_PACKAGE` to point them at a dedicated test app.
+
 ### CLI Tests
 Test command-line behavior by verifying flag parsing, output format, and error messages. Use `bytes.Buffer` for capturing stdout/stderr.
 

@@ -122,6 +122,15 @@ func TestCreateCommand_Name(t *testing.T) {
 	}
 }
 
+func TestCreateCommand_LongHelpMentionsAutoConvertExample(t *testing.T) {
+	cmd := CreateCommand()
+	if !strings.Contains(cmd.LongHelp, "onetimeproducts create --package") ||
+		!strings.Contains(cmd.LongHelp, "--auto-convert-regional-prices") ||
+		!strings.Contains(cmd.LongHelp, "pricing regions-version") {
+		t.Fatalf("create help should make auto-convert workflow discoverable, got:\n%s", cmd.LongHelp)
+	}
+}
+
 func TestCreateCommand_MissingProductID(t *testing.T) {
 	cmd := CreateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--json", `{}`}); err != nil {
@@ -200,6 +209,45 @@ func TestCreateCommand_HasRegionsVersionFlag(t *testing.T) {
 	}
 	if f.Value.String() != "2024001" {
 		t.Errorf("expected regions-version %q, got %q", "2024001", f.Value.String())
+	}
+}
+
+func TestCreateCommand_AutoConvertRejectsRegionsVersion(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--product-id", "test",
+		"--json", `{"purchaseOptions":[{"purchaseOptionId":"default","buyOption":{}}]}`,
+		"--auto-convert-regional-prices",
+		"--base-price-json", `{"currencyCode":"USD","units":"1"}`,
+		"--regions-version", "2024/01",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--regions-version cannot be used") {
+		t.Errorf("expected regions-version conflict, got: %s", err.Error())
+	}
+}
+
+func TestCreateCommand_AutoConvertRequiresPurchaseOption(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--product-id", "test",
+		"--json", `{"listings":[{"languageCode":"en-US","title":"T","description":"D"}]}`,
+		"--auto-convert-regional-prices",
+		"--base-price-json", `{"currencyCode":"USD","units":"1"}`,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "requires at least one purchase option") {
+		t.Errorf("expected purchase option error, got: %s", err.Error())
 	}
 }
 

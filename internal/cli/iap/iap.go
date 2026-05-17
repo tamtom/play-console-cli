@@ -155,6 +155,10 @@ func CreateCommand() *ffcli.Command {
 		ShortHelp:  "Create an in-app product.",
 		LongHelp: `Create a new in-app product.
 
+When --auto-convert-prices is true, Google Play fills in missing regional
+prices from defaultPrice. It does not rewrite explicit entries in prices that
+use the wrong currency for their region.
+
 JSON format:
 {
   "sku": "premium_upgrade",
@@ -230,6 +234,10 @@ func UpdateCommand() *ffcli.Command {
 		ShortUsage: "gplay iap update --package <name> --sku <sku> --json <json>",
 		ShortHelp:  "Update an in-app product.",
 		LongHelp: `Update an in-app product.
+
+When --auto-convert-prices is true, Google Play fills in missing regional
+prices from defaultPrice. It does not rewrite explicit entries in prices that
+use the wrong currency for their region.
 
 JSON format:
 {

@@ -104,6 +104,15 @@ func TestGetCommand_MissingProductID(t *testing.T) {
 
 // --- create ---
 
+func TestCreateCommand_LongHelpMentionsAutoConvertExample(t *testing.T) {
+	cmd := CreateCommand()
+	if !strings.Contains(cmd.LongHelp, "subscriptions create --package") ||
+		!strings.Contains(cmd.LongHelp, "--auto-convert-regional-prices") ||
+		!strings.Contains(cmd.LongHelp, "pricing regions-version") {
+		t.Fatalf("create help should make auto-convert workflow discoverable, got:\n%s", cmd.LongHelp)
+	}
+}
+
 func TestCreateCommand_MissingProductID(t *testing.T) {
 	cmd := CreateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--json", `{}`}); err != nil {
@@ -129,6 +138,45 @@ func TestCreateCommand_MissingJson(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--json") {
 		t.Errorf("error should mention --json, got: %s", err.Error())
+	}
+}
+
+func TestCreateCommand_AutoConvertRejectsRegionsVersion(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--product-id", "test",
+		"--json", `{"basePlans":[{"basePlanId":"monthly","autoRenewingBasePlanType":{"billingPeriodDuration":"P1M"}}]}`,
+		"--auto-convert-regional-prices",
+		"--base-price-json", `{"currencyCode":"USD","units":"1"}`,
+		"--regions-version", "2024/01",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--regions-version cannot be used") {
+		t.Errorf("expected regions-version conflict, got: %s", err.Error())
+	}
+}
+
+func TestCreateCommand_AutoConvertRequiresBasePlan(t *testing.T) {
+	cmd := CreateCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--product-id", "test",
+		"--json", `{"listings":[{"languageCode":"en-US","title":"T","description":"D"}]}`,
+		"--auto-convert-regional-prices",
+		"--base-price-json", `{"currencyCode":"USD","units":"1"}`,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "requires at least one base plan") {
+		t.Errorf("expected base plan error, got: %s", err.Error())
 	}
 }
 

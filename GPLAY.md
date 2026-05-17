@@ -181,6 +181,7 @@
 - [otp-offers batch-delete](#otp-offers-batch-delete)
 - [pricing](#pricing)
 - [pricing convert](#pricing-convert)
+- [pricing regions-version](#pricing-regions-version)
 - [orders](#orders)
 - [orders get](#orders-get)
 - [orders batch-get](#orders-batch-get)
@@ -2948,6 +2949,10 @@ gplay iap create --package <name> --json <json>
 
 Create a new in-app product.
 
+When --auto-convert-prices is true, Google Play fills in missing regional
+prices from defaultPrice. It does not rewrite explicit entries in prices that
+use the wrong currency for their region.
+
 JSON format:
 {
   "sku": "premium_upgrade",
@@ -2988,6 +2993,10 @@ gplay iap update --package <name> --sku <sku> --json <json>
 ```
 
 Update an in-app product.
+
+When --auto-convert-prices is true, Google Play fills in missing regional
+prices from defaultPrice. It does not rewrite explicit entries in prices that
+use the wrong currency for their region.
 
 JSON format:
 {
@@ -3198,6 +3207,15 @@ gplay subscriptions create --package <name> --product-id <id> --json <json>
 
 Create a new subscription product.
 
+The --regions-version flag is required when setting regional pricing.
+Use gplay pricing convert to get Google's current regionVersion and
+region-specific converted prices.
+
+Use --auto-convert-regional-prices with --base-price-json to let Google Play
+generate valid regionalConfigs and regionsVersion from one base price. This
+replaces any regionalConfigs in the JSON with the billable regions returned by
+Google for the current regionVersion.
+
 JSON format:
 {
   "productId": "premium_monthly",
@@ -3232,13 +3250,20 @@ JSON format:
   ]
 }
 
+Examples:
+  gplay subscriptions create --package com.example.app --product-id premium_monthly --json @subscription.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"9","nanos":990000000}'
+  gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"9","nanos":990000000}' --output table
+
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--auto-convert-regional-prices` | Generate regionalConfigs from --base-price-json | `false` |
+| `--base-price-json` | Base Money JSON for --auto-convert-regional-prices (or @file) | `` |
 | `--json` | Subscription JSON (or @file) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Subscription product ID | `` |
+| `--product-tax-category-code` | Product tax category code for price conversion | `` |
 | `--regions-version` | Regions version for price migration | `` |
 
 ---
@@ -3998,6 +4023,16 @@ gplay onetimeproducts create --package <name> --product-id <id> --json <json>
 Create a one-time product (or update if it already exists).
 
 The --regions-version flag is required when setting regional pricing.
+Use gplay pricing convert to get Google's current regionVersion and
+region-specific converted prices.
+
+The --package and --product-id flag values are applied to the request body,
+so they do not need to be repeated in the JSON.
+
+Use --auto-convert-regional-prices with --base-price-json to let Google Play
+generate valid regionalPricingAndAvailabilityConfigs, newRegionsConfig, and
+regionsVersion from one base price. This replaces any regional pricing in the
+JSON with the billable regions returned by Google for the current regionVersion.
 
 JSON format:
 {
@@ -4031,16 +4066,20 @@ JSON format:
 }
 
 Examples:
+  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"1","nanos":990000000}'
+  gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"1","nanos":990000000}' --output table
   gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
-  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --regions-version 2025/02
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--auto-convert-regional-prices` | Generate regional pricing from --base-price-json | `false` |
+| `--base-price-json` | Base Money JSON for --auto-convert-regional-prices (or @file) | `` |
 | `--json` | OneTimeProduct JSON (or @file) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Product ID | `` |
+| `--product-tax-category-code` | Product tax category code for price conversion | `` |
 | `--regions-version` | Regions version for price migration | `` |
 
 ---
@@ -4600,7 +4639,7 @@ to different offers. Requires --confirm.
 
 ## gplay pricing
 
-Pricing utilities.
+Pricing conversion and regions-version discovery.
 
 ```
 gplay pricing <subcommand> [flags]
@@ -4621,6 +4660,10 @@ Convert a base price to region-specific prices.
 This is useful for calculating equivalent prices across regions
 while maintaining Google Play's pricing tiers.
 
+The response includes regionVersion, which can be passed to
+subscriptions, base plans, offers, and one-time product commands with
+--regions-version when setting regional pricing.
+
 JSON format:
 {
   "price": {
@@ -4639,6 +4682,49 @@ local currencies, adjusted to Google Play's pricing tiers.
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay pricing regions-version
+
+Discover the current regions version and valid currencies.
+
+```
+gplay pricing regions-version --package <name> --price-json <money-json>
+```
+
+Discover Google's current regions version and valid region currencies.
+
+This calls pricing convert with a base Money value, then prints the returned
+regionVersion plus the billable regions and currencies Google accepts for that
+version. Use this output instead of copying regional pricing from list/get
+responses when creating subscriptions or one-time products.
+
+For new products, the safer workflow is usually:
+  gplay subscriptions create --auto-convert-regional-prices --base-price-json ...
+  gplay onetimeproducts create --auto-convert-regional-prices --base-price-json ...
+
+Those create commands call the same Google API and apply the returned
+regionVersion automatically.
+
+Money JSON format:
+{
+  "currencyCode": "USD",
+  "units": "9",
+  "nanos": 990000000
+}
+
+Examples:
+  gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"9","nanos":990000000}'
+  gplay pricing regions-version --package com.example.app --price-json @price.json --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--price-json` | Base Money JSON (or @file) | `` |
+| `--product-tax-category-code` | Product tax category code | `` |
 
 ---
 

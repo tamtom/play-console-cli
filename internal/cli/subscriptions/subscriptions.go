@@ -10,6 +10,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"google.golang.org/api/androidpublisher/v3"
 
+	"github.com/tamtom/play-console-cli/internal/cli/monetizationpricing"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
@@ -165,6 +166,9 @@ func CreateCommand() *ffcli.Command {
 	productID := fs.String("product-id", "", "Subscription product ID")
 	jsonFlag := fs.String("json", "", "Subscription JSON (or @file)")
 	regionsVersion := fs.String("regions-version", "", "Regions version for price migration")
+	autoConvertRegionalPrices := fs.Bool("auto-convert-regional-prices", false, "Generate regionalConfigs from --base-price-json")
+	basePriceJSON := fs.String("base-price-json", "", "Base Money JSON for --auto-convert-regional-prices (or @file)")
+	productTaxCategoryCode := fs.String("product-tax-category-code", "", "Product tax category code for price conversion")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -173,6 +177,15 @@ func CreateCommand() *ffcli.Command {
 		ShortUsage: "gplay subscriptions create --package <name> --product-id <id> --json <json>",
 		ShortHelp:  "Create a subscription.",
 		LongHelp: `Create a new subscription product.
+
+The --regions-version flag is required when setting regional pricing.
+Use gplay pricing convert to get Google's current regionVersion and
+region-specific converted prices.
+
+Use --auto-convert-regional-prices with --base-price-json to let Google Play
+generate valid regionalConfigs and regionsVersion from one base price. This
+replaces any regionalConfigs in the JSON with the billable regions returned by
+Google for the current regionVersion.
 
 JSON format:
 {
@@ -206,7 +219,11 @@ JSON format:
       ]
     }
   ]
-}`,
+}
+
+Examples:
+  gplay subscriptions create --package com.example.app --product-id premium_monthly --json @subscription.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"9","nanos":990000000}'
+  gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"9","nanos":990000000}' --output table`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -219,6 +236,26 @@ JSON format:
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			var subscription androidpublisher.Subscription
+			if err := shared.LoadJSONArg(*jsonFlag, &subscription); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			var basePrice *androidpublisher.Money
+			resolvedRegionsVersion := strings.TrimSpace(*regionsVersion)
+			if *autoConvertRegionalPrices {
+				if resolvedRegionsVersion != "" {
+					return fmt.Errorf("--regions-version cannot be used with --auto-convert-regional-prices; Google Play returns the matching regionVersion")
+				}
+				if len(subscription.BasePlans) == 0 {
+					return fmt.Errorf("--auto-convert-regional-prices requires at least one base plan in --json")
+				}
+				var err error
+				basePrice, err = monetizationpricing.LoadMoney(*basePriceJSON)
+				if err != nil {
+					return fmt.Errorf("--base-price-json is required for --auto-convert-regional-prices: %w", err)
+				}
+			}
+
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -227,20 +264,32 @@ JSON format:
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			var subscription androidpublisher.Subscription
-			if err := shared.LoadJSONArg(*jsonFlag, &subscription); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
 			subscription.PackageName = pkg
 			subscription.ProductId = *productID
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
+			if *autoConvertRegionalPrices {
+				converted, err := monetizationpricing.ConvertRegionPrices(ctx, service, pkg, basePrice, *productTaxCategoryCode)
+				if err != nil {
+					return err
+				}
+				resolvedRegionsVersion, err = monetizationpricing.RegionVersion(converted)
+				if err != nil {
+					return err
+				}
+				regionalConfigs := monetizationpricing.BasePlanRegionalConfigs(converted)
+				otherRegionsConfig := monetizationpricing.OtherRegionsBasePlanConfig(converted)
+				for _, basePlan := range subscription.BasePlans {
+					basePlan.RegionalConfigs = regionalConfigs
+					basePlan.OtherRegionsConfig = otherRegionsConfig
+				}
+			}
+
 			call := service.API.Monetization.Subscriptions.Create(pkg, &subscription).Context(ctx).ProductId(*productID)
-			if strings.TrimSpace(*regionsVersion) != "" {
-				call.RegionsVersionVersion(*regionsVersion)
+			if resolvedRegionsVersion != "" {
+				call.RegionsVersionVersion(resolvedRegionsVersion)
 			}
 			resp, err := call.Do()
 			if err != nil {

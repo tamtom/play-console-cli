@@ -30,6 +30,8 @@ jobs:
       - name: Run integration tests
         env:
           GPLAY_INTEGRATION_TEST: "1"
+          GPLAY_MUTATING_INTEGRATION_TEST: "1"
+          GPLAY_INTEGRATION_PACKAGE: "com.itdeveapps.stepsshare"
           GPLAY_SERVICE_ACCOUNT_JSON: /tmp/gplay-sa.json
           GPLAY_CONFIG_PATH: /tmp/gplay-integration-config.json
           GPLAY_NO_UPDATE: "1"
