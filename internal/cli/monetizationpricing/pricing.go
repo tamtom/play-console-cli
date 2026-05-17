@@ -58,14 +58,14 @@ func ConvertRegionPrices(ctx context.Context, service *playclient.Service, pkg s
 		return nil, err
 	}
 	if len(resp.ConvertedRegionPrices) == 0 {
-		return nil, fmt.Errorf("Google Play returned no converted region prices")
+		return nil, fmt.Errorf("google Play returned no converted region prices")
 	}
 	return resp, nil
 }
 
 func RegionVersion(resp *androidpublisher.ConvertRegionPricesResponse) (string, error) {
 	if resp == nil || resp.RegionVersion == nil || strings.TrimSpace(resp.RegionVersion.Version) == "" {
-		return "", fmt.Errorf("Google Play did not return a regionVersion")
+		return "", fmt.Errorf("google Play did not return a regionVersion")
 	}
 	return strings.TrimSpace(resp.RegionVersion.Version), nil
 }
