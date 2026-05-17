@@ -151,12 +151,14 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout *os.File) error {
 	if !opts.Auto {
 		return shared.NewReportedError(fmt.Errorf(
 			"manual setup: see https://developers.google.com/android-publisher/getting_started — " +
-				"or re-run with --auto to automate via gcloud"))
+				"or re-run with --auto to automate via gcloud",
+		))
 	}
 
 	if _, err := opts.Runner.LookPath("gcloud"); err != nil {
 		return shared.NewReportedError(fmt.Errorf(
-			"gcloud CLI is required for --auto; install from https://cloud.google.com/sdk"))
+			"gcloud CLI is required for --auto; install from https://cloud.google.com/sdk",
+		))
 	}
 
 	project := opts.Project

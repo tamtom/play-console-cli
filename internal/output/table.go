@@ -15,7 +15,8 @@ func RenderTable(headers []string, rows [][]string) {
 
 // RenderTableTo writes a formatted table to the given writer.
 func RenderTableTo(w io.Writer, headers []string, rows [][]string) {
-	table := tablewriter.NewTable(w,
+	table := tablewriter.NewTable(
+		w,
 		tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
 				Formatting: tw.CellFormatting{

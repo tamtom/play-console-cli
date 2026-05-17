@@ -35,7 +35,8 @@ func TestValidate_RootFlagsExist(t *testing.T) {
 }
 
 func TestValidate_RootRejectsConflictingArtifactFlags(t *testing.T) {
-	_, _, err := runCommand(t,
+	_, _, err := runCommand(
+		t,
 		"validate",
 		"--package", "com.example.app",
 		"--bundle", "app.aab",

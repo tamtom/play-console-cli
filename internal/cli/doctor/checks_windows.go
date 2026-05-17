@@ -27,7 +27,8 @@ func diskFree(path string) (uint64, error) {
 	}
 
 	var freeBytesAvailable, totalBytes, totalFreeBytes uint64
-	r1, _, callErr := syscall.SyscallN(uintptr(proc),
+	r1, _, callErr := syscall.SyscallN(
+		uintptr(proc),
 		uintptr(unsafe.Pointer(ptr)),
 		uintptr(unsafe.Pointer(&freeBytesAvailable)),
 		uintptr(unsafe.Pointer(&totalBytes)),

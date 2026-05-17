@@ -22,7 +22,8 @@ func TestPublish_Help(t *testing.T) {
 }
 
 func TestPublishTrack_RequiresArtifact(t *testing.T) {
-	_, _, err := runCommand(t,
+	_, _, err := runCommand(
+		t,
 		"publish", "track",
 		"--package", "com.example.app",
 		"--track", "internal",
@@ -36,7 +37,8 @@ func TestPublishTrack_RequiresArtifact(t *testing.T) {
 }
 
 func TestPublishTrack_RejectsBothArtifactFlags(t *testing.T) {
-	_, _, err := runCommand(t,
+	_, _, err := runCommand(
+		t,
 		"publish", "track",
 		"--package", "com.example.app",
 		"--bundle", "app.aab",

@@ -270,7 +270,8 @@ func TestSnitchCommandInvalidSeverity(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
-	_, stderr, err := runSnitchCommand(t,
+	_, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--severity", "critical",
 	)
@@ -304,7 +305,8 @@ func TestSnitchCommandDryRun(t *testing.T) {
 	defer func() { setGitHubAPIBase(origBase) }()
 	setGitHubAPIBase(server.URL)
 
-	stdout, stderr, err := runSnitchCommand(t,
+	stdout, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--dry-run",
 	)
@@ -351,7 +353,8 @@ func TestSnitchCommandPreviewWithoutConfirmDoesNotCreateIssue(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t,
+	stdout, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 	)
 	if err != nil {
@@ -416,7 +419,8 @@ func TestSnitchCommandConfirmCreatesIssue(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t,
+	stdout, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)
@@ -485,7 +489,8 @@ func TestSnitchCommandConfirmCreatesIssueWhenLabelsCannotBeApplied(t *testing.T)
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GH_TOKEN", "")
 
-	stdout, stderr, err := runSnitchCommand(t,
+	stdout, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)
@@ -954,7 +959,8 @@ func TestSnitchCommandLocalLogging(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("GH_TOKEN", "")
 
-	_, stderr, err := runSnitchCommand(t,
+	_, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--local",
 	)
@@ -1045,7 +1051,8 @@ func TestSnitchConfirmRequiresToken(t *testing.T) {
 
 	// Without token, search is skipped and no issue is created.
 	// But --confirm without token should error.
-	_, stderr, err := runSnitchCommand(t,
+	_, stderr, err := runSnitchCommand(
+		t,
 		"--repro", "gplay crashes", "--expected", "no crash", "--actual", "crash",
 		"--confirm",
 	)

@@ -39,7 +39,8 @@ func TestOnetimeproductsCreate_DryRunWiresUpsertRequest(t *testing.T) {
 		]
 	}`
 
-	r := cmdtest.Run(t,
+	r := cmdtest.Run(
+		t,
 		"--dry-run",
 		"onetimeproducts",
 		"create",

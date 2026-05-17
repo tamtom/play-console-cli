@@ -90,7 +90,8 @@ func DefaultEnv() Env {
 func Run(ctx context.Context, env Env) Report {
 	var checks []CheckResult
 
-	checks = append(checks,
+	checks = append(
+		checks,
 		checkHomeDir(env),
 		checkConfigFile(env),
 		checkDefaultProfile(env),

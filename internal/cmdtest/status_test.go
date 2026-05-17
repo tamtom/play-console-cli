@@ -36,7 +36,8 @@ func TestStatus_RequiresPackage(t *testing.T) {
 }
 
 func TestStatus_WatchRejectsNonPositivePollInterval(t *testing.T) {
-	_, _, err := runCommand(t,
+	_, _, err := runCommand(
+		t,
 		"status",
 		"--package", "com.example.app",
 		"--watch",
