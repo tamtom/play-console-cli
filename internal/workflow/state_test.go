@@ -31,6 +31,7 @@ func TestSaveAndLoadState(t *testing.T) {
 	}
 	if loaded == nil {
 		t.Fatal("LoadState returned nil")
+		return
 	}
 
 	if loaded.Workflow != original.Workflow {

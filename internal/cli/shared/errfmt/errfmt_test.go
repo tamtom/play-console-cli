@@ -28,6 +28,7 @@ func TestClassify_GoogleAPI401(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 401")
+		return
 	}
 	if c.Category != CategoryAuth {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryAuth)
@@ -42,6 +43,7 @@ func TestClassify_GoogleAPI403(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 403")
+		return
 	}
 	if c.Category != CategoryPermission {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryPermission)
@@ -56,6 +58,7 @@ func TestClassify_GoogleAPI404(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 404")
+		return
 	}
 	if c.Category != CategoryNotFound {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryNotFound)
@@ -70,6 +73,7 @@ func TestClassify_TimeoutError(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for timeout error")
+		return
 	}
 	if c.Category != CategoryTimeout {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryTimeout)
@@ -84,6 +88,7 @@ func TestClassify_OsNotExist(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for os.ErrNotExist")
+		return
 	}
 	if c.Category != CategoryMissingAuth {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryMissingAuth)
@@ -98,6 +103,7 @@ func TestClassify_ContextDeadlineExceeded(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for context deadline exceeded")
+		return
 	}
 	if c.Category != CategoryTimeout {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryTimeout)
@@ -112,6 +118,7 @@ func TestClassify_GenericError(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for generic error")
+		return
 	}
 	if c.Category != CategoryGeneric {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryGeneric)
@@ -172,6 +179,7 @@ func TestClassify_WrappedGoogleAPIError(t *testing.T) {
 	c := Classify(wrapped)
 	if c == nil {
 		t.Fatal("Classify returned nil for wrapped 403")
+		return
 	}
 	if c.Category != CategoryPermission {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryPermission)
@@ -183,6 +191,7 @@ func TestClassify_GoogleAPI429_RateLimit(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 429")
+		return
 	}
 	if c.Category != CategoryPermission {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryPermission)
@@ -200,6 +209,7 @@ func TestClassify_GoogleAPI409_Conflict(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 409")
+		return
 	}
 	if c.Category != CategoryConflict {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryConflict)
@@ -217,6 +227,7 @@ func TestClassify_GoogleAPI400_PackageError(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 400 with package message")
+		return
 	}
 	if c.Category != CategoryNotFound {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryNotFound)
@@ -231,6 +242,7 @@ func TestClassify_GoogleAPI400_PackageLowerCase(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 400 with lowercase package message")
+		return
 	}
 	if c.Category != CategoryNotFound {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryNotFound)
@@ -242,6 +254,7 @@ func TestClassify_GoogleAPI400_GenericBadRequest(t *testing.T) {
 	c := Classify(err)
 	if c == nil {
 		t.Fatal("Classify returned nil for 400 generic")
+		return
 	}
 	if c.Category != CategoryGeneric {
 		t.Errorf("Category = %q; want %q", c.Category, CategoryGeneric)

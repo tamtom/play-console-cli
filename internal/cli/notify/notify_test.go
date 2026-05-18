@@ -229,6 +229,7 @@ func TestPostWebhook_ServerError(t *testing.T) {
 	}
 	if result == nil {
 		t.Fatal("expected non-nil result even on error")
+		return
 	}
 	if result.StatusCode != 500 {
 		t.Errorf("status code = %d, want 500", result.StatusCode)

@@ -15,6 +15,7 @@ func TestNewRoot_BindsRootFlags(t *testing.T) {
 
 	if rt == nil {
 		t.Fatal("expected runtime")
+		return
 	}
 	if rt.RootFlags == nil {
 		t.Fatal("expected bound root flags")
@@ -25,6 +26,7 @@ func TestEnsure_ReturnsDetachedRuntime(t *testing.T) {
 	rt := Ensure(nil)
 	if rt == nil {
 		t.Fatal("expected detached runtime")
+		return
 	}
 	if rt.RootFlags != nil {
 		t.Fatal("detached runtime should not bind root flags")

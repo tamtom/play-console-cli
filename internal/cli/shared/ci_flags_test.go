@@ -14,6 +14,7 @@ func TestRegisterCIFlags(t *testing.T) {
 		reportFlag := fs.Lookup("report")
 		if reportFlag == nil {
 			t.Fatal("expected --report flag to be registered")
+			return
 		}
 		if reportFlag.DefValue != "" {
 			t.Fatalf("expected default value empty, got %q", reportFlag.DefValue)
@@ -22,6 +23,7 @@ func TestRegisterCIFlags(t *testing.T) {
 		reportFileFlag := fs.Lookup("report-file")
 		if reportFileFlag == nil {
 			t.Fatal("expected --report-file flag to be registered")
+			return
 		}
 		if reportFileFlag.DefValue != "results.xml" {
 			t.Fatalf("expected default value %q, got %q", "results.xml", reportFileFlag.DefValue)

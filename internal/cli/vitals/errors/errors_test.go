@@ -263,6 +263,7 @@ func TestIssuesCommand_DefaultPageSize(t *testing.T) {
 	f := cmd.FlagSet.Lookup("page-size")
 	if f == nil {
 		t.Fatal("expected page-size flag")
+		return
 	}
 	if f.DefValue != "50" {
 		t.Errorf("expected default page-size 50, got %s", f.DefValue)
@@ -274,6 +275,7 @@ func TestReportsCommand_DefaultPageSize(t *testing.T) {
 	f := cmd.FlagSet.Lookup("page-size")
 	if f == nil {
 		t.Fatal("expected page-size flag")
+		return
 	}
 	if f.DefValue != "50" {
 		t.Errorf("expected default page-size 50, got %s", f.DefValue)

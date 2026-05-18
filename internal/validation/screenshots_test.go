@@ -29,6 +29,7 @@ func TestValidateScreenshotDimensions_Phone_TooSmall(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 319, 640)
 	if result == nil {
 		t.Fatal("expected non-nil result for phone screenshot too small")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -39,6 +40,7 @@ func TestValidateScreenshotDimensions_Phone_TooLarge(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 3841, 1920)
 	if result == nil {
 		t.Fatal("expected non-nil result for phone screenshot too large")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -49,6 +51,7 @@ func TestValidateScreenshotDimensions_Phone_HeightTooSmall(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 640, 319)
 	if result == nil {
 		t.Fatal("expected non-nil result for phone screenshot height too small")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -59,6 +62,7 @@ func TestValidateScreenshotDimensions_Phone_HeightTooLarge(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 1920, 3841)
 	if result == nil {
 		t.Fatal("expected non-nil result for phone screenshot height too large")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -70,6 +74,7 @@ func TestValidateScreenshotDimensions_Phone_AspectRatioTooNarrow(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 320, 961)
 	if result == nil {
 		t.Fatal("expected non-nil result for aspect ratio beyond 1:2")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -81,6 +86,7 @@ func TestValidateScreenshotDimensions_Phone_AspectRatioTooWide(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 960, 320)
 	if result == nil {
 		t.Fatal("expected non-nil result for aspect ratio beyond 2:1")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -112,6 +118,7 @@ func TestValidateScreenshotDimensions_Tablet7_TooSmall(t *testing.T) {
 	result := ValidateScreenshotDimensions("tablet7", 319, 640)
 	if result == nil {
 		t.Fatal("expected non-nil result for tablet 7 screenshot too small")
+		return
 	}
 }
 
@@ -119,6 +126,7 @@ func TestValidateScreenshotDimensions_Tablet7_TooLarge(t *testing.T) {
 	result := ValidateScreenshotDimensions("tablet7", 3841, 1920)
 	if result == nil {
 		t.Fatal("expected non-nil result for tablet 7 screenshot too large")
+		return
 	}
 }
 
@@ -133,6 +141,7 @@ func TestValidateScreenshotDimensions_Tablet10_TooSmall(t *testing.T) {
 	result := ValidateScreenshotDimensions("tablet10", 319, 640)
 	if result == nil {
 		t.Fatal("expected non-nil result for tablet 10 screenshot too small")
+		return
 	}
 }
 
@@ -140,6 +149,7 @@ func TestValidateScreenshotDimensions_Tablet10_TooLarge(t *testing.T) {
 	result := ValidateScreenshotDimensions("tablet10", 3841, 1920)
 	if result == nil {
 		t.Fatal("expected non-nil result for tablet 10 screenshot too large")
+		return
 	}
 }
 
@@ -147,6 +157,7 @@ func TestValidateScreenshotDimensions_ZeroDimensions(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", 0, 0)
 	if result == nil {
 		t.Fatal("expected non-nil result for zero dimensions")
+		return
 	}
 }
 
@@ -154,5 +165,6 @@ func TestValidateScreenshotDimensions_NegativeDimensions(t *testing.T) {
 	result := ValidateScreenshotDimensions("phone", -1, 640)
 	if result == nil {
 		t.Fatal("expected non-nil result for negative dimensions")
+		return
 	}
 }

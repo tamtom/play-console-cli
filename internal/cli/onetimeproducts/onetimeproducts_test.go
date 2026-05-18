@@ -206,6 +206,7 @@ func TestCreateCommand_HasRegionsVersionFlag(t *testing.T) {
 	f := cmd.FlagSet.Lookup("regions-version")
 	if f == nil {
 		t.Fatal("expected --regions-version flag")
+		return
 	}
 	if f.Value.String() != "2024001" {
 		t.Errorf("expected regions-version %q, got %q", "2024001", f.Value.String())

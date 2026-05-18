@@ -120,8 +120,12 @@ fmt: format
 format:
 	@echo "$(BLUE)Formatting code...$(NC)"
 	$(GO) fmt ./...
-	@if command -v gofumpt >/dev/null 2>&1; then \
-		gofumpt -w .; \
+	@GOFUMPT=$$(command -v gofumpt || true); \
+	if [ -z "$$GOFUMPT" ] && [ -x "$(GOBIN)/gofumpt" ]; then \
+		GOFUMPT="$(GOBIN)/gofumpt"; \
+	fi; \
+	if [ -n "$$GOFUMPT" ]; then \
+		"$$GOFUMPT" -w .; \
 	else \
 		echo "$(YELLOW)gofumpt not found; using go fmt only. Install with: make tools$(NC)"; \
 	fi
@@ -130,8 +134,12 @@ format:
 .PHONY: format-check
 format-check:
 	@echo "$(BLUE)Checking code formatting...$(NC)"
-	@if command -v gofumpt > /dev/null 2>&1; then \
-		UNFORMATTED=$$(gofumpt -l .); \
+	@GOFUMPT=$$(command -v gofumpt || true); \
+	if [ -z "$$GOFUMPT" ] && [ -x "$(GOBIN)/gofumpt" ]; then \
+		GOFUMPT="$(GOBIN)/gofumpt"; \
+	fi; \
+	if [ -n "$$GOFUMPT" ]; then \
+		UNFORMATTED=$$("$$GOFUMPT" -l .); \
 		if [ -n "$$UNFORMATTED" ]; then \
 			echo "$(RED)Files need formatting:$(NC)"; \
 			echo "$$UNFORMATTED"; \

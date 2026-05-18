@@ -27,6 +27,7 @@ func TestUpdateCommandFlags(t *testing.T) {
 	checkFlag := cmd.FlagSet.Lookup("check")
 	if checkFlag == nil {
 		t.Fatal("expected --check flag to be registered")
+		return
 	}
 	if checkFlag.DefValue != "false" {
 		t.Errorf("expected --check default %q, got %q", "false", checkFlag.DefValue)
@@ -35,6 +36,7 @@ func TestUpdateCommandFlags(t *testing.T) {
 	forceFlag := cmd.FlagSet.Lookup("force")
 	if forceFlag == nil {
 		t.Fatal("expected --force flag to be registered")
+		return
 	}
 	if forceFlag.DefValue != "false" {
 		t.Errorf("expected --force default %q, got %q", "false", forceFlag.DefValue)

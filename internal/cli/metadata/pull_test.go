@@ -217,6 +217,7 @@ func TestPullCommand_LocalesFlagParsing(t *testing.T) {
 	localesFlag := cmd.FlagSet.Lookup("locales")
 	if localesFlag == nil {
 		t.Fatal("expected --locales flag to exist")
+		return
 	}
 	val := localesFlag.Value.String()
 	if !strings.Contains(val, "en-US") || !strings.Contains(val, "ja-JP") {

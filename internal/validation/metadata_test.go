@@ -9,6 +9,7 @@ func TestValidateTitle_Empty(t *testing.T) {
 	result := ValidateTitle("en-US", "")
 	if result == nil {
 		t.Fatal("expected non-nil result for empty title")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -41,6 +42,7 @@ func TestValidateTitle_OverLimit(t *testing.T) {
 	result := ValidateTitle("en-US", title)
 	if result == nil {
 		t.Fatal("expected non-nil result for title over limit")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -64,6 +66,7 @@ func TestValidateTitle_UnicodeOverLimit(t *testing.T) {
 	result := ValidateTitle("ja-JP", title)
 	if result == nil {
 		t.Fatal("expected non-nil result for unicode title over limit")
+		return
 	}
 }
 
@@ -71,6 +74,7 @@ func TestValidateShortDescription_Empty(t *testing.T) {
 	result := ValidateShortDescription("en-US", "")
 	if result == nil {
 		t.Fatal("expected non-nil result for empty short description")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -100,6 +104,7 @@ func TestValidateShortDescription_OverLimit(t *testing.T) {
 	result := ValidateShortDescription("en-US", desc)
 	if result == nil {
 		t.Fatal("expected non-nil result for short description over limit")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -113,6 +118,7 @@ func TestValidateFullDescription_Empty(t *testing.T) {
 	result := ValidateFullDescription("en-US", "")
 	if result == nil {
 		t.Fatal("expected non-nil result for empty full description")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -142,6 +148,7 @@ func TestValidateFullDescription_OverLimit(t *testing.T) {
 	result := ValidateFullDescription("en-US", desc)
 	if result == nil {
 		t.Fatal("expected non-nil result for full description over limit")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -155,6 +162,7 @@ func TestValidateReleaseNotes_Empty(t *testing.T) {
 	result := ValidateReleaseNotes("en-US", "")
 	if result == nil {
 		t.Fatal("expected non-nil result for empty release notes")
+		return
 	}
 	if result.Severity != SeverityWarning {
 		t.Errorf("expected warning severity for empty release notes, got %s", result.Severity)
@@ -181,6 +189,7 @@ func TestValidateReleaseNotes_OverLimit(t *testing.T) {
 	result := ValidateReleaseNotes("en-US", notes)
 	if result == nil {
 		t.Fatal("expected non-nil result for release notes over limit")
+		return
 	}
 	if result.Severity != SeverityError {
 		t.Errorf("expected error severity, got %s", result.Severity)
@@ -195,6 +204,7 @@ func TestValidateTitle_HasRemediation(t *testing.T) {
 	result := ValidateTitle("en-US", title)
 	if result == nil {
 		t.Fatal("expected non-nil result")
+		return
 	}
 	if result.Remediation == "" {
 		t.Error("expected non-empty remediation for title over limit")

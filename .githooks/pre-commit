@@ -3,6 +3,9 @@ set -euo pipefail
 
 echo "Running pre-commit checks..."
 
+GOBIN="$(go env GOPATH)/bin"
+export PATH="$GOBIN:$PATH"
+
 # Credential leak prevention
 echo "  Checking for credential files..."
 STAGED_SECRETS=$(git diff --cached --name-only | grep -iE '(service.account|credential|private.key|\.p12|\.pem|\.pfx).*\.json$|^\.gplay/' || true)
@@ -26,6 +29,10 @@ fi
 
 # Format check
 echo "  Checking formatting..."
+if ! command -v gofumpt >/dev/null 2>&1; then
+    echo "  Installing gofumpt..."
+    go install mvdan.cc/gofumpt@latest
+fi
 make format 2>/dev/null
 if ! git diff --exit-code --quiet; then
     echo ""

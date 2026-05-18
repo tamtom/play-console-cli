@@ -51,6 +51,7 @@ func TestWorkflowRunCommand_NoArgsError(t *testing.T) {
 	runCmd := findSubcmd(cmd, "run")
 	if runCmd == nil {
 		t.Fatal("run subcommand not found")
+		return
 	}
 
 	err := runCmd.Exec(context.Background(), nil)
@@ -64,6 +65,7 @@ func TestWorkflowValidateCommand_NoArgsError(t *testing.T) {
 	validateCmd := findSubcmd(cmd, "validate")
 	if validateCmd == nil {
 		t.Fatal("validate subcommand not found")
+		return
 	}
 
 	err := validateCmd.Exec(context.Background(), nil)
@@ -79,6 +81,7 @@ func TestWorkflowListCommand_EmptyDir(t *testing.T) {
 	listCmd := findSubcmd(cmd, "list")
 	if listCmd == nil {
 		t.Fatal("list subcommand not found")
+		return
 	}
 	if err := listCmd.FlagSet.Parse([]string{"--dir", dir}); err != nil {
 		t.Fatalf("parse flags: %v", err)
@@ -115,6 +118,7 @@ func TestWorkflowListCommand_NonexistentDir(t *testing.T) {
 	listCmd := findSubcmd(cmd, "list")
 	if listCmd == nil {
 		t.Fatal("list subcommand not found")
+		return
 	}
 
 	dir := filepath.Join(t.TempDir(), "nonexistent")
@@ -174,6 +178,7 @@ func TestWorkflowListCommand_WithWorkflows(t *testing.T) {
 	listCmd := findSubcmd(cmd, "list")
 	if listCmd == nil {
 		t.Fatal("list subcommand not found")
+		return
 	}
 	if err := listCmd.FlagSet.Parse([]string{"--dir", dir}); err != nil {
 		t.Fatalf("parse flags: %v", err)
@@ -281,6 +286,7 @@ func TestWorkflowListCommand_UnexpectedArgs(t *testing.T) {
 	listCmd := findSubcmd(cmd, "list")
 	if listCmd == nil {
 		t.Fatal("list subcommand not found")
+		return
 	}
 	if err := listCmd.FlagSet.Parse([]string{}); err != nil {
 		t.Fatalf("parse flags: %v", err)
@@ -310,6 +316,7 @@ func TestWorkflowValidateCommand_ValidFile(t *testing.T) {
 	validateCmd := findSubcmd(cmd, "validate")
 	if validateCmd == nil {
 		t.Fatal("validate subcommand not found")
+		return
 	}
 
 	old := os.Stdout
@@ -358,6 +365,7 @@ func TestWorkflowRunCommand_MultiWorkflowRequiresSelection(t *testing.T) {
 	runCmd := findSubcmd(cmd, "run")
 	if runCmd == nil {
 		t.Fatal("run subcommand not found")
+		return
 	}
 
 	err := runCmd.Exec(context.Background(), []string{filePath})
@@ -388,6 +396,7 @@ func TestWorkflowRunCommand_ExplicitWorkflowSelection(t *testing.T) {
 	runCmd := findSubcmd(cmd, "run")
 	if runCmd == nil {
 		t.Fatal("run subcommand not found")
+		return
 	}
 	if err := runCmd.FlagSet.Parse([]string{"--workflow", "publish", "--param", "TRACK=internal"}); err != nil {
 		t.Fatalf("parse flags: %v", err)
