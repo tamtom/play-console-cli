@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"google.golang.org/api/playdeveloperreporting/v1beta1"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/reportingclient"
 )
 
 // anomalyMetricSets maps the --type flag to the Play Developer Reporting API
@@ -18,7 +20,7 @@ var anomalyMetricSets = map[string]string{
 	"crash":       "crashRateMetricSet",
 	"anr":         "anrRateMetricSet",
 	"errors":      "errorCountMetricSet",
-	"performance": "slowRenderingRate20FpsMetricSet",
+	"performance": "slowRenderingRateMetricSet",
 	"all":         "*",
 }
 
@@ -70,13 +72,99 @@ from the Android Publisher API used by other commands.`,
 				return fmt.Errorf("--limit must be between 1 and 1000")
 			}
 
-			return fmt.Errorf(
-				"play Developer Reporting API client is not yet connected, "+
-					"would list anomalies for app %s (metricSet=%s, from=%s, to=%s, limit=%d)",
-				*packageName, metricSet, fromDate, toDate, *limit,
-			)
+			service, err := newReportingService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := listAnomalies(ctx, service, pkg, metricSet, fromDate, toDate, *limit)
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
+}
+
+func listAnomalies(ctx context.Context, service *reportingclient.Service, pkg, metricSet, fromDate, toDate string, limit int) (*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1ListAnomaliesResponse, error) {
+	filter, err := anomalyActiveBetweenFilter(fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+
+	var anomalies []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1Anomaly
+	parent := fmt.Sprintf("apps/%s", pkg)
+	pageToken := ""
+	nextPageToken := ""
+	for len(anomalies) < limit {
+		pageSize := limit - len(anomalies)
+		if pageSize > 100 {
+			pageSize = 100
+		}
+		call := service.API.Anomalies.List(parent).Context(ctx).Filter(filter).PageSize(int64(pageSize))
+		if pageToken != "" {
+			call.PageToken(pageToken)
+		}
+		resp, err := call.Do()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError("list anomalies", err)
+		}
+		nextPageToken = resp.NextPageToken
+		for _, anomaly := range resp.Anomalies {
+			if anomalyMetricMatches(anomaly, metricSet) {
+				anomalies = append(anomalies, anomaly)
+				if len(anomalies) == limit {
+					break
+				}
+			}
+		}
+		if resp.NextPageToken == "" {
+			nextPageToken = ""
+			break
+		}
+		pageToken = resp.NextPageToken
+	}
+
+	return &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1ListAnomaliesResponse{
+		Anomalies:     anomalies,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
+func anomalyActiveBetweenFilter(fromDate, toDate string) (string, error) {
+	from, err := time.Parse("2006-01-02", fromDate)
+	if err != nil {
+		return "", fmt.Errorf("--from: invalid date format: %q (expected YYYY-MM-DD)", fromDate)
+	}
+	to, err := time.Parse("2006-01-02", toDate)
+	if err != nil {
+		return "", fmt.Errorf("--to: invalid date format: %q (expected YYYY-MM-DD)", toDate)
+	}
+	if from.After(to) {
+		return "", fmt.Errorf("--from must be on or before --to")
+	}
+	return fmt.Sprintf(
+		`activeBetween("%sT00:00:00Z", "%sT00:00:00Z")`,
+		from.Format("2006-01-02"),
+		to.AddDate(0, 0, 1).Format("2006-01-02"),
+	), nil
+}
+
+func anomalyMetricMatches(anomaly *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1Anomaly, metricSet string) bool {
+	if metricSet == "*" {
+		return true
+	}
+	if anomaly == nil {
+		return false
+	}
+	return anomaly.MetricSet == metricSet || strings.HasSuffix(anomaly.MetricSet, "/"+metricSet)
 }
 
 func resolveAnomalyMetric(input string) (string, error) {

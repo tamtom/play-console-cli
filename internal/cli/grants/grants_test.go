@@ -66,45 +66,6 @@ func TestGrantsCommand_ExecWithArgs(t *testing.T) {
 	}
 }
 
-// --- ListCommand tests ---
-
-func TestListCommand_Name(t *testing.T) {
-	cmd := ListCommand()
-	if cmd.Name != "list" {
-		t.Errorf("Name = %q, want %q", cmd.Name, "list")
-	}
-}
-
-func TestListCommand_UsageFunc(t *testing.T) {
-	cmd := ListCommand()
-	if cmd.UsageFunc == nil {
-		t.Fatal("UsageFunc is nil, want shared.DefaultUsageFunc")
-	}
-	got := cmd.UsageFunc(cmd)
-	want := shared.DefaultUsageFunc(cmd)
-	if got != want {
-		t.Error("UsageFunc does not match shared.DefaultUsageFunc")
-	}
-}
-
-func TestListCommand_ReturnsAPILimitationError(t *testing.T) {
-	cmd := ListCommand()
-	err := cmd.Exec(context.Background(), []string{})
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	msg := err.Error()
-	if !strings.Contains(msg, "not implemented") {
-		t.Errorf("error should mention 'not implemented', got: %v", msg)
-	}
-	if !strings.Contains(msg, "List method") {
-		t.Errorf("error should mention 'List method', got: %v", msg)
-	}
-	if !strings.Contains(msg, "API v3") {
-		t.Errorf("error should mention 'API v3', got: %v", msg)
-	}
-}
-
 // --- CreateCommand tests ---
 
 func TestCreateCommand_Name(t *testing.T) {

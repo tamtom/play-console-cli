@@ -5,10 +5,38 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"google.golang.org/api/playdeveloperreporting/v1beta1"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/reportingclient"
+)
+
+const defaultCrashQueryPageSize int64 = 1000
+
+var newReportingService = reportingclient.NewService
+
+var (
+	crashRateMetrics = []string{
+		"crashRate",
+		"crashRate7dUserWeighted",
+		"crashRate28dUserWeighted",
+		"userPerceivedCrashRate",
+		"userPerceivedCrashRate7dUserWeighted",
+		"userPerceivedCrashRate28dUserWeighted",
+		"distinctUsers",
+	}
+	anrRateMetrics = []string{
+		"anrRate",
+		"anrRate7dUserWeighted",
+		"anrRate28dUserWeighted",
+		"userPerceivedAnrRate",
+		"userPerceivedAnrRate7dUserWeighted",
+		"userPerceivedAnrRate28dUserWeighted",
+		"distinctUsers",
+	}
 )
 
 // CrashesQueryCommand returns the "gplay vitals crashes query" command.
@@ -21,7 +49,7 @@ func CrashesQueryCommand() *ffcli.Command {
 	metricType := fs.String("type", "crash", "Metric type: crash (default) or anr")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
-	_ = fs.Bool("paginate", false, "Fetch all pages")
+	paginate := fs.Bool("paginate", false, "Fetch all pages")
 
 	return &ffcli.Command{
 		Name:       "query",
@@ -61,38 +89,188 @@ separate from the Android Publisher API used by other commands.`,
 				}
 			}
 
-			_ = *dimension // validated but not used until API client is connected
-
-			metricSet := "crashRateMetricSet"
-			if normalizedType == "anr" {
-				metricSet = "anrRateMetricSet"
+			service, err := newReportingService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
 			}
 
-			return fmt.Errorf(
-				"play Developer Reporting API client is not yet connected, "+
-					"would call POST apps/%s/%s:query with the provided parameters",
-				*packageName, metricSet,
-			)
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			opts := crashQueryOptions{
+				from:      *from,
+				to:        *to,
+				dimension: *dimension,
+				paginate:  *paginate,
+			}
+			var result interface{}
+			if normalizedType == "anr" {
+				result, err = queryANRRate(ctx, service, pkg, opts)
+			} else {
+				result, err = queryCrashRate(ctx, service, pkg, opts)
+			}
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
 	}
+}
+
+type crashQueryOptions struct {
+	from      string
+	to        string
+	dimension string
+	paginate  bool
+}
+
+func queryCrashRate(ctx context.Context, service *reportingclient.Service, pkg string, opts crashQueryOptions) (interface{}, error) {
+	timelineSpec, err := buildCrashTimelineSpec(opts.from, opts.to)
+	if err != nil {
+		return nil, err
+	}
+
+	name := fmt.Sprintf("apps/%s/crashRateMetricSet", pkg)
+	if !opts.paginate {
+		resp, err := service.API.Vitals.Crashrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryCrashRateMetricSetRequest{
+			Dimensions:   buildCrashDimensions(opts.dimension),
+			Metrics:      append([]string(nil), crashRateMetrics...),
+			PageSize:     defaultCrashQueryPageSize,
+			TimelineSpec: timelineSpec,
+		}).Context(ctx).Do()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError("query crash rate metrics", err)
+		}
+		return resp, nil
+	}
+
+	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
+	pageToken := ""
+	for {
+		resp, err := service.API.Vitals.Crashrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryCrashRateMetricSetRequest{
+			Dimensions:   buildCrashDimensions(opts.dimension),
+			Metrics:      append([]string(nil), crashRateMetrics...),
+			PageSize:     defaultCrashQueryPageSize,
+			PageToken:    pageToken,
+			TimelineSpec: timelineSpec,
+		}).Context(ctx).Do()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError("query crash rate metrics", err)
+		}
+		rows = append(rows, resp.Rows...)
+		if resp.NextPageToken == "" {
+			break
+		}
+		pageToken = resp.NextPageToken
+	}
+	return rows, nil
+}
+
+func queryANRRate(ctx context.Context, service *reportingclient.Service, pkg string, opts crashQueryOptions) (interface{}, error) {
+	timelineSpec, err := buildCrashTimelineSpec(opts.from, opts.to)
+	if err != nil {
+		return nil, err
+	}
+
+	name := fmt.Sprintf("apps/%s/anrRateMetricSet", pkg)
+	if !opts.paginate {
+		resp, err := service.API.Vitals.Anrrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryAnrRateMetricSetRequest{
+			Dimensions:   buildCrashDimensions(opts.dimension),
+			Metrics:      append([]string(nil), anrRateMetrics...),
+			PageSize:     defaultCrashQueryPageSize,
+			TimelineSpec: timelineSpec,
+		}).Context(ctx).Do()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError("query ANR rate metrics", err)
+		}
+		return resp, nil
+	}
+
+	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
+	pageToken := ""
+	for {
+		resp, err := service.API.Vitals.Anrrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryAnrRateMetricSetRequest{
+			Dimensions:   buildCrashDimensions(opts.dimension),
+			Metrics:      append([]string(nil), anrRateMetrics...),
+			PageSize:     defaultCrashQueryPageSize,
+			PageToken:    pageToken,
+			TimelineSpec: timelineSpec,
+		}).Context(ctx).Do()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError("query ANR rate metrics", err)
+		}
+		rows = append(rows, resp.Rows...)
+		if resp.NextPageToken == "" {
+			break
+		}
+		pageToken = resp.NextPageToken
+	}
+	return rows, nil
+}
+
+func buildCrashTimelineSpec(from, to string) (*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1TimelineSpec, error) {
+	startTime, startDate, err := parseCrashDateFlag("--from", from)
+	if err != nil {
+		return nil, err
+	}
+	endTime, endDate, err := parseCrashDateFlag("--to", to)
+	if err != nil {
+		return nil, err
+	}
+	if !startDate.IsZero() && !endDate.IsZero() && startDate.After(endDate) {
+		return nil, fmt.Errorf("--from must be on or before --to")
+	}
+	if startTime == nil && endTime == nil {
+		return nil, nil
+	}
+	if endTime != nil {
+		endExclusive := endDate.AddDate(0, 0, 1)
+		endTime = &playdeveloperreporting.GoogleTypeDateTime{
+			Year:  int64(endExclusive.Year()),
+			Month: int64(endExclusive.Month()),
+			Day:   int64(endExclusive.Day()),
+		}
+	}
+	return &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1TimelineSpec{
+		AggregationPeriod: "DAILY",
+		StartTime:         startTime,
+		EndTime:           endTime,
+	}, nil
+}
+
+func parseCrashDateFlag(flagName, value string) (*playdeveloperreporting.GoogleTypeDateTime, time.Time, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil, time.Time{}, nil
+	}
+	parsed, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return nil, time.Time{}, fmt.Errorf("invalid %s date %q: expected YYYY-MM-DD", flagName, value)
+	}
+	return &playdeveloperreporting.GoogleTypeDateTime{
+		Year:  int64(parsed.Year()),
+		Month: int64(parsed.Month()),
+		Day:   int64(parsed.Day()),
+	}, parsed, nil
+}
+
+func buildCrashDimensions(dimension string) []string {
+	trimmed := strings.TrimSpace(dimension)
+	if trimmed == "" {
+		return nil
+	}
+	return []string{trimmed}
 }
 
 // validateISO8601Date checks that a date string is in YYYY-MM-DD format.
 func validateISO8601Date(date string) error {
 	date = strings.TrimSpace(date)
-	if len(date) != 10 {
+	if _, err := time.Parse("2006-01-02", date); err != nil {
 		return fmt.Errorf("invalid date format: %q (expected YYYY-MM-DD)", date)
-	}
-	if date[4] != '-' || date[7] != '-' {
-		return fmt.Errorf("invalid date format: %q (expected YYYY-MM-DD)", date)
-	}
-	for i, ch := range date {
-		if i == 4 || i == 7 {
-			continue
-		}
-		if ch < '0' || ch > '9' {
-			return fmt.Errorf("invalid date format: %q (expected YYYY-MM-DD)", date)
-		}
 	}
 	return nil
 }

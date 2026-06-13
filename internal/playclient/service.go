@@ -52,6 +52,19 @@ func NewService(ctx context.Context) (*Service, error) {
 	return &Service{API: api, Cfg: cfg}, nil
 }
 
+// NewServiceWithClient creates an Android Publisher service using a provided
+// HTTP client. Tests use this to point the generated client at a mock server.
+func NewServiceWithClient(ctx context.Context, client *http.Client, basePath string) (*Service, error) {
+	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, err
+	}
+	if basePath != "" {
+		api.BasePath = basePath
+	}
+	return &Service{API: api, Cfg: &config.Config{}}, nil
+}
+
 func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {
 	creds, err := resolveCredentials(ctx, cfg)
 	if err != nil {

@@ -13,6 +13,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+var newPlayService = playclient.NewService
+
 func PurchasesCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("purchases", flag.ExitOnError)
 	return &ffcli.Command{
@@ -29,6 +31,7 @@ and subscription management.`,
 			ProductsCommand(),
 			ProductsV2Command(),
 			SubscriptionsCommand(),
+			SubscriptionsV2Command(),
 			VoidedCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
@@ -313,6 +316,7 @@ func SubscriptionsCommand() *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			SubscriptionsGetCommand(),
+			SubscriptionsAcknowledgeCommand(),
 			SubscriptionsCancelCommand(),
 			SubscriptionsDeferCommand(),
 			SubscriptionsRevokeCommand(),
@@ -322,6 +326,320 @@ func SubscriptionsCommand() *ffcli.Command {
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
+		},
+	}
+}
+
+func SubscriptionsAcknowledgeCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptions acknowledge", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	subscriptionID := fs.String("subscription-id", "", "Subscription ID")
+	token := fs.String("token", "", "Purchase token")
+	developerPayload := fs.String("developer-payload", "", "Optional developer payload")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "acknowledge",
+		ShortUsage: "gplay purchases subscriptions acknowledge --package <name> --subscription-id <id> --token <token>",
+		ShortHelp:  "Acknowledge a subscription purchase.",
+		LongHelp: `Acknowledge a subscription purchase using the legacy
+purchases.subscriptions.acknowledge API.
+
+Subscriptions must be acknowledged within 3 days or they are automatically
+refunded. Use this when server-side acknowledgement is required.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*subscriptionID) == "" {
+				return fmt.Errorf("--subscription-id is required")
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			req := &androidpublisher.SubscriptionPurchasesAcknowledgeRequest{}
+			if strings.TrimSpace(*developerPayload) != "" {
+				req.DeveloperPayload = *developerPayload
+			}
+			if err := service.API.Purchases.Subscriptions.Acknowledge(pkg, *subscriptionID, *token, req).Context(ctx).Do(); err != nil {
+				return err
+			}
+
+			result := map[string]interface{}{
+				"acknowledged":   true,
+				"subscriptionId": *subscriptionID,
+			}
+			return shared.PrintOutput(result, *outputFlag, *pretty)
+		},
+	}
+}
+
+// SubscriptionsV2Command handles subscription purchases using the v2 API.
+func SubscriptionsV2Command() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptionsv2", flag.ExitOnError)
+	return &ffcli.Command{
+		Name:       "subscriptionsv2",
+		ShortUsage: "gplay purchases subscriptionsv2 <subcommand> [flags]",
+		ShortHelp:  "Verify and mutate subscription purchases (v2 API).",
+		LongHelp: `Verify and mutate subscription purchases using the v2 API.
+
+The mutation commands accept Google API request JSON with --json so new request
+fields can be used without waiting for CLI-specific flags.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Subcommands: []*ffcli.Command{
+			SubscriptionsV2GetCommand(),
+			SubscriptionsV2CancelCommand(),
+			SubscriptionsV2DeferCommand(),
+			SubscriptionsV2RevokeCommand(),
+		},
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) == 0 {
+				return flag.ErrHelp
+			}
+			return flag.ErrHelp
+		},
+	}
+}
+
+func SubscriptionsV2GetCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptionsv2 get", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	token := fs.String("token", "", "Purchase token")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "get",
+		ShortUsage: "gplay purchases subscriptionsv2 get --package <name> --token <token>",
+		ShortHelp:  "Get subscription purchase details (v2 API).",
+		FlagSet:    fs,
+		UsageFunc:  shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Purchases.Subscriptionsv2.Get(pkg, *token).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func SubscriptionsV2CancelCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptionsv2 cancel", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	token := fs.String("token", "", "Purchase token")
+	jsonFlag := fs.String("json", "", "CancelSubscriptionPurchaseRequest JSON (or @file)")
+	confirm := fs.Bool("confirm", false, "Confirm cancellation")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "cancel",
+		ShortUsage: "gplay purchases subscriptionsv2 cancel --package <name> --token <token> --json <json> --confirm",
+		ShortHelp:  "Cancel a subscription purchase (v2 API).",
+		LongHelp: `Cancel a subscription purchase using the v2 API.
+
+JSON format:
+{
+  "cancellationContext": {
+    "cancellationType": "USER_REQUESTED_STOP_RENEWALS"
+  }
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			if !*confirm {
+				return fmt.Errorf("--confirm is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+			var req androidpublisher.CancelSubscriptionPurchaseRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			if _, err := service.API.Purchases.Subscriptionsv2.Cancel(pkg, *token, &req).Context(ctx).Do(); err != nil {
+				return err
+			}
+			result := map[string]interface{}{
+				"canceled": true,
+				"token":    *token,
+			}
+			return shared.PrintOutput(result, *outputFlag, *pretty)
+		},
+	}
+}
+
+func SubscriptionsV2DeferCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptionsv2 defer", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	token := fs.String("token", "", "Purchase token")
+	jsonFlag := fs.String("json", "", "DeferSubscriptionPurchaseRequest JSON (or @file)")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "defer",
+		ShortUsage: "gplay purchases subscriptionsv2 defer --package <name> --token <token> --json <json>",
+		ShortHelp:  "Defer subscription renewal (v2 API).",
+		LongHelp: `Defer subscription renewal using the v2 API.
+
+JSON format:
+{
+  "deferralContext": {
+    "deferDuration": "P7D",
+    "etag": "<etag from purchases subscriptionsv2 get>"
+  }
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+			var req androidpublisher.DeferSubscriptionPurchaseRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			resp, err := service.API.Purchases.Subscriptionsv2.Defer(pkg, *token, &req).Context(ctx).Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
+		},
+	}
+}
+
+func SubscriptionsV2RevokeCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("purchases subscriptionsv2 revoke", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	token := fs.String("token", "", "Purchase token")
+	jsonFlag := fs.String("json", "", "RevokeSubscriptionPurchaseRequest JSON (or @file)")
+	confirm := fs.Bool("confirm", false, "Confirm revocation")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "revoke",
+		ShortUsage: "gplay purchases subscriptionsv2 revoke --package <name> --token <token> --json <json> --confirm",
+		ShortHelp:  "Revoke a subscription purchase (v2 API).",
+		LongHelp: `Revoke a subscription purchase using the v2 API.
+
+JSON format:
+{
+  "revocationContext": {
+    "fullRefund": {}
+  }
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*token) == "" {
+				return fmt.Errorf("--token is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			if !*confirm {
+				return fmt.Errorf("--confirm is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+			var req androidpublisher.RevokeSubscriptionPurchaseRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			if _, err := service.API.Purchases.Subscriptionsv2.Revoke(pkg, *token, &req).Context(ctx).Do(); err != nil {
+				return err
+			}
+			result := map[string]interface{}{
+				"revoked": true,
+				"token":   *token,
+			}
+			return shared.PrintOutput(result, *outputFlag, *pretty)
 		},
 	}
 }

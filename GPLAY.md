@@ -48,6 +48,8 @@
 - [tracks create](#tracks-create)
 - [tracks update](#tracks-update)
 - [tracks patch](#tracks-patch)
+- [tracks releases](#tracks-releases)
+- [tracks releases list](#tracks-releases-list)
 - [users](#users)
 - [users list](#users-list)
 - [users create](#users-create)
@@ -127,6 +129,7 @@
 - [iap get](#iap-get)
 - [iap create](#iap-create)
 - [iap update](#iap-update)
+- [iap patch](#iap-patch)
 - [iap delete](#iap-delete)
 - [iap batch-get](#iap-batch-get)
 - [iap batch-update](#iap-batch-update)
@@ -195,9 +198,15 @@
 - [purchases productsv2 get](#purchases-productsv2-get)
 - [purchases subscriptions](#purchases-subscriptions)
 - [purchases subscriptions get](#purchases-subscriptions-get)
+- [purchases subscriptions acknowledge](#purchases-subscriptions-acknowledge)
 - [purchases subscriptions cancel](#purchases-subscriptions-cancel)
 - [purchases subscriptions defer](#purchases-subscriptions-defer)
 - [purchases subscriptions revoke](#purchases-subscriptions-revoke)
+- [purchases subscriptionsv2](#purchases-subscriptionsv2)
+- [purchases subscriptionsv2 get](#purchases-subscriptionsv2-get)
+- [purchases subscriptionsv2 cancel](#purchases-subscriptionsv2-cancel)
+- [purchases subscriptionsv2 defer](#purchases-subscriptionsv2-defer)
+- [purchases subscriptionsv2 revoke](#purchases-subscriptionsv2-revoke)
 - [purchases voided](#purchases-voided)
 - [purchases voided list](#purchases-voided-list)
 - [external-transactions](#external-transactions)
@@ -223,6 +232,7 @@
 - [expansion get](#expansion-get)
 - [expansion upload](#expansion-upload)
 - [expansion patch](#expansion-patch)
+- [expansion update](#expansion-update)
 - [recovery](#recovery)
 - [recovery list](#recovery-list)
 - [recovery create](#recovery-create)
@@ -443,6 +453,8 @@ gplay apps list [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--output` | Output format: json (default), table, markdown | `json` |
+| `--page-size` | Page size (1-1000) | `50` |
+| `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -1109,6 +1121,36 @@ gplay tracks patch --package <name> --edit <id> --track <name> --releases <json>
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--releases` | JSON array of track releases (or @file) | `` |
 | `--track` | Track name | `` |
+
+---
+
+## gplay tracks releases
+
+List published releases for a track.
+
+```
+gplay tracks releases <subcommand> [flags]
+```
+
+---
+
+## gplay tracks releases list
+
+List non-obsolete published releases for a track.
+
+```
+gplay tracks releases list --package <name> --track <name>
+```
+
+List non-obsolete releases for a track using the
+applications.tracks.releases.list API. This does not require an edit ID.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--track` | Track name (production, beta, alpha, internal, or custom track) | `` |
 
 ---
 
@@ -3021,6 +3063,38 @@ Use --allow-missing to create the product if it doesn't exist.
 | `--allow-missing` | Create if not exists | `false` |
 | `--auto-convert-prices` | Auto-convert missing prices to local currencies | `true` |
 | `--json` | InAppProduct JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--sku` | Product SKU/ID | `` |
+
+---
+
+## gplay iap patch
+
+Patch an in-app product.
+
+```
+gplay iap patch --package <name> --sku <sku> --json <json>
+```
+
+Patch an in-app product using inappproducts.patch.
+
+JSON format:
+{
+  "status": "active",
+  "listings": {
+    "en-US": {
+      "title": "Premium Upgrade"
+    }
+  }
+}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--auto-convert-prices` | Auto-convert missing prices to local currencies | `true` |
+| `--json` | InAppProduct JSON patch (or @file) | `` |
+| `--latency-tolerance` | Product update latency tolerance | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -4974,6 +5048,31 @@ The response includes:
 
 ---
 
+## gplay purchases subscriptions acknowledge
+
+Acknowledge a subscription purchase.
+
+```
+gplay purchases subscriptions acknowledge --package <name> --subscription-id <id> --token <token>
+```
+
+Acknowledge a subscription purchase using the legacy
+purchases.subscriptions.acknowledge API.
+
+Subscriptions must be acknowledged within 3 days or they are automatically
+refunded. Use this when server-side acknowledgement is required.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--developer-payload` | Optional developer payload | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--subscription-id` | Subscription ID | `` |
+| `--token` | Purchase token | `` |
+
+---
+
 ## gplay purchases subscriptions cancel
 
 Cancel a subscription.
@@ -5052,6 +5151,122 @@ the user loses access right away.
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--subscription-id` | Subscription ID | `` |
+| `--token` | Purchase token | `` |
+
+---
+
+## gplay purchases subscriptionsv2
+
+Verify and mutate subscription purchases (v2 API).
+
+```
+gplay purchases subscriptionsv2 <subcommand> [flags]
+```
+
+Verify and mutate subscription purchases using the v2 API.
+
+The mutation commands accept Google API request JSON with --json so new request
+fields can be used without waiting for CLI-specific flags.
+
+---
+
+## gplay purchases subscriptionsv2 get
+
+Get subscription purchase details (v2 API).
+
+```
+gplay purchases subscriptionsv2 get --package <name> --token <token>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--token` | Purchase token | `` |
+
+---
+
+## gplay purchases subscriptionsv2 cancel
+
+Cancel a subscription purchase (v2 API).
+
+```
+gplay purchases subscriptionsv2 cancel --package <name> --token <token> --json <json> --confirm
+```
+
+Cancel a subscription purchase using the v2 API.
+
+JSON format:
+{
+  "cancellationContext": {
+    "cancellationType": "USER_REQUESTED_STOP_RENEWALS"
+  }
+}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm cancellation | `false` |
+| `--json` | CancelSubscriptionPurchaseRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--token` | Purchase token | `` |
+
+---
+
+## gplay purchases subscriptionsv2 defer
+
+Defer subscription renewal (v2 API).
+
+```
+gplay purchases subscriptionsv2 defer --package <name> --token <token> --json <json>
+```
+
+Defer subscription renewal using the v2 API.
+
+JSON format:
+{
+  "deferralContext": {
+    "deferDuration": "P7D",
+    "etag": "<etag from purchases subscriptionsv2 get>"
+  }
+}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | DeferSubscriptionPurchaseRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--token` | Purchase token | `` |
+
+---
+
+## gplay purchases subscriptionsv2 revoke
+
+Revoke a subscription purchase (v2 API).
+
+```
+gplay purchases subscriptionsv2 revoke --package <name> --token <token> --json <json> --confirm
+```
+
+Revoke a subscription purchase using the v2 API.
+
+JSON format:
+{
+  "revocationContext": {
+    "fullRefund": {}
+  }
+}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm revocation | `false` |
+| `--json` | RevokeSubscriptionPurchaseRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
 | `--token` | Purchase token | `` |
 
 ---
@@ -5638,6 +5853,31 @@ Reference an expansion file from a different APK version.
 
 This allows you to reuse an existing expansion file for a new APK
 without re-uploading it.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--apk-version` | APK version code | `0` |
+| `--edit` | Edit ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--references-version` | APK version code that contains the file to reference | `0` |
+| `--type` | Expansion file type: main (default), patch | `main` |
+
+---
+
+## gplay expansion update
+
+Update expansion file metadata.
+
+```
+gplay expansion update --package <name> --edit <id> --apk-version <code> --type <type> --references-version <code>
+```
+
+Update expansion file metadata using edits.expansionfiles.update.
+
+Use this to replace the expansion file reference for an APK version with a
+reference to an expansion file from another APK version.
 
 | Flag | Description | Default |
 |------|-------------|---------|

@@ -13,6 +13,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+var newPlayService = playclient.NewService
+
 func TracksCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("tracks", flag.ExitOnError)
 	return &ffcli.Command{
@@ -27,12 +29,77 @@ func TracksCommand() *ffcli.Command {
 			CreateCommand(),
 			UpdateCommand(),
 			PatchCommand(),
+			ReleasesCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
+		},
+	}
+}
+
+func ReleasesCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("tracks releases", flag.ExitOnError)
+	return &ffcli.Command{
+		Name:       "releases",
+		ShortUsage: "gplay tracks releases <subcommand> [flags]",
+		ShortHelp:  "List published releases for a track.",
+		FlagSet:    fs,
+		UsageFunc:  shared.DefaultUsageFunc,
+		Subcommands: []*ffcli.Command{
+			ReleasesListCommand(),
+		},
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) == 0 {
+				return flag.ErrHelp
+			}
+			return flag.ErrHelp
+		},
+	}
+}
+
+func ReleasesListCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("tracks releases list", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	track := fs.String("track", "", "Track name (production, beta, alpha, internal, or custom track)")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "list",
+		ShortUsage: "gplay tracks releases list --package <name> --track <name>",
+		ShortHelp:  "List non-obsolete published releases for a track.",
+		LongHelp: `List non-obsolete releases for a track using the
+applications.tracks.releases.list API. This does not require an edit ID.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*track) == "" {
+				return fmt.Errorf("--track is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			parent := fmt.Sprintf("applications/%s/tracks/%s", pkg, *track)
+			resp, err := service.API.Applications.Tracks.Releases.List(parent).Context(ctx).Do()
+			if err != nil {
+				return shared.WrapGoogleAPIError("list track releases", err)
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }
