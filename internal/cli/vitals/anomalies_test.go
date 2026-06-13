@@ -2,6 +2,8 @@ package vitals
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -15,7 +17,7 @@ func TestAnomaliesMetricTypeValid(t *testing.T) {
 		{"crash", "crashRateMetricSet", false},
 		{"anr", "anrRateMetricSet", false},
 		{"errors", "errorCountMetricSet", false},
-		{"performance", "slowRenderingRate20FpsMetricSet", false},
+		{"performance", "slowRenderingRateMetricSet", false},
 		{"all", "*", false},
 		{"", "*", false},
 		{"nonsense", "", true},
@@ -84,14 +86,24 @@ func TestAnomaliesLimitBounds(t *testing.T) {
 	}
 }
 
-func TestAnomaliesHappyPathStillStub(t *testing.T) {
+func TestAnomaliesFiltersByMetricSet(t *testing.T) {
+	installMockVitalsReportingService(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"anomalies":[{"metricSet":"apps/com.example.app/crashRateMetricSet"},{"metricSet":"apps/com.example.app/anrRateMetricSet"}]}`)
+	})
+
 	cmd := AnomaliesCommand()
 	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--type", "crash", "--limit", "10"})
-	err := cmd.Exec(context.Background(), nil)
-	if err == nil || !strings.Contains(err.Error(), "not yet connected") {
-		t.Fatalf("expected stub error, got %v", err)
+	stdout, err := captureVitalsStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "crashRateMetricSet") {
-		t.Errorf("expected metric set in error, got %v", err)
+	if !strings.Contains(stdout, "crashRateMetricSet") {
+		t.Fatalf("expected crash anomaly in output, got %s", stdout)
+	}
+	if strings.Contains(stdout, "anrRateMetricSet") {
+		t.Fatalf("did not expect ANR anomaly after crash filter, got %s", stdout)
 	}
 }

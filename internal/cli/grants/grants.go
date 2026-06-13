@@ -26,7 +26,6 @@ as opposed to account-wide permissions.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
-			// ListCommand() is not available - Google Play API v3 Grants service does not expose List method
 			CreateCommand(),
 			UpdateCommand(),
 			DeleteCommand(),
@@ -36,27 +35,6 @@ as opposed to account-wide permissions.`,
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
-		},
-	}
-}
-
-// ListCommand is not implemented because the Google Play Android Publisher API v3
-// Grants service does not expose a List method. The available methods are:
-// Create, Delete, and Patch.
-//
-// To view grants, you would need to track them separately or use the
-// Google Play Console web interface.
-func ListCommand() *ffcli.Command {
-	fs := flag.NewFlagSet("grants list", flag.ExitOnError)
-
-	return &ffcli.Command{
-		Name:       "list",
-		ShortUsage: "gplay grants list (not implemented)",
-		ShortHelp:  "List grants (not available in API v3).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
-		Exec: func(ctx context.Context, args []string) error {
-			return fmt.Errorf("grants list is not implemented: the Google Play Android Publisher API v3 does not expose a List method for Grants. Available operations are: create, update (patch), and delete")
 		},
 	}
 }

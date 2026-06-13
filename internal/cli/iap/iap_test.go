@@ -1,11 +1,19 @@
 package iap
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestIAPCommand_Name(t *testing.T) {
@@ -50,6 +58,7 @@ func TestIAPCommand_SubcommandNames(t *testing.T) {
 		"get":          false,
 		"create":       false,
 		"update":       false,
+		"patch":        false,
 		"delete":       false,
 		"batch-get":    false,
 		"batch-update": false,
@@ -222,6 +231,55 @@ func TestIAPUpdateCommand_MissingJson(t *testing.T) {
 	}
 }
 
+// --- iap patch ---
+
+func TestIAPPatchCommand_Name(t *testing.T) {
+	cmd := PatchCommand()
+	if cmd.Name != "patch" {
+		t.Errorf("expected name %q, got %q", "patch", cmd.Name)
+	}
+}
+
+func TestIAPPatchCommand_CallsAPI(t *testing.T) {
+	var gotMethod, gotPath, gotBody string
+	installMockIAPPlayService(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"packageName":"com.example.app","sku":"coins_100","status":"active"}`)
+	})
+
+	cmd := PatchCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--package", "com.example.app",
+		"--sku", "coins_100",
+		"--json", `{"status":"active"}`,
+		"--auto-convert-prices",
+	}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	stdout, err := captureIAPStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if gotMethod != http.MethodPatch {
+		t.Fatalf("method = %s, want PATCH", gotMethod)
+	}
+	if gotPath != "/androidpublisher/v3/applications/com.example.app/inappproducts/coins_100" {
+		t.Fatalf("unexpected path: %s", gotPath)
+	}
+	if !strings.Contains(gotBody, `"sku":"coins_100"`) {
+		t.Fatalf("expected SKU to be set in body, got %s", gotBody)
+	}
+	if !strings.Contains(stdout, "coins_100") {
+		t.Fatalf("expected patched product in output, got %s", stdout)
+	}
+}
+
 // --- iap delete ---
 
 func TestIAPDeleteCommand_Name(t *testing.T) {
@@ -280,6 +338,48 @@ func TestIAPBatchGetCommand_MissingSkus(t *testing.T) {
 	if !strings.Contains(err.Error(), "--skus") {
 		t.Errorf("error should mention --skus, got: %s", err.Error())
 	}
+}
+
+func installMockIAPPlayService(t *testing.T, handler http.HandlerFunc) {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	original := newPlayService
+	newPlayService = func(ctx context.Context) (*playclient.Service, error) {
+		return playclient.NewServiceWithClient(ctx, server.Client(), server.URL+"/")
+	}
+	t.Cleanup(func() {
+		newPlayService = original
+	})
+}
+
+func captureIAPStdout(fn func() error) (string, error) {
+	origStdout := os.Stdout
+	rOut, wOut, err := os.Pipe()
+	if err != nil {
+		return "", err
+	}
+
+	os.Stdout = wOut
+
+	var buf bytes.Buffer
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, _ = io.Copy(&buf, rOut)
+	}()
+
+	runErr := fn()
+
+	_ = wOut.Close()
+	os.Stdout = origStdout
+	wg.Wait()
+	_ = rOut.Close()
+
+	return buf.String(), runErr
 }
 
 func TestIAPBatchGetCommand_WhitespaceSkus(t *testing.T) {

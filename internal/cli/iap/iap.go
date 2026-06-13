@@ -13,6 +13,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+var newPlayService = playclient.NewService
+
 func IAPCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("iap", flag.ExitOnError)
 	return &ffcli.Command{
@@ -30,6 +32,7 @@ For subscriptions, use the "subscriptions" command instead.`,
 			GetCommand(),
 			CreateCommand(),
 			UpdateCommand(),
+			PatchCommand(),
 			DeleteCommand(),
 			BatchGetCommand(),
 			BatchUpdateCommand(),
@@ -40,6 +43,78 @@ For subscriptions, use the "subscriptions" command instead.`,
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
+		},
+	}
+}
+
+func PatchCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("iap patch", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	sku := fs.String("sku", "", "Product SKU/ID")
+	jsonFlag := fs.String("json", "", "InAppProduct JSON patch (or @file)")
+	autoConvertPrices := fs.Bool("auto-convert-prices", true, "Auto-convert missing prices to local currencies")
+	latencyTolerance := fs.String("latency-tolerance", "", "Product update latency tolerance")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "patch",
+		ShortUsage: "gplay iap patch --package <name> --sku <sku> --json <json>",
+		ShortHelp:  "Patch an in-app product.",
+		LongHelp: `Patch an in-app product using inappproducts.patch.
+
+JSON format:
+{
+  "status": "active",
+  "listings": {
+    "en-US": {
+      "title": "Premium Upgrade"
+    }
+  }
+}`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*sku) == "" {
+				return fmt.Errorf("--sku is required")
+			}
+			if strings.TrimSpace(*jsonFlag) == "" {
+				return fmt.Errorf("--json is required")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			var product androidpublisher.InAppProduct
+			if err := shared.LoadJSONArg(*jsonFlag, &product); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			product.PackageName = pkg
+			product.Sku = *sku
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			call := service.API.Inappproducts.Patch(pkg, *sku, &product).Context(ctx)
+			if *autoConvertPrices {
+				call = call.AutoConvertMissingPrices(true)
+			}
+			if strings.TrimSpace(*latencyTolerance) != "" {
+				call = call.LatencyTolerance(*latencyTolerance)
+			}
+			resp, err := call.Do()
+			if err != nil {
+				return err
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }

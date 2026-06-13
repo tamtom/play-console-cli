@@ -1,11 +1,19 @@
 package tracks
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestTracksCommand_Name(t *testing.T) {
@@ -39,11 +47,12 @@ func TestTracksCommand_HasSubcommands(t *testing.T) {
 func TestTracksCommand_SubcommandNames(t *testing.T) {
 	cmd := TracksCommand()
 	expected := map[string]bool{
-		"list":   false,
-		"get":    false,
-		"create": false,
-		"update": false,
-		"patch":  false,
+		"list":     false,
+		"get":      false,
+		"create":   false,
+		"update":   false,
+		"patch":    false,
+		"releases": false,
 	}
 	for _, sub := range cmd.Subcommands {
 		if _, ok := expected[sub.Name]; ok {
@@ -117,6 +126,74 @@ func TestTracksListCommand_PrettyWithTable(t *testing.T) {
 	if !strings.Contains(err.Error(), "--pretty") {
 		t.Errorf("error should mention --pretty, got: %s", err.Error())
 	}
+}
+
+func TestTrackReleasesListCommand_CallsAPI(t *testing.T) {
+	var gotPath string
+	installMockTracksPlayService(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"releases":[{"track":"production","releaseName":"42","releaseLifecycleState":"RELEASE_LIFECYCLE_STATE_PUBLISHED"}]}`)
+	})
+
+	cmd := ReleasesListCommand()
+	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--track", "production"}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	stdout, err := captureTracksStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if gotPath != "/androidpublisher/v3/applications/com.example.app/tracks/production/releases" {
+		t.Fatalf("unexpected path: %s", gotPath)
+	}
+	if !strings.Contains(stdout, "RELEASE_LIFECYCLE_STATE_PUBLISHED") {
+		t.Fatalf("expected release in output, got %s", stdout)
+	}
+}
+
+func installMockTracksPlayService(t *testing.T, handler http.HandlerFunc) {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	original := newPlayService
+	newPlayService = func(ctx context.Context) (*playclient.Service, error) {
+		return playclient.NewServiceWithClient(ctx, server.Client(), server.URL+"/")
+	}
+	t.Cleanup(func() {
+		newPlayService = original
+	})
+}
+
+func captureTracksStdout(fn func() error) (string, error) {
+	origStdout := os.Stdout
+	rOut, wOut, err := os.Pipe()
+	if err != nil {
+		return "", err
+	}
+
+	os.Stdout = wOut
+
+	var buf bytes.Buffer
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, _ = io.Copy(&buf, rOut)
+	}()
+
+	runErr := fn()
+
+	_ = wOut.Close()
+	os.Stdout = origStdout
+	wg.Wait()
+	_ = rOut.Close()
+
+	return buf.String(), runErr
 }
 
 // --- tracks get ---

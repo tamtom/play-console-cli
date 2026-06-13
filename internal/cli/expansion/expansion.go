@@ -15,6 +15,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+var newPlayService = playclient.NewService
+
 func ExpansionCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("expansion", flag.ExitOnError)
 	return &ffcli.Command{
@@ -38,12 +40,74 @@ which provides a better user experience.`,
 			GetCommand(),
 			UploadCommand(),
 			PatchCommand(),
+			UpdateCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
+		},
+	}
+}
+
+func UpdateCommand() *ffcli.Command {
+	fs := flag.NewFlagSet("expansion update", flag.ExitOnError)
+	packageName := fs.String("package", "", "Package name (applicationId)")
+	editID := fs.String("edit", "", "Edit ID")
+	apkVersionCode := fs.Int64("apk-version", 0, "APK version code")
+	expansionType := fs.String("type", "main", "Expansion file type: main (default), patch")
+	referencesVersion := fs.Int64("references-version", 0, "APK version code that contains the file to reference")
+	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
+	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
+
+	return &ffcli.Command{
+		Name:       "update",
+		ShortUsage: "gplay expansion update --package <name> --edit <id> --apk-version <code> --type <type> --references-version <code>",
+		ShortHelp:  "Update expansion file metadata.",
+		LongHelp: `Update expansion file metadata using edits.expansionfiles.update.
+
+Use this to replace the expansion file reference for an APK version with a
+reference to an expansion file from another APK version.`,
+		FlagSet:   fs,
+		UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+				return err
+			}
+			if strings.TrimSpace(*editID) == "" {
+				return fmt.Errorf("--edit is required")
+			}
+			if *apkVersionCode == 0 {
+				return fmt.Errorf("--apk-version is required")
+			}
+			if *referencesVersion == 0 {
+				return fmt.Errorf("--references-version is required")
+			}
+			expType := strings.ToLower(strings.TrimSpace(*expansionType))
+			if expType != "main" && expType != "patch" {
+				return fmt.Errorf("--type must be 'main' or 'patch'")
+			}
+			service, err := newPlayService(ctx)
+			if err != nil {
+				return err
+			}
+			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
+			if strings.TrimSpace(pkg) == "" {
+				return fmt.Errorf("--package is required")
+			}
+
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
+
+			expansionFile := &androidpublisher.ExpansionFile{
+				ReferencesVersion: *referencesVersion,
+			}
+			resp, err := service.API.Edits.Expansionfiles.Update(pkg, *editID, *apkVersionCode, expType, expansionFile).Context(ctx).Do()
+			if err != nil {
+				return shared.WrapGoogleAPIError("update expansion file", err)
+			}
+			return shared.PrintOutput(resp, *outputFlag, *pretty)
 		},
 	}
 }
