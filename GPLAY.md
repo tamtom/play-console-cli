@@ -260,6 +260,8 @@
 - [games players hide](#games-players-hide)
 - [games players unhide](#games-players-unhide)
 - [games players list-hidden](#games-players-list-hidden)
+- [custom-apps](#custom-apps)
+- [custom-apps create](#custom-apps-create)
 - [generated-apks](#generated-apks)
 - [generated-apks list](#generated-apks-list)
 - [generated-apks download](#generated-apks-download)
@@ -6279,6 +6281,66 @@ gplay games players list-hidden --application-id <id> [flags]
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay custom-apps
+
+Publish private apps via Managed Google Play (Custom App Publishing API).
+
+```
+gplay custom-apps <subcommand> [flags]
+```
+
+Publish private (custom) apps through the Google Play Custom App Publishing API.
+
+Custom apps power Managed Google Play private distribution: an APK is published
+to specific organizations instead of the public Play Store. This is the API
+behind "private apps" in the Managed Google Play iframe.
+
+Identifiers differ from the rest of gplay. Create takes the numeric developer
+account ID (--developer, the ID from the Play Console URL developers/<id>), NOT
+the Android package name — the package name is assigned by Google and returned
+in the response. Restrict availability with --organizations (comma-separated
+organization IDs); omit it to publish to the organization linked to the
+developer account.
+
+Custom apps accept an APK only (not an AAB). The service account must have the
+developer-account-level permission to publish custom apps.
+
+---
+
+## gplay custom-apps create
+
+Publish a private APK as a custom app.
+
+```
+gplay custom-apps create --developer <id> --title <title> --apk <path> [--organizations <ids>]
+```
+
+Publish a private APK as a custom app for Managed Google Play.
+
+The app is created under the given developer account and the APK is uploaded in
+the same request. Google assigns the package name and returns it in the
+response.
+
+Examples:
+  # Publish to the organization linked to the developer account
+  gplay custom-apps create --developer 1234567890 --title "Field Tool" --apk app.apk
+
+  # Restrict to specific organizations
+  gplay custom-apps create --developer 1234567890 --title "Field Tool" \
+    --language en-US --organizations org-abc,org-def --apk app.apk
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--apk` | Path to the .apk file to publish | `` |
+| `--developer` | Developer account ID (numeric, from the Play Console URL) | `` |
+| `--language` | Default listing language in BCP 47 format (e.g. en-US) | `en-US` |
+| `--organizations` | Comma-separated organization IDs to restrict availability (optional) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--title` | Title for the custom app | `` |
 
 ---
 

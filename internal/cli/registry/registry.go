@@ -15,6 +15,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/bundles"
 	"github.com/tamtom/play-console-cli/internal/cli/checks"
 	"github.com/tamtom/play-console-cli/internal/cli/completion"
+	"github.com/tamtom/play-console-cli/internal/cli/customapps"
 	"github.com/tamtom/play-console-cli/internal/cli/datasafety"
 	"github.com/tamtom/play-console-cli/internal/cli/deobfuscation"
 	"github.com/tamtom/play-console-cli/internal/cli/details"
@@ -136,6 +137,7 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		purchases.PurchasesCommand(),
 		externaltx.ExternalTxCommand(),
 		games.GamesCommand(),
+		customapps.CustomAppsCommand(),
 		generatedapks.GeneratedAPKsCommand(),
 		grants.GrantsCommand(),
 		internalsharing.InternalSharingCommand(),

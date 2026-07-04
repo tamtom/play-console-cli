@@ -8,7 +8,7 @@
 
 **gplay** is a fast, single-binary CLI for **Google Play Console**, built for **AI coding agents** — Claude Code, Codex, Cursor, Gemini CLI — and for humans who script. Release Android apps, create **subscriptions, in-app products, and one-time purchases**, verify purchases server-side, monitor crashes and reviews — all from the terminal, no Play Console clicking.
 
-It **completely replaces opening the web browser console** for day-to-day work. Most deployment tools only handle standard AAB uploads — gplay covers the **full Google Play Developer API v3**: complete console management, staged rollouts, store listings, screenshots, and localization. And it's **lightweight with zero runtime to install** — no Node.js, no Python, no JVM, just one static binary.
+It **completely replaces opening the web browser console** for day-to-day work. Most deployment tools only handle standard AAB uploads — gplay supports **250+ endpoints across 6 Google APIs** (Android Publisher, Play Developer Reporting, Checks, Play Games, Managed Google Play, and Cloud Storage): complete console management, staged rollouts, store listings, screenshots, localization, vitals, and private app publishing. And it's **lightweight with zero runtime to install** — no Node.js, no Python, no JVM, just one static binary.
 
 ## Table of Contents
 
@@ -120,7 +120,8 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 
 ## Highlights
 
-- **Full Google Play Developer API v3 coverage** — not just AAB uploads like most deployment tools. Complete console management from the terminal, so gplay replaces opening the web browser console.
+- **250+ commands across 6 Google APIs** — not just AAB uploads like most deployment tools. gplay covers 98% of the Google Play Developer API v3 (134/137 endpoints) plus Play Developer Reporting, Checks, Play Games, Managed Google Play, and Cloud Storage — complete console management from the terminal, so gplay replaces opening the web browser console.
+- **Managed Google Play** — publish private (custom) apps to specific organizations with `gplay custom-apps create`, straight from the terminal.
 - **Complete releases & rollouts** — upload, track assignment, staged rollout with pause/resume/percentage control, promote between tracks, release notes from git history.
 - **Store listings, screenshots & localization** — manage listing text, images, and metadata across every locale; sync with a local directory or Fastlane.
 - **Full monetization stack** — subscriptions, base plans, promotional offers, in-app products, one-time purchases, regional price conversion. Pairs with [RevenueCat](docs/monetization.md#using-gplay-with-revenuecat): create products in Play with `gplay`, import them into RevenueCat.
@@ -151,6 +152,7 @@ Versus [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gra
 | Reviews: read + reply | ✅ | ❌ | ❌ |
 | Financial & statistics reports | ✅ | ❌ | ❌ |
 | Users & permission grants | ✅ | ❌ | ❌ |
+| Managed Google Play (private/custom apps) | ✅ | ❌ | ❌ |
 | Google Checks compliance gate | ✅ | ❌ | ❌ |
 | AI-agent-friendly output | ✅ JSON default | ❌ Human logs | ❌ Gradle logs |
 | Runtime | Single Go binary | Ruby + gems | JVM + Gradle project |

@@ -40,6 +40,7 @@ gplay notify send               # Send webhook notifications (Slack, Discord, ge
 gplay migrate fastlane          # Migrate from Fastlane metadata
 gplay reports financial         # Financial reports (list/download from GCS)
 gplay reports stats             # Statistics reports (list/download from GCS)
+gplay custom-apps create        # Publish private apps via Managed Google Play
 gplay listings locales          # List available locales with validation
 gplay release-notes generate    # Generate release notes from git history
 ```
