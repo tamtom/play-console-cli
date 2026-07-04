@@ -10,7 +10,7 @@ gplay release --package com.example.app --track internal --bundle app.aab
 
 # With release notes and staged rollout
 gplay release --package com.example.app --track production --bundle app.aab \
-  --release-notes @notes.json --rollout 10
+  --release-notes @notes.json --rollout 0.1
 
 # With metadata and screenshots
 gplay release --package com.example.app --track production --bundle app.aab \
@@ -30,7 +30,7 @@ gplay release-notes generate
 gplay promote --package com.example.app --from internal --to beta
 
 # Manage staged rollout
-gplay rollout update --package com.example.app --track production --rollout 50
+gplay rollout update --package com.example.app --track production --rollout 0.5
 gplay rollout halt --package com.example.app --track production
 gplay rollout resume --package com.example.app --track production
 gplay rollout complete --package com.example.app --track production
