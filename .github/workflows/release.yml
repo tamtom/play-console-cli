@@ -77,11 +77,23 @@ jobs:
 
           echo "Built: $BINARY_NAME"
 
+      # Portable-friendly zip for winget: the archive contains gplay.exe so the
+      # winget PortableCommandAlias exposes the command as `gplay`.
+      - name: Package Windows portable zip
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          Copy-Item "gplay-windows-${{ matrix.arch }}.exe" gplay.exe
+          Compress-Archive -Path gplay.exe -DestinationPath "gplay-windows-${{ matrix.arch }}.zip" -Force
+          Write-Host "Packaged: gplay-windows-${{ matrix.arch }}.zip"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: gplay-${{ matrix.os }}-${{ matrix.arch }}
-          path: gplay-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+          path: |
+            gplay-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+            ${{ matrix.os == 'windows' && format('gplay-windows-{0}.zip', matrix.arch) || '' }}
           retention-days: 1
 
   release:
@@ -148,3 +160,35 @@ jobs:
           repository: tamtom/homebrew-tap
           event-type: update-formula
           client-payload: '{"version": "${{ steps.version.outputs.version }}"}'
+
+  winget:
+    name: Publish to winget
+    needs: release
+    runs-on: windows-latest
+    if: ${{ !contains(github.ref, '-') }}  # Skip pre-releases
+    steps:
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Submits a manifest-update PR to microsoft/winget-pkgs via wingetcreate.
+      # Requires the WINGET_TOKEN secret (classic PAT with a fork of
+      # microsoft/winget-pkgs). The package tamtom.gplay must already exist in
+      # winget-pkgs (initial manifest submitted once from winget/manifests/).
+      - name: Update winget manifest
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if (-not $env:WINGET_TOKEN) {
+            Write-Host "WINGET_TOKEN not set; skipping winget submission."
+            exit 0
+          }
+          $ver = "${{ steps.version.outputs.version }}"
+          $url = "https://github.com/tamtom/play-console-cli/releases/download/v$ver/gplay-windows-amd64.zip"
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update tamtom.gplay --version $ver --urls "$url" --submit --token $env:WINGET_TOKEN
