@@ -31,8 +31,11 @@ It **completely replaces opening the web browser console** for day-to-day work. 
 brew tap tamtom/tap
 brew install tamtom/tap/gplay
 
-# Install script (macOS/Linux)
+# Standalone binary — macOS/Linux
 curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash
+
+# Standalone binary — Windows (PowerShell)
+irm https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.ps1 | iex
 ```
 
 **Update:** `gplay update` self-updates in place. It also checks for new versions on startup (disable with `GPLAY_NO_UPDATE=1`).
