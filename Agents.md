@@ -173,13 +173,21 @@ npx skills add tamtom/gplay-cli-skills
 
 Available skills:
 
-- `gplay-cli-skills` - Core CLI workflows
-- `gplay-vitals-monitoring` - Crash, ANR, and performance monitoring
+- `gplay-cli-usage` - Flags, output formats, pagination, edit sessions
+- `gplay-release-flow` - End-to-end release, tracks, and rollout workflows
+- `gplay-rollout-management` - Staged rollout orchestration and monitoring
+- `gplay-vitals-monitoring` - Crashes, ANRs, performance, and error monitoring
+- `gplay-iap-setup` - In-app products, subscriptions, base plans, offers, bulk localization
+- `gplay-ppp-pricing` - Region-specific purchasing-power pricing
+- `gplay-purchase-verification` - Server-side purchase/subscription verification
+- `gplay-review-management` - Review monitoring, filtering, and replies
 - `gplay-user-management` - Developer account user and grant management
+- `gplay-metadata-sync` - Metadata and localization sync (incl. Fastlane format)
 - `gplay-migrate-fastlane` - Fastlane metadata migration
 - `gplay-submission-checks` - Pre-submission validation
-- `gplay-screenshot-automation` - Screenshot management workflows
-- `gplay-subscription-localization` - Subscription and in-app product localization
+- `gplay-screenshot-automation` - Upload and validate Play Store screenshots
+- `gplay-testers-orchestration` - Closed-testing tracks and tester management
+- `gplay-gradle-build` - Build and sign with Gradle before upload
 - `gplay-reports-download` - Financial and statistics report download from GCS
 
 Skills repository: https://github.com/tamtom/gplay-cli-skills

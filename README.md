@@ -109,7 +109,7 @@ Once authenticated, you're ready to go:
 
 ```bash
 # Ship a release in one command
-gplay release --package com.example.app --track production --bundle app.aab --rollout 10
+gplay release --package com.example.app --track production --bundle app.aab --rollout 0.1
 
 # Create a subscription with base plans and offers
 gplay subscriptions create --package com.example.app --json @subscription.json
