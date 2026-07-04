@@ -33,9 +33,6 @@ brew install tamtom/tap/gplay
 
 # Install script (macOS/Linux)
 curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash
-
-# From source
-git clone https://github.com/tamtom/play-console-cli.git && cd play-console-cli && make build
 ```
 
 **Update:** `gplay update` self-updates in place. It also checks for new versions on startup (disable with `GPLAY_NO_UPDATE=1`).
