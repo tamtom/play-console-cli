@@ -10,7 +10,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/config"
 )
 
-func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resolvedCredentials, error) {
+func credentialsFromProfile(ctx context.Context, profile config.Profile, scopeList ...string) (*resolvedCredentials, error) {
 	switch strings.ToLower(strings.TrimSpace(profile.Type)) {
 	case "service_account", "service-account", "serviceaccount":
 		if strings.TrimSpace(profile.KeyPath) == "" {
@@ -20,7 +20,7 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 				"Set key_path in config.json or re-run `gplay auth login` with --service-account.",
 			)
 		}
-		creds, err := credentialsFromServiceAccount(ctx, profile.KeyPath)
+		creds, err := credentialsFromServiceAccount(ctx, profile.KeyPath, scopeList...)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +42,7 @@ func credentialsFromProfile(ctx context.Context, profile config.Profile) (*resol
 				"Set client_id/client_secret in config.json or re-run `gplay auth login` with --client-id/--client-secret.",
 			)
 		}
-		creds, err := credentialsFromOAuth(ctx, profile.TokenPath, clientID, clientSecret, redirectURIFromEnv())
+		creds, err := credentialsFromOAuth(ctx, profile.TokenPath, clientID, clientSecret, redirectURIFromEnv(), scopeList...)
 		if err != nil {
 			return nil, err
 		}

@@ -24,17 +24,44 @@ type Service struct {
 
 // NewService creates an authenticated Android Publisher service.
 func NewService(ctx context.Context) (*Service, error) {
+	client, cfg, err := NewAuthenticatedClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, err
+	}
+	return &Service{API: api, Cfg: cfg}, nil
+}
+
+// NewAuthenticatedClient returns an HTTP client authenticated with the
+// androidpublisher OAuth scope, together with the loaded config. Sibling
+// clients that share this scope (e.g. the Play Games publishing API) build
+// their generated services on top of this client instead of duplicating the
+// credential-resolution logic. The transport is wrapped for dry-run when
+// dry-run mode is active, mirroring NewService.
+func NewAuthenticatedClient(ctx context.Context) (*http.Client, *config.Config, error) {
+	return NewAuthenticatedClientWithScopes(ctx)
+}
+
+// NewAuthenticatedClientWithScopes is like NewAuthenticatedClient but requests
+// an explicit set of OAuth scopes. Pass no scopes to default to the
+// androidpublisher scope. Sibling APIs that need additional scopes (e.g. the
+// Play Games management API additionally requires the games scope) pass the
+// full list so a single token covers every service they build.
+func NewAuthenticatedClientWithScopes(ctx context.Context, scopeList ...string) (*http.Client, *config.Config, error) {
 	cfg, err := config.Load()
 	if err != nil && !errors.Is(err, config.ErrNotFound) {
-		return nil, shared.NewActionableError(
+		return nil, nil, shared.NewActionableError(
 			"failed to load config",
 			err,
 			"Check that your config file is valid JSON and readable. Use `gplay auth init` to recreate it.",
 		)
 	}
-	client, err := newHTTPClient(ctx, cfg)
+	client, err := newHTTPClient(ctx, cfg, scopeList...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Wrap transport with DryRunTransport when dry-run is active.
@@ -44,12 +71,7 @@ func NewService(ctx context.Context) (*Service, error) {
 			Writer: os.Stderr,
 		}
 	}
-
-	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return nil, err
-	}
-	return &Service{API: api, Cfg: cfg}, nil
+	return client, cfg, nil
 }
 
 // NewServiceWithClient creates an Android Publisher service using a provided
@@ -65,8 +87,8 @@ func NewServiceWithClient(ctx context.Context, client *http.Client, basePath str
 	return &Service{API: api, Cfg: &config.Config{}}, nil
 }
 
-func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {
-	creds, err := resolveCredentials(ctx, cfg)
+func newHTTPClient(ctx context.Context, cfg *config.Config, scopeList ...string) (*http.Client, error) {
+	creds, err := resolveCredentials(ctx, cfg, scopeList...)
 	if err != nil {
 		return nil, err
 	}

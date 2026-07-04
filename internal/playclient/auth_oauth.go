@@ -12,7 +12,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
-func credentialsFromOAuth(ctx context.Context, tokenPath, clientID, clientSecret, redirectURI string) (oauth2.TokenSource, error) {
+func credentialsFromOAuth(ctx context.Context, tokenPath, clientID, clientSecret, redirectURI string, scopeList ...string) (oauth2.TokenSource, error) {
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return nil, shared.NewAuthError(
@@ -33,7 +33,7 @@ func credentialsFromOAuth(ctx context.Context, tokenPath, clientID, clientSecret
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint:     google.Endpoint,
-		Scopes:       scopes,
+		Scopes:       effectiveScopes(scopeList),
 		RedirectURL:  redirectURI,
 	}
 	return cfg.TokenSource(ctx, &token), nil

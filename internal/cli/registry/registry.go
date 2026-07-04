@@ -24,6 +24,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/edits"
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
+	"github.com/tamtom/play-console-cli/internal/cli/games"
 	"github.com/tamtom/play-console-cli/internal/cli/generatedapks"
 	"github.com/tamtom/play-console-cli/internal/cli/grants"
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
@@ -134,6 +135,7 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		orders.OrdersCommand(),
 		purchases.PurchasesCommand(),
 		externaltx.ExternalTxCommand(),
+		games.GamesCommand(),
 		generatedapks.GeneratedAPKsCommand(),
 		grants.GrantsCommand(),
 		internalsharing.InternalSharingCommand(),

@@ -11,7 +11,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
-func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.TokenSource, error) {
+func credentialsFromServiceAccount(ctx context.Context, keyPath string, scopeList ...string) (oauth2.TokenSource, error) {
 	data, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, shared.NewAuthError(
@@ -20,7 +20,7 @@ func credentialsFromServiceAccount(ctx context.Context, keyPath string) (oauth2.
 			fmt.Sprintf("Check that %s exists and is readable (configured via profile key_path or %s).", keyPath, serviceAccountEnvVar),
 		)
 	}
-	creds, err := google.CredentialsFromJSON(ctx, data, scopes...) //nolint:staticcheck // no replacement available yet
+	creds, err := google.CredentialsFromJSON(ctx, data, effectiveScopes(scopeList)...) //nolint:staticcheck // no replacement available yet
 	if err != nil {
 		return nil, shared.NewAuthError(
 			"failed to parse service account JSON",

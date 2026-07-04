@@ -131,6 +131,7 @@ type Config struct {
 	RetryDelay           string        `json:"retry_delay,omitempty"`
 	Debug                string        `json:"debug"`
 	ChecksAccount        string        `json:"checks_account,omitempty"`
+	GamesApplicationID   string        `json:"games_application_id,omitempty"`
 }
 
 const maxConfigRetries = 30

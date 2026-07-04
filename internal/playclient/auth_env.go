@@ -10,9 +10,9 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
-func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
+func credentialsFromEnv(ctx context.Context, scopeList ...string) (*resolvedCredentials, error) {
 	if keyPath := strings.TrimSpace(os.Getenv(serviceAccountEnvVar)); keyPath != "" {
-		tokenSource, err := credentialsFromServiceAccount(ctx, keyPath)
+		tokenSource, err := credentialsFromServiceAccount(ctx, keyPath, scopeList...)
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +30,7 @@ func credentialsFromEnv(ctx context.Context) (*resolvedCredentials, error) {
 				"Set both env vars or use `gplay auth login` to create a profile.",
 			)
 		}
-		tokenSource, err := credentialsFromOAuth(ctx, tokenPath, clientID, clientSecret, redirectURIFromEnv())
+		tokenSource, err := credentialsFromOAuth(ctx, tokenPath, clientID, clientSecret, redirectURIFromEnv(), scopeList...)
 		if err != nil {
 			return nil, err
 		}

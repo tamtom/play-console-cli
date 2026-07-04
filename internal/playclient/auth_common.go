@@ -34,11 +34,22 @@ type resolvedCredentials struct {
 	ProfileName string
 }
 
-func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCredentials, error) {
+// effectiveScopes returns the requested scopes, or the default androidpublisher
+// scope when none are supplied. Sibling APIs on the same credentials (e.g. Play
+// Games management, which additionally needs the games scope) pass an explicit
+// list.
+func effectiveScopes(scopeList []string) []string {
+	if len(scopeList) == 0 {
+		return scopes
+	}
+	return scopeList
+}
+
+func resolveCredentials(ctx context.Context, cfg *config.Config, scopeList ...string) (*resolvedCredentials, error) {
 	profileName := shared.ResolveProfileName(cfg)
 	if profileName != "" && cfg != nil {
 		if profile, ok := findProfile(cfg, profileName); ok {
-			creds, err := credentialsFromProfile(ctx, profile)
+			creds, err := credentialsFromProfile(ctx, profile, scopeList...)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +72,7 @@ func resolveCredentials(ctx context.Context, cfg *config.Config) (*resolvedCrede
 	}
 
 	if envAuthPresent() {
-		creds, err := credentialsFromEnv(ctx)
+		creds, err := credentialsFromEnv(ctx, scopeList...)
 		if err != nil {
 			return nil, err
 		}

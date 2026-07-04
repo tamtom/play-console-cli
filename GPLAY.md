@@ -232,6 +232,34 @@
 - [external-transactions create](#external-transactions-create)
 - [external-transactions get](#external-transactions-get)
 - [external-transactions refund](#external-transactions-refund)
+- [games](#games)
+- [games achievements](#games-achievements)
+- [games achievements list](#games-achievements-list)
+- [games achievements get](#games-achievements-get)
+- [games achievements create](#games-achievements-create)
+- [games achievements update](#games-achievements-update)
+- [games achievements delete](#games-achievements-delete)
+- [games achievements reset](#games-achievements-reset)
+- [games achievements reset-all](#games-achievements-reset-all)
+- [games achievements reset-for-all-players](#games-achievements-reset-for-all-players)
+- [games leaderboards](#games-leaderboards)
+- [games leaderboards list](#games-leaderboards-list)
+- [games leaderboards get](#games-leaderboards-get)
+- [games leaderboards create](#games-leaderboards-create)
+- [games leaderboards update](#games-leaderboards-update)
+- [games leaderboards delete](#games-leaderboards-delete)
+- [games scores](#games-scores)
+- [games scores reset](#games-scores-reset)
+- [games scores reset-all](#games-scores-reset-all)
+- [games scores reset-for-all-players](#games-scores-reset-for-all-players)
+- [games events](#games-events)
+- [games events reset](#games-events-reset)
+- [games events reset-all](#games-events-reset-all)
+- [games events reset-for-all-players](#games-events-reset-for-all-players)
+- [games players](#games-players)
+- [games players hide](#games-players-hide)
+- [games players unhide](#games-players-unhide)
+- [games players list-hidden](#games-players-list-hidden)
 - [generated-apks](#generated-apks)
 - [generated-apks list](#generated-apks-list)
 - [generated-apks download](#generated-apks-download)
@@ -5819,6 +5847,437 @@ JSON format for partial refund:
 | `--json` | Refund JSON (or @file) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games
+
+Manage Play Games Services achievements, leaderboards, and player progress.
+
+```
+gplay games <subcommand> [flags]
+```
+
+Manage Play Games Services achievements, leaderboards, and player progress.
+
+Games commands use the https://www.googleapis.com/auth/androidpublisher OAuth
+scope (the same service account credentials as the rest of gplay) across two
+API surfaces:
+
+  - gamesConfiguration (https://gamesconfiguration.googleapis.com) manages the
+    achievement and leaderboard definitions shown in the Play Games section of
+    Play Console.
+  - gamesManagement (https://gamesmanagement.googleapis.com) resets player
+    progress and hides/unhides players. These operations target testers only.
+
+Identifiers differ from the rest of gplay: list/create operations take the
+numeric Play Games application ID (--application-id, or GPLAY_GAMES_APP_ID /
+games_application_id in config), NOT the Android package name. Individual
+resources are addressed by their string achievement/leaderboard/event IDs.
+
+The service account must be linked in the Play Games Services setup for the
+game; a normal Play Console grant is not sufficient.
+
+---
+
+## gplay games achievements
+
+Manage achievement definitions and reset achievement progress.
+
+```
+gplay games achievements <subcommand> [flags]
+```
+
+---
+
+## gplay games achievements list
+
+List achievement configurations for an application.
+
+```
+gplay games achievements list --application-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--max-results` | Maximum achievements per page (server default when 0) | `0` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements get
+
+Get a single achievement configuration.
+
+```
+gplay games achievements get --achievement-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--achievement-id` | Achievement ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements create
+
+Create (insert) an achievement configuration.
+
+```
+gplay games achievements create --application-id <id> --data <json> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--data` | Achievement configuration JSON (inline or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements update
+
+Update an achievement configuration (full replace).
+
+```
+gplay games achievements update --achievement-id <id> --data <json> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--achievement-id` | Achievement ID | `` |
+| `--data` | Achievement configuration JSON (inline or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements delete
+
+Delete an achievement configuration.
+
+```
+gplay games achievements delete --achievement-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--achievement-id` | Achievement ID | `` |
+| `--confirm` | Confirm deletion | `false` |
+
+---
+
+## gplay games achievements reset
+
+Reset the calling tester's progress for an achievement.
+
+```
+gplay games achievements reset --achievement-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--achievement-id` | Achievement ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements reset-all
+
+Reset the calling tester's progress for all achievements.
+
+```
+gplay games achievements reset-all --confirm [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm resetting all achievements for the calling tester | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements reset-for-all-players
+
+Reset an achievement for all testers of the application.
+
+```
+gplay games achievements reset-for-all-players --achievement-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--achievement-id` | Achievement ID | `` |
+| `--confirm` | Confirm resetting this achievement for ALL testers | `false` |
+
+---
+
+## gplay games leaderboards
+
+Manage leaderboard definitions.
+
+```
+gplay games leaderboards <subcommand> [flags]
+```
+
+---
+
+## gplay games leaderboards list
+
+List leaderboard configurations for an application.
+
+```
+gplay games leaderboards list --application-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--max-results` | Maximum leaderboards per page (server default when 0) | `0` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games leaderboards get
+
+Get a single leaderboard configuration.
+
+```
+gplay games leaderboards get --leaderboard-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--leaderboard-id` | Leaderboard ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games leaderboards create
+
+Create (insert) a leaderboard configuration.
+
+```
+gplay games leaderboards create --application-id <id> --data <json> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--data` | Leaderboard configuration JSON (inline or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games leaderboards update
+
+Update a leaderboard configuration (full replace).
+
+```
+gplay games leaderboards update --leaderboard-id <id> --data <json> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--data` | Leaderboard configuration JSON (inline or @file) | `` |
+| `--leaderboard-id` | Leaderboard ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games leaderboards delete
+
+Delete a leaderboard configuration.
+
+```
+gplay games leaderboards delete --leaderboard-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm deletion | `false` |
+| `--leaderboard-id` | Leaderboard ID | `` |
+
+---
+
+## gplay games scores
+
+Reset leaderboard scores for testers.
+
+```
+gplay games scores <subcommand> [flags]
+```
+
+---
+
+## gplay games scores reset
+
+Reset the calling tester's scores for a leaderboard.
+
+```
+gplay games scores reset --leaderboard-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--leaderboard-id` | Leaderboard ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games scores reset-all
+
+Reset the calling tester's scores for all leaderboards.
+
+```
+gplay games scores reset-all --confirm [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm resetting all leaderboard scores for the calling tester | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games scores reset-for-all-players
+
+Reset a leaderboard's scores for all testers of the application.
+
+```
+gplay games scores reset-for-all-players --leaderboard-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm resetting this leaderboard for ALL testers | `false` |
+| `--leaderboard-id` | Leaderboard ID | `` |
+
+---
+
+## gplay games events
+
+Reset event progress for testers.
+
+```
+gplay games events <subcommand> [flags]
+```
+
+---
+
+## gplay games events reset
+
+Reset the calling tester's progress for an event.
+
+```
+gplay games events reset --event-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--event-id` | Event ID | `` |
+
+---
+
+## gplay games events reset-all
+
+Reset the calling tester's progress for all events.
+
+```
+gplay games events reset-all --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm resetting all events for the calling tester | `false` |
+
+---
+
+## gplay games events reset-for-all-players
+
+Reset an event for all testers of the application.
+
+```
+gplay games events reset-for-all-players --event-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm resetting this event for ALL testers | `false` |
+| `--event-id` | Event ID | `` |
+
+---
+
+## gplay games players
+
+Hide, unhide, and list hidden players (testers).
+
+```
+gplay games players <subcommand> [flags]
+```
+
+---
+
+## gplay games players hide
+
+Hide a player's scores from an application's leaderboards.
+
+```
+gplay games players hide --application-id <id> --player-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--player-id` | Player ID to hide from leaderboards | `` |
+
+---
+
+## gplay games players unhide
+
+Unhide a previously hidden player's scores.
+
+```
+gplay games players unhide --application-id <id> --player-id <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--player-id` | Player ID to unhide | `` |
+
+---
+
+## gplay games players list-hidden
+
+List players hidden from an application's leaderboards.
+
+```
+gplay games players list-hidden --application-id <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Play Games application ID (overrides GPLAY_GAMES_APP_ID/games_application_id) | `` |
+| `--max-results` | Maximum hidden players per page (server default when 0) | `0` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
