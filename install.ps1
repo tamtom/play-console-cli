@@ -104,7 +104,7 @@ try {
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
     $onPath = $false
     if ($userPath) {
-        $onPath = ($userPath -split ';' | Where-Object { $_.TrimEnd('\') -ieq $installDir.TrimEnd('\') }).Count -gt 0
+        $onPath = @($userPath -split ';' | Where-Object { $_.TrimEnd('\') -ieq $installDir.TrimEnd('\') }).Count -gt 0
     }
     if (-not $onPath) {
         $newPath = if ($userPath) { "$userPath;$installDir" } else { $installDir }
