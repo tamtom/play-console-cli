@@ -820,7 +820,7 @@ The new expiry time must be:
 func SubscriptionsRevokeCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("purchases subscriptions revoke", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
-	subscriptionID := fs.String("subscription-id", "", "Subscription ID")
+	subscriptionID := fs.String("subscription-id", "", "Subscription ID (deprecated: ignored, the v2 endpoint is keyed by token)")
 	token := fs.String("token", "", "Purchase token")
 	confirm := fs.Bool("confirm", false, "Confirm revocation")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
@@ -828,20 +828,21 @@ func SubscriptionsRevokeCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "revoke",
-		ShortUsage: "gplay purchases subscriptions revoke --package <name> --subscription-id <id> --token <token> --confirm",
-		ShortHelp:  "Revoke a subscription immediately.",
-		LongHelp: `Revoke a subscription immediately.
+		ShortUsage: "gplay purchases subscriptions revoke --package <name> --token <token> --confirm",
+		ShortHelp:  "Revoke a subscription immediately with a full refund.",
+		LongHelp: `Revoke a subscription immediately with a full refund.
 
 Unlike cancel, this immediately ends the subscription and
-the user loses access right away.`,
+the user loses access right away.
+
+This runs on the subscriptionsv2 endpoint, which is keyed by purchase token
+alone; --subscription-id is accepted for backwards compatibility but ignored.
+For control over the refund mode, use "gplay purchases subscriptionsv2 revoke".`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
-			}
-			if strings.TrimSpace(*subscriptionID) == "" {
-				return fmt.Errorf("--subscription-id is required")
 			}
 			if strings.TrimSpace(*token) == "" {
 				return fmt.Errorf("--token is required")
@@ -849,7 +850,7 @@ the user loses access right away.`,
 			if !*confirm {
 				return fmt.Errorf("--confirm is required")
 			}
-			service, err := playclient.NewService(ctx)
+			service, err := newPlayService(ctx)
 			if err != nil {
 				return err
 			}
@@ -861,8 +862,15 @@ the user loses access right away.`,
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			err = service.API.Purchases.Subscriptions.Revoke(pkg, *subscriptionID, *token).Context(ctx).Do()
-			if err != nil {
+			// The v1 revoke endpoint was removed from androidpublisher/v3. Its
+			// implicit behavior was terminate + full refund, which v2 requires
+			// callers to state explicitly.
+			req := androidpublisher.RevokeSubscriptionPurchaseRequest{
+				RevocationContext: &androidpublisher.RevocationContext{
+					FullRefund: &androidpublisher.RevocationContextFullRefund{},
+				},
+			}
+			if _, err := service.API.Purchases.Subscriptionsv2.Revoke(pkg, *token, &req).Context(ctx).Do(); err != nil {
 				return err
 			}
 

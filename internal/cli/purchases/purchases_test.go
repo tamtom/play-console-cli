@@ -105,6 +105,91 @@ func TestSubscriptionsV2CancelCommand_CallsAPI(t *testing.T) {
 	}
 }
 
+func TestSubscriptionsRevokeCommand_CallsV2API(t *testing.T) {
+	var gotPath, gotBody string
+	installMockPlayService(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{}`)
+	})
+
+	cmd := SubscriptionsRevokeCommand()
+	_ = cmd.FlagSet.Parse([]string{
+		"--package", "com.example.app",
+		"--subscription-id", "premium",
+		"--token", "tok",
+		"--confirm",
+	})
+	stdout, err := capturePurchasesStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	// The v1 endpoint was removed from androidpublisher/v3; this command now
+	// rides on subscriptionsv2, which is keyed by token alone.
+	if gotPath != "/androidpublisher/v3/applications/com.example.app/purchases/subscriptionsv2/tokens/tok:revoke" {
+		t.Fatalf("unexpected path: %s", gotPath)
+	}
+	// v2 requires an explicit revocation context; a full refund preserves the
+	// behavior the v1 endpoint applied implicitly.
+	if !strings.Contains(gotBody, "fullRefund") {
+		t.Fatalf("expected fullRefund revocation context, got %s", gotBody)
+	}
+	if !strings.Contains(stdout, `"revoked":true`) {
+		t.Fatalf("expected revoked output, got %s", stdout)
+	}
+	if !strings.Contains(stdout, `"subscriptionId":"premium"`) {
+		t.Fatalf("expected subscriptionId echoed in output, got %s", stdout)
+	}
+}
+
+// --subscription-id is meaningless to the v2 endpoint, so it must not be
+// required any more — but passing it stays valid for existing scripts.
+func TestSubscriptionsRevokeCommand_SubscriptionIDOptional(t *testing.T) {
+	var gotPath string
+	installMockPlayService(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{}`)
+	})
+
+	cmd := SubscriptionsRevokeCommand()
+	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--token", "tok", "--confirm"})
+	if _, err := capturePurchasesStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	}); err != nil {
+		t.Fatalf("expected no error without --subscription-id, got %v", err)
+	}
+	if gotPath != "/androidpublisher/v3/applications/com.example.app/purchases/subscriptionsv2/tokens/tok:revoke" {
+		t.Fatalf("unexpected path: %s", gotPath)
+	}
+}
+
+func TestSubscriptionsRevokeCommand_Validation(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"missing token", []string{"--package", "com.example.app", "--confirm"}, "--token is required"},
+		{"missing confirm", []string{"--package", "com.example.app", "--token", "tok"}, "--confirm is required"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := SubscriptionsRevokeCommand()
+			_ = cmd.FlagSet.Parse(tt.args)
+			err := cmd.Exec(context.Background(), nil)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("expected error containing %q, got %v", tt.want, err)
+			}
+		})
+	}
+}
+
 func installMockPlayService(t *testing.T, handler http.HandlerFunc) {
 	t.Helper()
 

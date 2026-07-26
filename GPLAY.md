@@ -5553,16 +5553,20 @@ The new expiry time must be:
 
 ## gplay purchases subscriptions revoke
 
-Revoke a subscription immediately.
+Revoke a subscription immediately with a full refund.
 
 ```
-gplay purchases subscriptions revoke --package <name> --subscription-id <id> --token <token> --confirm
+gplay purchases subscriptions revoke --package <name> --token <token> --confirm
 ```
 
-Revoke a subscription immediately.
+Revoke a subscription immediately with a full refund.
 
 Unlike cancel, this immediately ends the subscription and
 the user loses access right away.
+
+This runs on the subscriptionsv2 endpoint, which is keyed by purchase token
+alone; --subscription-id is accepted for backwards compatibility but ignored.
+For control over the refund mode, use "gplay purchases subscriptionsv2 revoke".
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -5570,7 +5574,7 @@ the user loses access right away.
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
-| `--subscription-id` | Subscription ID | `` |
+| `--subscription-id` | Subscription ID (deprecated: ignored, the v2 endpoint is keyed by token) | `` |
 | `--token` | Purchase token | `` |
 
 ---
