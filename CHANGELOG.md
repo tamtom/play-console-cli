@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
+> [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
+
+
+## [0.8.0] - 2026-07-26
+
+### Added
+
+#### Offline preflight engine — `gplay preflight`
+
+`preflight` now decodes `AndroidManifest.xml` for real instead of matching
+substrings, and runs nine independently selectable scanners with no API calls
+and no credentials.
+
+- **Manifest decoding** — binary AXML (`internal/preflight/axml.go`) for APKs and
+  aapt2 protobuf `XmlNode` (`internal/preflight/protoxml.go`) for App Bundles,
+  normalized into one typed model (`internal/preflight/manifest.go`). Optional
+  attributes are tri-state, so *absent*, *explicitly false*, and *not statically
+  determinable* stay distinguishable.
+- **`manifest`** — `debuggable`, `testOnly`, exported components missing
+  `android:exported` on `targetSdk` 31+, exported providers granting URI
+  permissions, foreground service types without their matching Android 14
+  permission, cleartext traffic, `allowBackup`, package/version sanity.
+- **`permissions`** — 23 restricted permissions requiring a Play declaration,
+  18 sensitive permissions requiring a Data safety disclosure, legacy storage
+  permissions on modern targets, duplicates, deprecated permissions. Findings
+  carry Play policy documentation links.
+- **`native_libs`** — missing `arm64-v8a`, **16 KB memory page alignment** read
+  from real ELF program headers via `debug/elf`, unstripped debug symbols,
+  `extractNativeLibs="true"`.
+- **`metadata`** — listing text limits plus **real screenshot pixel dimensions**,
+  aspect ratio, count, and icon/feature-graphic sizes. Enabled by
+  `--listings-dir`.
+- **`secrets`** — 14 credential patterns, shipped keystores and `.pem` files,
+  `.git`/`.env` leakage; also scans dex string data with bounded chunked reads.
+- **`billing`** — Play Billing vs. third-party payment processors,
+  `com.android.vending.BILLING` declared without an implementation.
+- **`privacy`** — 40+ analytics/attribution/ads SDK signatures and `AD_ID`
+  permission consistency against `targetSdk` 33+.
+- **`policy`** — target API level floor, restricted services (accessibility,
+  VPN, device admin, notification listener), APK-vs-AAB upload format.
+- **`size`** — download size budget, dex fragmentation, payload breakdown.
+
+#### New flags
+
+- `--listings-dir` — validate a Fastlane-style listings directory in the same pass
+- `--only` / `--skip` — comma-separated scanner selection
+- `--list-scanners` — print the available scanner IDs and exit
+- `--min-target-sdk` — override the target API level floor without a rebuild
+
+### Changed
+
+- `preflight` text output now groups findings per scanner, reporting `ok`,
+  `skipped (reason)`, or the finding count for every scanner that ran.
+- The `google_api_key` secret pattern is now a **warning** rather than an error.
+  Android apps legitimately embed Maps and Firebase `AIza…` keys; the defence is
+  key restriction, not absence. Hard credentials (private keys, service-account
+  JSON, `sk_live_`, GitHub/Slack tokens) remain errors.
 
 ## [0.4.5] - 2026-02-26
 

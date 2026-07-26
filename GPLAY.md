@@ -693,30 +693,50 @@ gplay preflight --file <app.aab> [flags]
 
 Run offline checks against an AAB or APK without any API calls.
 
-Checks include: manifest presence, bundle size, native lib coverage,
-dex count/size, debuggable flag, testOnly flag, cleartext traffic,
-dangerous permissions, secret scan (API keys/private keys/etc.),
-and developer-environment artifacts.
+AndroidManifest.xml is fully decoded — binary AXML for APKs, aapt2 protobuf
+for App Bundles — so checks read real, typed attribute values rather than
+guessing from substrings.
+
+Scanners:
+  manifest     debuggable/testOnly flags, exported components, foreground
+               service types, package and version sanity
+  permissions  restricted permissions needing a Play declaration, sensitive
+               permissions needing a Data safety disclosure, legacy storage
+  native_libs  64-bit coverage, 16 KB page alignment, debug symbols
+  metadata     listing text limits and real screenshot dimensions
+               (requires --listings-dir)
+  secrets      API keys, private keys, keystores, developer artifacts
+  billing      Play Billing vs third-party payment processors
+  privacy      analytics/ads SDKs and advertising ID consistency
+  policy       target API level floor, restricted services, upload format
+  size         download size budget, dex count, payload breakdown
 
 Exit codes:
-  0   clean
+  0   no findings at or above --fail-on
   1   findings at or above --fail-on severity
 
-Example:
+Examples:
   gplay preflight --file app.aab
-  gplay preflight --file app.aab --max-size 100M --fail-on warning
-  gplay preflight --file app.aab --output json | jq .
+  gplay preflight --file app.aab --fail-on warning
+  gplay preflight --file app.aab --listings-dir ./metadata
+  gplay preflight --file app.aab --only manifest,permissions
+  gplay preflight --file app.aab --skip size --output json | jq .
 
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--fail-on` | Exit non-zero when findings reach this severity: info, warning, error | `error` |
 | `--file` | Path to .aab or .apk to scan (required) | `` |
+| `--list-scanners` | Print the available scanner IDs and exit | `false` |
+| `--listings-dir` | Listings directory to validate (enables the metadata scanner) | `` |
 | `--max-dex` | Max allowed size per dex file (e.g. 64M) | `` |
 | `--max-size` | Max allowed bundle size (e.g. 150M) | `` |
+| `--min-target-sdk` | Minimum accepted targetSdkVersion (default: the current Play requirement) | `0` |
+| `--only` | Comma-separated scanners to run (default: all) | `` |
 | `--output` | Output format: text (default), json, markdown | `text` |
 | `--pretty` | Pretty-print JSON output | `false` |
-| `--skip-secrets` | Skip secret-pattern scan (faster) | `false` |
+| `--skip` | Comma-separated scanners to exclude | `` |
+| `--skip-secrets` | Skip the secrets scanner (faster) | `false` |
 
 ---
 

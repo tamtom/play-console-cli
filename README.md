@@ -129,6 +129,7 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 - **Store listings, screenshots & localization** — manage listing text, images, and metadata across every locale; sync with a local directory or Fastlane.
 - **Full monetization stack** — subscriptions, base plans, promotional offers, in-app products, one-time purchases, regional price conversion. Pairs with [RevenueCat](docs/monetization.md#using-gplay-with-revenuecat): create products in Play with `gplay`, import them into RevenueCat.
 - **Purchase verification** — verify tokens, acknowledge purchases, refund orders, decode RTDN webhooks.
+- **Offline preflight** — `gplay preflight --file app.aab` fully decodes `AndroidManifest.xml` (binary AXML for APKs, aapt2 protobuf for App Bundles) and runs nine scanners with no API calls and no credentials: manifest flags, restricted permissions, 64-bit and **16 KB page alignment**, listing text and real screenshot dimensions, secrets, billing, privacy SDKs, target API floor, and size. Catches the rejections *before* you upload.
 - **App health** — crash clusters, ANRs, performance vitals, review replies, financial & statistics reports.
 - **AI-agent native** — minified JSON output, explicit flags, `--help` everywhere, `--dry-run` for every write, no interactive prompts, [Agent Skills](docs/ai-agents.md) included.
 - **Lightweight, zero runtime to install** — a single compiled Go binary with instant startup. No Node.js, no Python, no JVM, no Gradle project required.
@@ -155,6 +156,7 @@ Versus [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gra
 | Reviews: read + reply | ✅ | ❌ | ❌ |
 | Financial & statistics reports | ✅ | ❌ | ❌ |
 | Users & permission grants | ✅ | ❌ | ❌ |
+| Offline preflight (manifest decode, 16 KB alignment, secrets) | ✅ 9 scanners | ❌ | ❌ |
 | Managed Google Play (private/custom apps) | ✅ | ❌ | ❌ |
 | Google Checks compliance gate | ✅ | ❌ | ❌ |
 | AI-agent-friendly output | ✅ JSON default | ❌ Human logs | ❌ Gradle logs |

@@ -108,16 +108,44 @@ gplay internal-sharing upload-apk --package com.example.app --file app.apk
 ## Pre-submission checks
 
 ```bash
-# Offline compliance scan on an AAB or APK (no API calls)
-# Checks: manifest, bundle size, native ABIs, dex, debuggable, testOnly,
-# cleartext traffic, dangerous permissions, secret scan, misplaced files.
+# Offline compliance scan on an AAB or APK — no API calls, no credentials
 gplay preflight --file app.aab
 gplay preflight --file app.aab --max-size 100M --fail-on warning   # CI gate
+gplay preflight --file app.aab --listings-dir ./metadata           # also check the listing
+gplay preflight --file app.aab --output json --pretty | jq .
+gplay preflight --list-scanners
 
 # Bundle size analysis (offline)
 gplay bundles analyze --file app.aab --top-files 20
 gplay bundles compare --base old.aab --candidate new.aab --threshold 2M
 ```
+
+### What preflight scans
+
+`preflight` decodes `AndroidManifest.xml` for real — binary AXML for APKs, aapt2
+protobuf for App Bundles — so checks read typed attribute values instead of
+guessing from substrings. Nine scanners run by default; select them with
+`--only` or `--skip`.
+
+| Scanner | Catches |
+|---|---|
+| `manifest` | `debuggable`, `testOnly`, exported components missing `android:exported` (install failure on Android 12+), exported providers granting URI permissions, foreground service types without their matching permission (Android 14 `SecurityException`), cleartext traffic, `allowBackup`, package/version sanity |
+| `permissions` | Restricted permissions that need a Play declaration form, sensitive permissions that need a Data safety disclosure, legacy storage permissions on modern targets, duplicates, deprecated permissions |
+| `native_libs` | Missing `arm64-v8a`, **16 KB memory page alignment** (read from real ELF program headers — required by Play for `targetSdk` 35+), unstripped debug symbols, `extractNativeLibs="true"` |
+| `metadata` | Listing title/description/release-note lengths and **actual screenshot pixel dimensions**, aspect ratio, count, and icon/feature-graphic sizes. Requires `--listings-dir` |
+| `secrets` | Private keys, AWS/Stripe/GitHub/Slack/SendGrid/OpenAI/Anthropic tokens, service-account JSON, shipped keystores and `.pem` files, `.git`/`.env` leakage. Also scans dex string data |
+| `billing` | Third-party payment processors alongside (or instead of) Play Billing, `com.android.vending.BILLING` declared with no implementation |
+| `privacy` | 40+ analytics/attribution/ads SDKs, and `AD_ID` permission consistency against `targetSdk` 33+ |
+| `policy` | Target API level floor (override with `--min-target-sdk`), restricted services (accessibility, VPN, device admin, notification listener), APK-vs-AAB upload format |
+| `size` | Download size budget, dex fragmentation, payload breakdown by bucket |
+
+Severity is `error`, `warning`, or `info`; `--fail-on` picks the CI gate
+threshold. Findings are grouped per scanner in text output and carry Play policy
+documentation links where one applies.
+
+> **Note:** `policy` compares `targetSdkVersion` against a constant that Google
+> raises roughly every August. Pass `--min-target-sdk` to override it without
+> waiting for a new gplay release.
 
 ## Google Checks (privacy & compliance)
 

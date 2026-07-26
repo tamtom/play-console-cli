@@ -46,7 +46,7 @@
 - `gplay migrate fastlane` — migrate metadata from Fastlane directory structure
 - `gplay release-notes set` — set release notes (plain text auto-assigned to en-US)
 - `gplay validate` — pre-submission validation checks
-- `gplay preflight --file <app.aab>` — offline compliance scan (manifest, size, native ABIs, dex, debuggable/testOnly flags, cleartext, dangerous perms, secret scan); `--fail-on` severity for CI
+- `gplay preflight --file <app.aab>` — offline compliance scan, no API calls. Decodes AndroidManifest.xml (binary AXML for APKs, aapt2 protobuf for AABs) and runs nine scanners: `manifest`, `permissions`, `native_libs` (incl. 16 KB page alignment), `metadata` (with `--listings-dir`), `secrets`, `billing`, `privacy`, `policy`, `size`. Select with `--only`/`--skip`, gate CI with `--fail-on`, list with `--list-scanners`
 - `gplay bundles analyze --file <app.aab>` — offline size breakdown per module/bucket, top largest files
 - `gplay bundles compare --base <a.aab> --candidate <b.aab> --threshold 2M` — size regression gate
 - `gplay audit list/search/clear/path` — local journal of every invocation at `~/.gplay/audit.log` (disable with `GPLAY_AUDIT=0`)

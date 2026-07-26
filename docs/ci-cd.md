@@ -54,8 +54,14 @@ deploy:
 ## Useful CI gates
 
 ```bash
-# Fail the build on compliance issues before uploading (offline, no API calls)
+# Fail the build on compliance issues before uploading (offline, no credentials needed)
 gplay preflight --file app.aab --max-size 100M --fail-on warning
+
+# Block only on hard blockers, and check the store listing in the same pass
+gplay preflight --file app.aab --listings-dir ./fastlane/metadata/android --fail-on error
+
+# Narrow the gate to specific scanners (see `gplay preflight --list-scanners`)
+gplay preflight --file app.aab --only manifest,permissions,native_libs,secrets --fail-on warning
 
 # Fail on bundle size regression
 gplay bundles compare --base old.aab --candidate new.aab --threshold 2M

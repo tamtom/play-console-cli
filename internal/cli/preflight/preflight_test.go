@@ -121,6 +121,79 @@ func TestParseSeverity(t *testing.T) {
 	}
 }
 
+func TestPreflightListScanners(t *testing.T) {
+	cmd := PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{"--list-scanners"})
+	// --file is not required when only listing scanners.
+	if err := cmd.Exec(context.Background(), nil); err != nil {
+		t.Fatalf("expected --list-scanners to succeed, got %v", err)
+	}
+}
+
+func TestPreflightRejectsUnknownScanner(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.aab")
+	writeAAB(t, path, minimalAAB())
+	cmd := PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{"--file", path, "--only", "not-a-scanner"})
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil || !strings.Contains(err.Error(), "unknown scanner") {
+		t.Fatalf("expected unknown scanner error, got %v", err)
+	}
+}
+
+func TestPreflightOnlyLimitsScanners(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.aab")
+	entries := minimalAAB()
+	entries["base/assets/.DS_Store"] = []byte{0} // a secrets-scanner warning
+	writeAAB(t, path, entries)
+
+	// Restricting to the size scanner must suppress the secrets finding, so
+	// --fail-on warning no longer trips.
+	cmd := PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{"--file", path, "--output", "json", "--fail-on", "warning", "--only", "size"})
+	if err := cmd.Exec(context.Background(), nil); err != nil {
+		t.Fatalf("--only size should not surface secrets findings, got %v", err)
+	}
+
+	// The fixture's placeholder manifest also trips the manifest and
+	// native_libs scanners, so exclude those too; this doubles as coverage of
+	// comma-separated parsing.
+	cmd = PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{
+		"--file", path, "--output", "json", "--fail-on", "warning",
+		"--skip", "secrets,manifest,native_libs",
+	})
+	if err := cmd.Exec(context.Background(), nil); err != nil {
+		t.Fatalf("--skip secrets should not surface secrets findings, got %v", err)
+	}
+
+	// Without the exclusion the same bundle must fail, proving the flag is
+	// what suppressed the finding.
+	cmd = PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{
+		"--file", path, "--output", "json", "--fail-on", "warning",
+		"--skip", "manifest,native_libs",
+	})
+	if err := cmd.Exec(context.Background(), nil); err == nil {
+		t.Fatal("expected the .DS_Store warning to fail when secrets is not skipped")
+	}
+}
+
+func TestPreflightListingsDirIsValidated(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.aab")
+	writeAAB(t, path, minimalAAB())
+	cmd := PreflightCommand()
+	_ = cmd.FlagSet.Parse([]string{
+		"--file", path,
+		"--output", "json",
+		"--listings-dir", filepath.Join(t.TempDir(), "does-not-exist"),
+	})
+	err := cmd.Exec(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected an unreadable listings directory to produce an error finding")
+	}
+}
+
 func TestPreflightInvalidMaxSize(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "app.aab")
 	writeAAB(t, path, minimalAAB())
