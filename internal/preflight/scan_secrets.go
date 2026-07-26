@@ -23,6 +23,12 @@ type secretPattern struct {
 // an error. A Google API key is a warning: Android apps legitimately embed
 // Maps and Firebase keys, and the real defense is key restriction, not
 // absence.
+//
+// These patterns are intentionally unanchored: they search for a credential
+// anywhere inside an arbitrary blob, rather than validating that a whole
+// string is a trusted URL. The URL-shaped ones therefore match on host and
+// path only, without a scheme — a token is just as leaked when the scheme is
+// absent or the URL was assembled by string concatenation.
 var secretPatterns = []secretPattern{
 	{
 		"private_key_block", SeverityError, "remove the key from the build; never ship private keys to clients",
@@ -46,7 +52,7 @@ var secretPatterns = []secretPattern{
 	},
 	{
 		"slack_webhook", SeverityError, "revoke the webhook; anyone can post to the channel with it",
-		regexp.MustCompile(`https://hooks\.slack\.com/services/[A-Za-z0-9/+_-]{20,}`),
+		regexp.MustCompile(`hooks\.slack\.com/services/[A-Za-z0-9/+_-]{20,}`),
 	},
 	{
 		"sendgrid_key", SeverityError, "revoke the key in SendGrid",
@@ -78,7 +84,7 @@ var secretPatterns = []secretPattern{
 	},
 	{
 		"firebase_url", SeverityInfo, "confirm your Realtime Database security rules are not left open",
-		regexp.MustCompile(`https://[a-z0-9\-]+\.firebaseio\.com`),
+		regexp.MustCompile(`[a-z0-9\-]+\.firebaseio\.com`),
 	},
 }
 

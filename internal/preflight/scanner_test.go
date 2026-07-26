@@ -177,6 +177,35 @@ func TestScanShippedKeystoreIsError(t *testing.T) {
 	}
 }
 
+// The URL-shaped patterns match on host and path without a scheme, so a
+// credential is still caught when the URL was assembled by concatenation or
+// stored without "https://". Both spellings must hit.
+func TestScanURLSecretsMatchWithAndWithoutScheme(t *testing.T) {
+	token := "T00000000/B00000000/" + strings.Repeat("x", 24)
+	for _, tc := range []struct {
+		name, payload string
+	}{
+		{"with scheme", "https://hooks.slack.com/services/" + token},
+		{"without scheme", "hooks.slack.com/services/" + token},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "app.aab")
+			entries := minimalAAB()
+			entries["base/assets/webhook.txt"] = []byte(tc.payload)
+			buildAAB(t, path, entries)
+
+			r, _ := Scan(path, Options{})
+			for _, f := range r.Findings {
+				if f.Check == "secrets" && f.Severity == SeverityError &&
+					strings.Contains(f.Message, "slack_webhook") {
+					return
+				}
+			}
+			t.Errorf("expected slack_webhook error, got %+v", r.Findings)
+		})
+	}
+}
+
 func TestScanSecretDetectionDisabled(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "app.aab")
 	entries := minimalAAB()
