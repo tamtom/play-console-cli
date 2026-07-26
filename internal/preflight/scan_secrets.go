@@ -26,9 +26,9 @@ type secretPattern struct {
 //
 // These patterns are intentionally unanchored: they search for a credential
 // anywhere inside an arbitrary blob, rather than validating that a whole
-// string is a trusted URL. The URL-shaped ones therefore match on host and
-// path only, without a scheme — a token is just as leaked when the scheme is
-// absent or the URL was assembled by string concatenation.
+// string is a trusted URL. Where a credential is carried in a URL, the pattern
+// keys on the secret-bearing path rather than on the hostname, so the token is
+// still found when the URL is assembled at runtime.
 var secretPatterns = []secretPattern{
 	{
 		"private_key_block", SeverityError, "remove the key from the build; never ship private keys to clients",
@@ -52,7 +52,10 @@ var secretPatterns = []secretPattern{
 	},
 	{
 		"slack_webhook", SeverityError, "revoke the webhook; anyone can post to the channel with it",
-		regexp.MustCompile(`hooks\.slack\.com/services/[A-Za-z0-9/+_-]{20,}`),
+		// Matches the credential path itself rather than the hooks.slack.com
+		// host, so the token is still found when the URL is assembled at
+		// runtime or the host is held in a separate constant.
+		regexp.MustCompile(`/services/T[A-Za-z0-9]{6,}/B[A-Za-z0-9]{6,}/[A-Za-z0-9]{20,}`),
 	},
 	{
 		"sendgrid_key", SeverityError, "revoke the key in SendGrid",
