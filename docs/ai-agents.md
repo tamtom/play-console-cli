@@ -46,6 +46,7 @@ npx skills add tamtom/gplay-cli-skills
 | `gplay-user-management` | Developer account user and permission grant management |
 | `gplay-migrate-fastlane` | Migration from Fastlane metadata to gplay format |
 | `gplay-reports-download` | Financial and statistics report listing/downloading from GCS |
+| `gplay-preflight` | Offline AAB/APK scanning: nine scanners, manifest decoding, CI gating |
 | `gplay-submission-checks` | Pre-submission validation |
 | `gplay-screenshot-automation` | Screenshot management workflows |
 | `gplay-subscription-localization` | Subscription and in-app product localization |

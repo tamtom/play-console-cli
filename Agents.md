@@ -185,6 +185,7 @@ Available skills:
 - `gplay-user-management` - Developer account user and grant management
 - `gplay-metadata-sync` - Metadata and localization sync (incl. Fastlane format)
 - `gplay-migrate-fastlane` - Fastlane metadata migration
+- `gplay-preflight` - Offline AAB/APK scanning: nine scanners, manifest decoding, CI gating
 - `gplay-submission-checks` - Pre-submission validation
 - `gplay-screenshot-automation` - Upload and validate Play Store screenshots
 - `gplay-testers-orchestration` - Closed-testing tracks and tester management
