@@ -15,6 +15,28 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+// newPlayService is the test seam for injecting a mock Play API service.
+var newPlayService = playclient.NewService
+
+// deobfuscationTypes maps a lowercased --type value to the exact casing the
+// Play API expects. The type is interpolated into the request URL as the
+// {deobfuscationFileType} path segment, so casing is load-bearing: sending
+// "nativecode" fails with HTTP 400 "Invalid value at 'deobfuscation_file_type'".
+var deobfuscationTypes = map[string]string{
+	"proguard":   "proguard",
+	"nativecode": "nativeCode",
+}
+
+// canonicalDeobfuscationType validates --type case-insensitively and returns
+// the value in the casing the API requires.
+func canonicalDeobfuscationType(raw string) (string, error) {
+	apiType, ok := deobfuscationTypes[strings.ToLower(strings.TrimSpace(raw))]
+	if !ok {
+		return "", fmt.Errorf("--type must be 'proguard' or 'nativeCode'")
+	}
+	return apiType, nil
+}
+
 func DeobfuscationCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("deobfuscation", flag.ExitOnError)
 	return &ffcli.Command{
@@ -65,10 +87,12 @@ func UploadCommand() *ffcli.Command {
 				return fmt.Errorf("--file is required")
 			}
 
-			// Validate deobfuscation type
-			deobType := strings.ToLower(strings.TrimSpace(*deobfuscationType))
-			if deobType != "proguard" && deobType != "nativecode" {
-				return fmt.Errorf("--type must be 'proguard' or 'nativeCode'")
+			// Validate deobfuscation type. Accept any casing from the user, but
+			// send the exact casing the API defines: the value becomes a URL
+			// path segment and the API rejects "nativecode" with HTTP 400.
+			deobType, err := canonicalDeobfuscationType(*deobfuscationType)
+			if err != nil {
+				return err
 			}
 
 			// Parse version code
@@ -77,7 +101,7 @@ func UploadCommand() *ffcli.Command {
 				return fmt.Errorf("invalid --apk-version: %w", err)
 			}
 
-			service, err := playclient.NewService(ctx)
+			service, err := newPlayService(ctx)
 			if err != nil {
 				return err
 			}

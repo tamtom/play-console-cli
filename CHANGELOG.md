@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
 
+## [Unreleased]
+
+### Fixed
+
+- `gplay deobfuscation upload --type nativeCode` no longer fails with HTTP 400.
+  The type was lowercased for validation and the lowercased value was then reused
+  to build the request, so the API received `nativecode` and rejected it. `--type`
+  is still matched case-insensitively, but the value is now sent in the exact
+  casing the API defines. `--type proguard` was unaffected. ([#253](https://github.com/tamtom/play-console-cli/issues/253))
+
 ## [0.8.0] - 2026-07-26
 
 ### Added
