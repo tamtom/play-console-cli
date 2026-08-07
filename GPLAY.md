@@ -319,6 +319,13 @@
 - [docs show](#docs-show)
 - [web](#web)
 - [web open](#web-open)
+- [web auth](#web-auth)
+- [web auth login](#web-auth-login)
+- [web auth status](#web-auth-status)
+- [web auth logout](#web-auth-logout)
+- [web apps](#web-apps)
+- [web apps list](#web-apps-list)
+- [web apps create](#web-apps-create)
 - [update](#update)
 - [completion](#completion)
 - [completion bash](#completion-bash)
@@ -7576,7 +7583,7 @@ Examples:
 
 ## gplay web
 
-Open Google Play Console pages in the browser.
+Play Console in the browser, plus web-session commands (list apps).
 
 ```
 gplay web <subcommand> [flags]
@@ -7613,6 +7620,209 @@ Examples:
 |------|-------------|---------|
 | `--package` | Package name (applicationId) | `` |
 | `--section` | Console section: dashboard, pricing, releases, reviews, statistics, store-listing, testers, vitals | `` |
+
+---
+
+## gplay web auth
+
+Manage Play Console browser sessions (cookies) for web RPCs.
+
+```
+gplay web auth <subcommand> [flags]
+```
+
+Manage Play Console browser sessions.
+
+Web commands talk to Play Console's internal web APIs using cookies captured
+from a signed-in browser. This is SEPARATE from "gplay auth" service accounts
+and is required only for commands the official Android Publisher API does not
+support (such as listing every app in a developer account).
+
+Sessions are stored per account: in the macOS Keychain on macOS (cookies
+never touch disk), or as files with 0600 permissions under ~/.gplay/web/
+when GPLAY_WEB_SESSION_DIR is set or on other platforms.
+Cookies are secrets: treat them like passwords and never commit them.
+
+---
+
+## gplay web auth login
+
+Store browser cookies as a Play Console web session.
+
+```
+gplay web auth login --email <email> [--browser | --cookies <header> | --cookies-file <path|->]
+```
+
+Store browser cookies as a Play Console web session.
+
+By default, gplay imports the active Play Console cookies from Google Chrome
+on macOS. macOS may ask you to allow access to "Chrome Safe Storage".
+
+With --browser, gplay instead opens a Chrome window it controls, backed by its
+own profile under ~/.gplay/web/browser. Sign in there once: the profile keeps
+that login, so later runs reuse it without opening a window and without
+touching your everyday Chrome profiles. If the profile is still signed in,
+--browser refreshes the session silently. The window opens with no DevTools
+port and closes itself once sign-in completes.
+
+To provide cookies manually instead:
+  1. Sign in to https://play.google.com/console in your browser.
+  2. Open DevTools -> Network and select any request to play.google.com.
+  3. Copy the full "Cookie:" request header value and pass it via --cookies,
+     or save it to a file and use --cookies-file (use '-' to read from stdin).
+
+Alternatively paste a JSON export from a cookie manager extension
+(Cookie-Editor, EditThisCookie); the format is auto-detected.
+
+The session is validated against the real Play Console before it is saved.
+On macOS it is stored in the macOS Keychain (service "gplay web session");
+with GPLAY_WEB_SESSION_DIR set, or on other platforms, as a 0600 file under
+~/.gplay/web/ instead.
+
+Examples:
+  gplay web auth login --email me@example.com
+  gplay web auth login --email me@example.com --browser
+  gplay web auth login --email me@example.com --cookies "SID=...; SAPISID=...; ..."
+  pbpaste | gplay web auth login --email me@example.com --cookies-file -
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--browser` | Sign in via a gplay-controlled Chrome window with its own persistent profile | `false` |
+| `--browser-timeout` | How long to wait for the browser sign-in to complete | `5m0s` |
+| `--cookies` | Raw Cookie header value copied from a play.google.com request | `` |
+| `--cookies-file` | File with cookies (raw header or exporter JSON; '-' for stdin) | `` |
+| `--email` | Google account email the cookies belong to | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web auth status
+
+List stored web sessions and optionally validate them.
+
+```
+gplay web auth status [--check]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--check` | Validate each stored session against the real Play Console | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web auth logout
+
+Delete stored web sessions.
+
+```
+gplay web auth logout [--account <email> | --all] --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Account email to remove (default: last used session) | `` |
+| `--all` | Remove all stored web sessions | `false` |
+| `--confirm` | Confirm removal | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps
+
+Manage apps via the Play Console web session.
+
+```
+gplay web apps <subcommand> [flags]
+```
+
+Manage apps through Play Console's internal web APIs.
+
+These commands use the browser-session auth from "gplay web auth login", not
+the service-account API, because the official Android Publisher API has no
+endpoint for enumerating the apps in a developer account.
+
+---
+
+## gplay web apps list
+
+List every app in the developer account via the web session.
+
+```
+gplay web apps list [--developer <id>] [--output table]
+```
+
+List every app in a Play Console developer account.
+
+Unlike "gplay apps list", this sees apps the moment they exist. That command
+queries the Play Developer Reporting API, which only returns apps that already
+have reporting data, so a freshly created app is missing from it. The official
+Publisher API has no list-apps endpoint at all, which is why this uses the web
+session instead.
+
+All pages are fetched automatically.
+
+Examples:
+  gplay web apps list
+  gplay web apps list --output table
+  gplay web apps list --developer 6901885972034847549
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover from the console) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps create
+
+Create a new app in Play Console via the web session.
+
+```
+gplay web apps create --name <name> --package <id> --kind <app|game> --pricing <free|paid> --confirm
+```
+
+Create a new app in Play Console using the stored web session.
+
+This mirrors the console's "Create app" dialog exactly: app name, package name,
+default language, app or game, free or paid, and the two declarations. The
+official Android Publisher API cannot create apps, which is why this uses the
+web session.
+
+The package name is checked for availability first; creation is skipped if it
+is already taken.
+
+Both declarations are required and must be passed explicitly — they are legal
+statements about YOUR app, so this command will not assume them:
+  --accept-policies         the app meets the Developer Program Policies
+  --accept-us-export-laws   compliance with US export laws
+
+Pricing is effectively one-way: once an app is published you cannot change a
+free app to paid. The new app starts as a draft.
+
+Examples:
+  gplay web apps create --name "Matisse" --package com.example.matisse \
+    --kind app --pricing free --accept-policies --accept-us-export-laws --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--accept-policies` | Declare the app meets the Developer Program Policies | `false` |
+| `--accept-us-export-laws` | Declare compliance with US export laws | `false` |
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm app creation | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--kind` | app or game | `` |
+| `--language` | Default language in BCP 47 format (e.g. en-US) | `en-US` |
+| `--name` | App name as shown on Google Play | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId), e.g. com.example.app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--pricing` | free or paid | `` |
 
 ---
 
