@@ -319,6 +319,25 @@
 - [docs show](#docs-show)
 - [web](#web)
 - [web open](#web-open)
+- [web auth](#web-auth)
+- [web auth login](#web-auth-login)
+- [web auth status](#web-auth-status)
+- [web auth logout](#web-auth-logout)
+- [web apps](#web-apps)
+- [web apps list](#web-apps-list)
+- [web apps create](#web-apps-create)
+- [web apps update](#web-apps-update)
+- [web apps status](#web-apps-status)
+- [web apps availability](#web-apps-availability)
+- [web apps pricing](#web-apps-pricing)
+- [web apps review](#web-apps-review)
+- [web apps rollout](#web-apps-rollout)
+- [web apps declarations](#web-apps-declarations)
+- [web apps policy](#web-apps-policy)
+- [web apps publish](#web-apps-publish)
+- [web apps distribution](#web-apps-distribution)
+- [web apps promo-codes](#web-apps-promo-codes)
+- [web apps rating](#web-apps-rating)
 - [update](#update)
 - [completion](#completion)
 - [completion bash](#completion-bash)
@@ -7576,7 +7595,7 @@ Examples:
 
 ## gplay web
 
-Open Google Play Console pages in the browser.
+Open Play Console and manage apps through a web session.
 
 ```
 gplay web <subcommand> [flags]
@@ -7613,6 +7632,688 @@ Examples:
 |------|-------------|---------|
 | `--package` | Package name (applicationId) | `` |
 | `--section` | Console section: dashboard, pricing, releases, reviews, statistics, store-listing, testers, vitals | `` |
+
+---
+
+## gplay web auth
+
+Manage Play Console browser sessions (cookies) for web RPCs.
+
+```
+gplay web auth <subcommand> [flags]
+```
+
+Manage Play Console browser sessions.
+
+Web commands talk to Play Console's internal web APIs using cookies captured
+from a signed-in browser. This is SEPARATE from "gplay auth" service accounts
+and is required only for commands the official Android Publisher API does not
+support (such as listing every app in a developer account).
+
+Sessions are stored per account: in the macOS Keychain on macOS (cookies
+never touch disk), or as files with 0600 permissions under ~/.gplay/web/
+when GPLAY_WEB_SESSION_DIR is set or on other platforms.
+Cookies are secrets: treat them like passwords and never commit them.
+
+---
+
+## gplay web auth login
+
+Store browser cookies as a Play Console web session.
+
+```
+gplay web auth login --email <email> [--browser | --cookies <header> | --cookies-file <path|->]
+```
+
+Store browser cookies as a Play Console web session.
+
+By default, gplay imports the active Play Console cookies from Google Chrome
+on macOS. macOS may ask you to allow access to "Chrome Safe Storage".
+
+With --browser, gplay instead opens a Chrome window it controls, backed by its
+own profile under ~/.gplay/web/browser. Sign in there once: the profile keeps
+that login, so later runs reuse it without opening a window and without
+touching your everyday Chrome profiles. If the profile is still signed in,
+--browser refreshes the session silently. The window opens with no DevTools
+port and closes itself once sign-in completes.
+
+To provide cookies manually instead:
+  1. Sign in to https://play.google.com/console in your browser.
+  2. Open DevTools -> Network and select any request to play.google.com.
+  3. Copy the full "Cookie:" request header value and pass it via --cookies,
+     or save it to a file and use --cookies-file (use '-' to read from stdin).
+
+Alternatively paste a JSON export from a cookie manager extension
+(Cookie-Editor, EditThisCookie); the format is auto-detected.
+
+The session is validated against the real Play Console before it is saved.
+On macOS it is stored in the macOS Keychain (service "gplay web session");
+with GPLAY_WEB_SESSION_DIR set, or on other platforms, as a 0600 file under
+~/.gplay/web/ instead.
+
+Examples:
+  gplay web auth login --email me@example.com
+  gplay web auth login --email me@example.com --browser
+  gplay web auth login --email me@example.com --cookies "SID=...; SAPISID=...; ..."
+  pbpaste | gplay web auth login --email me@example.com --cookies-file -
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--browser` | Sign in via a gplay-controlled Chrome window with its own persistent profile | `false` |
+| `--browser-timeout` | How long to wait for the browser sign-in to complete | `5m0s` |
+| `--cookies` | Raw Cookie header value copied from a play.google.com request | `` |
+| `--cookies-file` | File with cookies (raw header or exporter JSON; '-' for stdin) | `` |
+| `--email` | Google account email the cookies belong to | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web auth status
+
+List stored web sessions and optionally validate them.
+
+```
+gplay web auth status [--check]
+```
+
+List the stored Play Console web sessions, sorted by account email.
+
+Each entry reports the account email, when the session file was last written,
+and its path. Cookies are never printed. With --check, every session is used
+against the real Play Console and reported as "valid" or "expired"; this costs
+one request per session, so it is off by default.
+
+Examples:
+  gplay web auth status
+  gplay web auth status --check --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--check` | Validate each stored session against the real Play Console | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web auth logout
+
+Delete stored web sessions.
+
+```
+gplay web auth logout [--account <email> | --all] --confirm
+```
+
+Delete stored Play Console web sessions.
+
+Without --account the last used session is removed; --all removes every stored
+session. --confirm is required either way.
+
+This only deletes gplay's saved cookies. The Chrome profile created by
+"gplay web auth login --browser" stays signed in under ~/.gplay/web/browser, so
+a later "login --browser" restores a session without any interaction. Delete
+that directory too for a full sign-out.
+
+Examples:
+  gplay web auth logout --confirm
+  gplay web auth logout --account me@example.com --confirm
+  gplay web auth logout --all --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Account email to remove (default: last used session) | `` |
+| `--all` | Remove all stored web sessions | `false` |
+| `--confirm` | Confirm removal | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps
+
+Manage apps through a Play Console web session.
+
+```
+gplay web apps <subcommand> [flags]
+```
+
+Manage apps through a Play Console browser session.
+
+These commands use the browser-session auth from "gplay web auth login" for
+Play Console capabilities that the official Android Publisher API does not
+provide, including listing and creating apps, changing App category, setting
+country availability, managing form-factor distribution and promo codes, and
+reading content-rating state.
+
+Every subcommand except "list" drives a local Google Chrome window, which gplay
+locates automatically on macOS only. On Linux and Windows, set
+GPLAY_CHROME_BINARY to the Chrome executable path; those platforms are
+untested.
+
+---
+
+## gplay web apps list
+
+List every app in the developer account via the web session.
+
+```
+gplay web apps list [--developer <id>] [--output table]
+```
+
+List every app in a Play Console developer account.
+
+Unlike "gplay apps list", this sees apps the moment they exist. That command
+queries the Play Developer Reporting API, which only returns apps that already
+have reporting data, so a freshly created app is missing from it. The official
+Publisher API has no list-apps endpoint at all, which is why this uses the web
+session instead.
+
+All pages are fetched automatically.
+
+Examples:
+  gplay web apps list
+  gplay web apps list --output table
+  gplay web apps list --developer 1234567890
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover from the console) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps create
+
+Create a new app in Play Console via the web session.
+
+```
+gplay web apps create --name <name> --package <id> --kind <app|game> --pricing <free|paid> --confirm
+```
+
+Create a new app in Play Console using the stored web session.
+
+This mirrors the console's "Create app" dialog exactly: app name, package name,
+default language, app or game, free or paid, and the two declarations. The
+official Android Publisher API cannot create apps, which is why this uses the
+web session.
+
+The package name is checked for availability first; creation is skipped if it
+is already taken.
+
+Both declarations are required and must be passed explicitly — they are legal
+statements about YOUR app, so this command will not assume them:
+  --accept-policies         the app meets the Developer Program Policies
+  --accept-us-export-laws   compliance with US export laws
+
+Pricing is effectively one-way: once an app is published you cannot change a
+free app to paid. The new app starts as a draft.
+
+Examples:
+  gplay web apps create --name "Matisse" --package com.example.matisse \
+    --kind app --pricing free --accept-policies --accept-us-export-laws --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--accept-policies` | Declare the app meets the Developer Program Policies | `false` |
+| `--accept-us-export-laws` | Declare compliance with US export laws | `false` |
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm app creation | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--kind` | app or game | `` |
+| `--language` | Default language in BCP 47 format (e.g. en-US) | `en-US` |
+| `--name` | App name as shown on Google Play | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId), e.g. com.example.app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--pricing` | free or paid | `` |
+
+---
+
+## gplay web apps update
+
+Update an existing package's App category.
+
+```
+gplay web apps update --package <id> --kind <app|game> --category <label> --confirm
+```
+
+Update an existing Play Console package's application type and required category.
+
+This uses Store settings in the gplay-managed browser because the official
+Android Publisher API cannot change App category. Sign in once with:
+  gplay web auth login --email <email> --browser
+
+Only App category belongs here. Use "gplay listings patch" for localized app
+names and "gplay details patch" for default language or contact details. App
+pricing is intentionally excluded because changing a paid app to free can make
+a later change back to paid impossible.
+
+Examples:
+  gplay web apps update --package com.example.app --kind app --category Education --confirm
+  gplay --dry-run web apps update --package com.example.app --kind game --category Educational --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--category` | Google Play category label, e.g. Education | `` |
+| `--confirm` | Confirm the App category change | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--kind` | New application type: app or game | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps status
+
+Show publishing readiness: setup checklist and pending changes.
+
+```
+gplay web apps status --package <id>
+```
+
+Read the app dashboard setup checklist and the Publishing overview.
+
+Reports per-goal progress (including which tasks remain), the app state, the
+changes waiting to be sent for review, whether the console allows sending
+them, and why not. Read-only: it never changes anything.
+
+Examples:
+  gplay web apps status --package com.example.app
+  gplay web apps status --package com.example.app --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps availability
+
+Read or set production country availability.
+
+```
+gplay web apps availability --package <id> [--countries "A,B" | --all-countries --confirm]
+```
+
+Read a track's targeted countries/regions, or set them.
+
+Without --countries or --all-countries this only reports the current
+selection. Changing the selection requires --confirm. The selection is set to
+EXACTLY the given list: named countries are added, previously targeted
+countries missing from the list are removed. The form is verified before
+saving, and the saved selection is re-read afterwards. Country names must
+match the console's display names (e.g. "Slovenia", "United States").
+
+This drives the console's Countries / regions editor because the official
+Android Publisher API cannot change country availability.
+
+Use it to unblock paid apps: when the console refuses a pricing change with
+"Remove <country> to make your app paid", read the current list, then set it
+to the same list minus that country — on every track (production plus each
+testing track's numeric ID) — with the user's confirmation.
+
+Examples:
+  gplay web apps availability --package com.example.app
+  gplay web apps availability --package com.example.app --track 1234567890
+  gplay web apps availability --package com.example.app --countries "Slovenia,Austria" --confirm
+  gplay web apps availability --package com.example.app --all-countries --confirm
+  gplay --dry-run web apps availability --package com.example.app --all-countries --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--all-countries` | Target every country/region | `false` |
+| `--confirm` | Confirm the country availability change | `false` |
+| `--countries` | Comma-separated country names as the console shows them, e.g. "Slovenia,United States" | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--track` | Track: "production" or a numeric track ID (console URL after "Manage track") | `production` |
+
+---
+
+## gplay web apps pricing
+
+Read or set the paid app's price.
+
+```
+gplay web apps pricing --package <id> [--price <amount> --confirm]
+```
+
+Read the app pricing state, or set the price for a paid app.
+
+Without --price this only reports the current state. Setting a price requires
+--confirm and works for apps already set to Paid. The amount is in the
+merchant account's home currency (the console asks e.g. "New price in EUR");
+Google converts it to local prices for every targeted country.
+
+This drives the console's App pricing page because the official Android
+Publisher API cannot change app pricing. Making a paid app free is NOT
+supported: that change cannot be undone once the app is published.
+
+If the console refuses to save with "Remove <country> to make your app paid",
+the app targets a country where paid distribution is not allowed (e.g. Sudan,
+or the "Rest of world" pseudo-country). Remove it from EVERY track first —
+with the user's confirmation — using "gplay web apps availability" on
+production and on each testing track (numeric track ID from the console's
+Manage track URL), then retry.
+
+Examples:
+  gplay web apps pricing --package com.example.app
+  gplay web apps pricing --package com.example.app --price 69.99 --confirm
+  gplay --dry-run web apps pricing --package com.example.app --price 69.99 --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm the price change | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--price` | Price in the merchant account's home currency, e.g. 69.99 | `` |
+
+---
+
+## gplay web apps review
+
+Send pending changes for review from the Publishing overview.
+
+```
+gplay web apps review --package <id> --confirm
+```
+
+Send the app's pending Play Console changes to Google for review.
+
+Reads the Publishing overview, refuses when there is nothing to send or when
+the console reports the app is not ready (incomplete setup steps), sends the
+changes, and re-reads the overview to verify the pending list emptied.
+
+This drives the Publishing overview because the official Android Publisher
+API cannot send changes for review.
+
+Examples:
+  gplay web apps review --package com.example.app --confirm
+  gplay --dry-run web apps review --package com.example.app --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm sending changes for review | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps rollout
+
+Roll out the production draft release: preview, confirm, send for review.
+
+```
+gplay web apps rollout --package <id> --confirm
+```
+
+Roll out the production track's draft release to Google for review.
+
+Drives the console's release wizard: opens the draft release, advances through
+Preview and confirm, saves the release into the Publishing overview, then
+sends the pending changes for review. Review warnings are reported but do not
+block the rollout. This is the public release action for a draft app: once
+Google approves, the release goes live (managed publishing off) or can be
+published from the Publishing overview.
+
+This drives the console because the official Android Publisher API cannot
+roll out the first release of a draft app.
+
+Examples:
+  gplay web apps rollout --package com.example.app --confirm
+  gplay --dry-run web apps rollout --package com.example.app --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm rolling out the draft release | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps declarations
+
+Read App content declarations, or set them.
+
+```
+gplay web apps declarations --package <id> [--set <key> <input> --confirm]
+```
+
+Read the App content policy declarations, or change them.
+
+Without --set this lists every declaration with its status and last-edited
+date, plus anything needing attention. Setting requires --confirm and
+verifies the persisted answer afterwards.
+
+Settable declarations:
+  privacy-policy          --url <https://...>
+  government-apps         --value yes|no
+  ads-declaration         --value yes|no
+  testing-credentials     --value no (adding credentials needs the console)
+  health                  --answers @file.json
+  finance                 --answers @file.json
+  target-audience-content --answers @file.json
+  psl (data safety)       --csv @answers.csv
+
+--answers is a JSON object with one entry per wizard step, listing the
+POLICY_RESPONSE_CHOICE_ID_* debug ids to select on that step; every other
+choice on the step is deselected:
+  {"steps": [["POLICY_RESPONSE_CHOICE_ID_HEALTH_ACTIVITY_TRACKING"], []]}
+
+--csv imports a data safety answers CSV (the console's own import format;
+download the sample from the Import from CSV dialog). It overwrites the
+form's current answers.
+
+Content rating is not settable: its questionnaire changes the app's IARC
+rating and must be answered in the console. These commands drive the console
+because the official Android Publisher API has no declaration endpoints.
+Always confirm changes with the user first.
+
+Examples:
+  gplay web apps declarations --package com.example.app
+  gplay web apps declarations --package com.example.app --set privacy-policy --url https://example.com/privacy --confirm
+  gplay web apps declarations --package com.example.app --set health --answers @health.json --confirm
+  gplay web apps declarations --package com.example.app --set psl --csv @data-safety.csv --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--answers` | Questionnaire answers JSON (or @file) for wizard declarations | `` |
+| `--confirm` | Confirm the declaration change | `false` |
+| `--csv` | Data safety answers CSV (or @path) for --set psl | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--set` | Declaration to change (see list below) | `` |
+| `--url` | Privacy policy URL (with --set privacy-policy) | `` |
+| `--value` | Answer for radio declarations: yes or no | `` |
+
+---
+
+## gplay web apps policy
+
+Read the app's Play policy status and reported issues.
+
+```
+gplay web apps policy --package <id>
+```
+
+Read the Policy status page: reported policy issues, or the empty
+state shown when nothing is reported. Before the first review completes, the
+page shows that compliance information appears after review. Read-only.
+
+Examples:
+  gplay web apps policy --package com.example.app
+  gplay web apps policy --package com.example.app --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps publish
+
+Publish approved changes, or toggle managed publishing.
+
+```
+gplay web apps publish --package <id> [--managed on|off --confirm | --confirm]
+```
+
+Publish approved changes from the Publishing overview, or toggle
+managed publishing.
+
+Without flags this reports the managed publishing state and whether anything
+is publishable. With --managed on|off (and --confirm) it toggles managed
+publishing and verifies the new state. With --confirm alone it clicks the
+Publish action that appears once Google approves the reviewed changes.
+
+These drive the Publishing overview because the official Android Publisher
+API has no publish endpoint. Always confirm with the user first.
+
+Examples:
+  gplay web apps publish --package com.example.app
+  gplay web apps publish --package com.example.app --managed on --confirm
+  gplay web apps publish --package com.example.app --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--confirm` | Confirm publishing / the managed publishing change | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--managed` | Set managed publishing: on or off | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps distribution
+
+Read or add app form factors (Android TV, Wear OS, and more).
+
+```
+gplay web apps distribution --package <id> [--add "<factor>" --confirm]
+```
+
+Read the app's form factors, or add one.
+
+Without --add this lists the managed form factors and any outstanding
+per-factor requirements (screenshots, opt-ins). Adding requires --confirm;
+the factor list is re-read to verify. Product-policy opt-ins and other
+requirements reported in "tasks" remain explicit follow-up work.
+
+Available factors depend on the app; the menu typically offers Android TV,
+Wear OS, Android Automotive OS, Android Auto, and Google Play Games on PC.
+
+This drives the console's Advanced settings because the official Android
+Publisher API has no form-factor endpoints. Always confirm with the user.
+
+Examples:
+  gplay web apps distribution --package com.example.app
+  gplay web apps distribution --package com.example.app --add "Android TV" --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--add` | Form factor to add, e.g. "Android TV" or "Wear OS" | `` |
+| `--confirm` | Confirm adding the form factor | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay web apps promo-codes
+
+List promo-code campaigns or create paid-app codes.
+
+```
+gplay web apps promo-codes --package <id> [--create --name <name> --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD> --code-count <n> --confirm]
+```
+
+List promo-code campaigns, or create generated one-time-use codes for a paid app.
+
+Creation currently covers the paid-app reward, whose Console form has stable,
+verified controls. One-time products, subscriptions, custom codes, campaign
+updates, and downloads remain in Play Console.
+
+The promotion may last at most one year and can generate at most 500 codes.
+Dates are interpreted in GMT. Promo codes Terms of Service must be reviewed
+and accepted manually in Play Console; this command never accepts them.
+
+Examples:
+  gplay web apps promo-codes --package com.example.app
+  gplay web apps promo-codes --package com.example.app --create --name Launch \
+    --start-date 2026-08-02 --end-date 2026-08-31 --code-count 100 --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--code-count` | Number of codes to generate (1-500) | `0` |
+| `--confirm` | Confirm promo-code creation | `false` |
+| `--create` | Create generated one-time codes for the paid app | `false` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--end-date` | Promotion end date in GMT (YYYY-MM-DD) | `` |
+| `--name` | Promotion name (maximum 60 characters) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--start-date` | Promotion start date in GMT (YYYY-MM-DD) | `` |
+
+---
+
+## gplay web apps rating
+
+Read the app's IARC content-rating state.
+
+```
+gplay web apps rating --package <id>
+```
+
+Read the submitted IARC content rating, contact email, certificate,
+regional ratings, and any unfinished questionnaire draft.
+
+Read-only. IARC submission is intentionally left in Play Console: its dynamic
+questionnaire requires app-specific factual answers and explicit acceptance
+of IARC's Terms of Use.
+
+Example:
+  gplay web apps rating --package com.example.app
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Web session account email (default: last used session) | `` |
+| `--developer` | Developer account ID (numeric; default: auto-discover) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 

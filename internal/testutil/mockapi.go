@@ -3,6 +3,7 @@
 package testutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -40,7 +41,9 @@ func NewMockAPI(t *testing.T, handlers map[string]http.HandlerFunc) *MockAPI {
 	// Register a catch-all handler that does routing + logging.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		defer r.Body.Close()
+		r.Body.Close()
+		// Restore the body so handlers can read or ParseForm it again.
+		r.Body = io.NopCloser(bytes.NewReader(body))
 
 		m.mu.Lock()
 		m.log = append(m.log, RequestEntry{

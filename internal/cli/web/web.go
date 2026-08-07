@@ -38,11 +38,13 @@ func WebCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "web",
 		ShortUsage: "gplay web <subcommand> [flags]",
-		ShortHelp:  "Open Google Play Console pages in the browser.",
+		ShortHelp:  "Open Play Console and manage apps through a web session.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
 			OpenCommand(),
+			AuthCommand(),
+			WebAppsCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {

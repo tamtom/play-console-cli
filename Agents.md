@@ -42,6 +42,21 @@ gplay reports financial         # Financial reports (list/download from GCS)
 gplay reports stats             # Statistics reports (list/download from GCS)
 gplay custom-apps create        # Publish private apps via Managed Google Play
 gplay preflight                 # Offline 9-scanner compliance scan of an AAB/APK
+gplay web auth login            # Store browser cookies as a Play Console web session
+gplay web apps list             # List every app in a developer account (sees brand-new apps)
+gplay web apps create           # Create an app by driving the console UI in a managed Chrome
+gplay web apps update           # Change an app's App category via the console UI
+gplay web apps status           # Publishing readiness: setup checklist and pending changes
+gplay web apps availability     # Read or set track country availability (production or numeric track ID)
+gplay web apps pricing          # Read or set the paid app's price (wizard-driven, staged + saved)
+gplay web apps review           # Send pending changes for review from the Publishing overview
+gplay web apps rollout          # Roll out the production draft release: preview, confirm, send for review
+gplay web apps declarations     # Read/set App content declarations (privacy URL, radios, questionnaires, CSV import)
+gplay web apps policy           # Read Play policy status and reported issues
+gplay web apps publish          # Publish approved changes; toggle managed publishing
+gplay web apps distribution     # Read or add form-factor distribution opt-ins
+gplay web apps promo-codes      # List campaigns or create paid-app promo codes
+gplay web apps rating           # Read submitted IARC ratings and draft state
 gplay listings locales          # List available locales with validation
 gplay release-notes generate    # Generate release notes from git history
 ```
@@ -53,6 +68,17 @@ gplay release-notes generate    # Generate release notes from git history
 - `--fix` / `--confirm`: Auto-fix issues found by `auth doctor`
 - `--listings-dir`, `--screenshots-dir`, `--skip-metadata`, `--skip-screenshots`: Control release metadata bundling
 - Plain text release notes (no JSON): Auto-assigned to `en-US`
+
+### Playbook: paid-app pricing blocked
+
+When the console refuses a pricing save with "Remove <country> to make your app paid", the app targets a country where paid distribution is not allowed (e.g. Sudan, or the "Rest of world" pseudo-country). The console names one country at a time. With the user's confirmation:
+
+1. `gplay web apps status --package <id>` for the setup state.
+2. `gplay web apps availability --package <id>` on production and on each testing track (`--track <numeric-id>` from the console's Manage track URL) to find where the country is targeted.
+3. Set each track's list to itself minus the country: `gplay web apps availability --package <id> [--track <id>] --countries "<current minus country>" --confirm` (the selection is exact-match).
+4. `gplay web apps pricing --package <id> --price <amount> --confirm`.
+5. Repeat if the console names another country.
+
 
 ## Documentation
 

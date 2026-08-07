@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"slices"
 	"testing"
 )
 
@@ -74,5 +75,21 @@ func TestIsVersionOnlyInvocation(t *testing.T) {
 				t.Errorf("isVersionOnlyInvocation(%v) = %v, want %v", tt.args, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestScrubArgs_RedactsCookies(t *testing.T) {
+	got := scrubArgs([]string{
+		"web", "auth", "login",
+		"--cookies", "SID=secret; SAPISID=secret",
+		"--cookies=SID=secret",
+	})
+	want := []string{
+		"web", "auth", "login",
+		"--cookies", "<redacted>",
+		"--cookies=<redacted>",
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("scrubArgs() = %q, want %q", got, want)
 	}
 }

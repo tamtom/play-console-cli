@@ -56,6 +56,30 @@
 - `gplay init` — initialize project configuration
 - `gplay docs generate` — generate markdown command reference
 
+## Console-only publish gates (web session)
+
+Some Play Console capabilities have no official API. These use the browser session from `gplay web auth login` (separate from service-account auth) and drive the console UI in the gplay-managed Chrome:
+
+- `gplay web apps list` — every app in the developer account (sees brand-new apps)
+- `gplay web apps create` — create an app through the console UI
+- `gplay web apps update` — change App category (Store settings)
+- `gplay web apps status --package <id>` — read-only: setup checklist with pending tasks, pending changes, whether review can be sent and why not
+- `gplay web apps availability --package <id> [--track <id>]` — read or set a track's targeted countries; selection is EXACT (missing names get removed); `--track` takes `production` or a numeric track ID from the console's Manage track URL
+- `gplay web apps pricing --package <id> [--price <amount> --confirm]` — read or set a paid app's price in the merchant account's home currency
+- `gplay web apps review --package <id> --confirm` — send pending changes for review from the Publishing overview
+
+Writes verify the form before saving and re-read after saving. Always confirm outward-facing writes with the user.
+
+### Paid-app pricing blocked: "Remove <country> to make your app paid"
+
+Paid apps cannot target sanctioned countries (e.g. Sudan) or the "Rest of world" pseudo-country. The console blocks the pricing save and names one country at a time. Fix, with the user's confirmation:
+
+1. `gplay web apps status --package <id>` to see the setup state.
+2. `gplay web apps availability --package <id>` (and `--track <numeric-id>` for each testing track) to find where the country is targeted.
+3. Re-set each list to itself minus the country: `gplay web apps availability --package <id> [--track <id>] --countries "<current minus country>" --confirm`.
+4. Set the price: `gplay web apps pricing --package <id> --price <amount> --confirm`.
+5. If the console names another country, repeat.
+
 ## Configuration
 
 - Global config: `~/.gplay/config.yaml`

@@ -102,9 +102,51 @@ gplay auth doctor
 gplay auth doctor --fix --confirm
 ```
 
+## Web sessions (browser cookies)
+
+A few features — app creation, for example — are not covered by the official
+Android Publisher API. For those, gplay can drive Play Console's internal web
+RPCs using cookies captured from a signed-in browser. This is a separate auth
+mechanism from the service-account profiles above; most users never need it.
+
+```bash
+# On macOS, import the signed-in Google Chrome session automatically.
+# --email selects the matching Google account when Chrome has several.
+gplay web auth login --email you@example.com
+
+# Manual fallback: copy the "Cookie:" header of a play.google.com request.
+gplay web auth login --email you@example.com --cookies "SID=...; SAPISID=...; ..."
+
+# Or pipe a cookie file / exporter JSON via stdin (keeps cookies out of shell history):
+pbpaste | gplay web auth login --email you@example.com --cookies-file -
+
+# List sessions and validate them against the real console:
+gplay web auth status --check
+
+# Delete a session (or all of them):
+gplay web auth logout --account you@example.com --confirm
+gplay web auth logout --all --confirm
+```
+
+Automatic import reads Chrome's current cookie database and asks macOS
+Keychain for `Chrome Safe Storage` access. Sign in at
+<https://play.google.com/console> first. Other platforms can use either manual
+cookie option.
+
+On macOS, sessions are stored in the macOS Keychain (service `gplay web
+session`) — cookies never touch disk; `~/.gplay/web/` holds only the
+`last.json`/`index.json` metadata files (0600 files, 0700 dir). On other
+platforms, or when `GPLAY_WEB_SESSION_DIR` is set, sessions are stored as
+per-account files under `~/.gplay/web/` instead; the variable is also the
+escape hatch when the Keychain is locked or unavailable (headless CI).
+Sessions are validated against the real console at login. Cookies are
+secrets — treat them like passwords, never commit them, and expect them to
+expire; re-run `web auth login` when commands start failing with auth errors.
+
 ## Security best practices
 
 - **Never commit service account keys** to version control
+- **Never commit web session cookies** — on macOS they live in the Keychain, but with file storage (`GPLAY_WEB_SESSION_DIR` or other platforms) they sit under `~/.gplay/web/`; either way they grant full console access
 - **Use environment variables** or secrets management in CI/CD
 - **Limit service account permissions** to only what's needed
 - **Rotate keys regularly**

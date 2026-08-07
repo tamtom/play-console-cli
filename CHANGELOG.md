@@ -74,6 +74,31 @@ and no credentials.
   key restriction, not absence. Hard credentials (private keys, service-account
   JSON, `sk_live_`, GitHub/Slack tokens) remain errors.
 
+## [Unreleased]
+
+### Added
+
+#### New Commands
+- `gplay web auth login` — Store browser cookies as a Play Console web session
+- `gplay web auth status` — List stored web sessions, `--check` validates them
+- `gplay web auth logout` — Delete stored web sessions
+- `gplay web apps list` — List every app in the developer account, including brand-new ones
+- `gplay web apps create` — Create a new app by driving the Play Console UI
+- `gplay web apps update` — Update an existing package's App category
+- `gplay web apps status` — Show publishing readiness: setup checklist and pending changes
+- `gplay web apps availability` — Read or set track country availability
+- `gplay web apps pricing` — Read or set the paid app's price
+- `gplay web apps review` — Send pending changes for review from the Publishing overview
+- `gplay web apps rollout` — Roll out the production draft release: preview, confirm, send for review
+- `gplay web apps declarations` — Read or set App content declarations, including questionnaires and data-safety CSV import
+- `gplay web apps policy` — Read the app's Play policy status and reported issues
+- `gplay web apps publish` — Publish approved changes, or toggle managed publishing
+- `gplay web apps distribution` — Read or add app form factors (Android TV, Wear OS, and more)
+- `gplay web apps promo-codes` — List promo-code campaigns or create paid-app codes
+- `gplay web apps rating` — Read the app's IARC content-rating state
+
+**Requirements and caveats:** the `web` commands require a locally installed Google Chrome and are macOS-only today. They authenticate with browser cookies rather than a service account (see `docs/authentication.md`), and they drive Play Console's unofficial web interface, which Google can change without notice.
+
 ## [0.4.5] - 2026-02-26
 
 ### Added
