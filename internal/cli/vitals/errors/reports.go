@@ -10,7 +10,6 @@ import (
 	"google.golang.org/api/playdeveloperreporting/v1beta1"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
-	"github.com/tamtom/play-console-cli/internal/reportingclient"
 )
 
 // ReportsCommand returns the `gplay vitals errors reports` subcommand.
@@ -18,6 +17,8 @@ func ReportsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("vitals errors reports", flag.ExitOnError)
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	filter := fs.String("filter", "", "AIP-160 filter expression (e.g. 'errorIssueType = CRASH')")
+	from := fs.String("from", "", "Start date, inclusive (UTC, YYYY-MM-DD)")
+	to := fs.String("to", "", "End date, inclusive (UTC, YYYY-MM-DD)")
 	pageSize := fs.Int64("page-size", 50, "Max results per page (1-100)")
 	paginate := fs.Bool("paginate", false, "Fetch all pages")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
@@ -36,17 +37,26 @@ Supported --filter fields:
   errorIssueType (CRASH, ANR, NON_FATAL), errorIssueId, errorReportId,
   appProcessState (FOREGROUND, BACKGROUND), isUserPerceived
 
+Date range:
+  --from and --to accept YYYY-MM-DD dates (both inclusive, interpreted as UTC).
+  If neither is set, the API defaults to the last 24 hours.
+
 Examples:
   gplay vitals errors reports --package com.example.app
   gplay vitals errors reports --package com.example.app --filter "errorIssueType = CRASH"
-  gplay vitals errors reports --package com.example.app --filter "errorIssueId = 12345" --page-size 10`,
+  gplay vitals errors reports --package com.example.app --filter "errorIssueId = 12345" --page-size 10
+  gplay vitals errors reports --package com.example.app --from 2025-01-01 --to 2025-01-31`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}
-			service, err := reportingclient.NewService(ctx)
+			interval, err := buildSearchInterval(*from, *to)
+			if err != nil {
+				return err
+			}
+			service, err := newReportingService(ctx)
 			if err != nil {
 				return err
 			}
@@ -67,6 +77,7 @@ Examples:
 				if strings.TrimSpace(*filter) != "" {
 					call = call.Filter(*filter)
 				}
+				call = applyReportsInterval(call, interval)
 				resp, err := call.Do()
 				if err != nil {
 					return shared.WrapGoogleAPIError("search error reports", err)
@@ -81,6 +92,7 @@ Examples:
 			if strings.TrimSpace(*filter) != "" {
 				call = call.Filter(*filter)
 			}
+			call = applyReportsInterval(call, interval)
 			err = call.Pages(ctx, func(resp *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1SearchErrorReportsResponse) error {
 				all = append(all, resp.ErrorReports...)
 				return nil

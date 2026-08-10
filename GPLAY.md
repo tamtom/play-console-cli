@@ -3321,20 +3321,27 @@ Supported --order-by fields:
   errorReportCount desc, errorReportCount asc,
   distinctUsers desc, distinctUsers asc
 
+Date range:
+  --from and --to accept YYYY-MM-DD dates (both inclusive, interpreted as UTC).
+  If neither is set, the API defaults to the last 24 hours.
+
 Examples:
   gplay vitals errors issues --package com.example.app
   gplay vitals errors issues --package com.example.app --filter "errorIssueType = CRASH"
   gplay vitals errors issues --package com.example.app --order-by "errorReportCount desc" --page-size 10
+  gplay vitals errors issues --package com.example.app --from 2025-01-01 --to 2025-01-31
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--filter` | AIP-160 filter expression (e.g. 'errorIssueType = CRASH') | `` |
+| `--from` | Start date, inclusive (UTC, YYYY-MM-DD) | `` |
 | `--order-by` | Order results (e.g. 'errorReportCount desc') | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--page-size` | Max results per page (1-1000) | `50` |
 | `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date, inclusive (UTC, YYYY-MM-DD) | `` |
 
 ---
 
@@ -3355,19 +3362,26 @@ Supported --filter fields:
   errorIssueType (CRASH, ANR, NON_FATAL), errorIssueId, errorReportId,
   appProcessState (FOREGROUND, BACKGROUND), isUserPerceived
 
+Date range:
+  --from and --to accept YYYY-MM-DD dates (both inclusive, interpreted as UTC).
+  If neither is set, the API defaults to the last 24 hours.
+
 Examples:
   gplay vitals errors reports --package com.example.app
   gplay vitals errors reports --package com.example.app --filter "errorIssueType = CRASH"
   gplay vitals errors reports --package com.example.app --filter "errorIssueId = 12345" --page-size 10
+  gplay vitals errors reports --package com.example.app --from 2025-01-01 --to 2025-01-31
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--filter` | AIP-160 filter expression (e.g. 'errorIssueType = CRASH') | `` |
+| `--from` | Start date, inclusive (UTC, YYYY-MM-DD) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--page-size` | Max results per page (1-100) | `50` |
 | `--paginate` | Fetch all pages | `false` |
 | `--pretty` | Pretty-print JSON output | `false` |
+| `--to` | End date, inclusive (UTC, YYYY-MM-DD) | `` |
 
 ---
 
