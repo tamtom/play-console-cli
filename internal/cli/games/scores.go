@@ -24,6 +24,8 @@ func ScoresCommand() *ffcli.Command {
 			scoresResetCommand(),
 			scoresResetAllCommand(),
 			scoresResetForAllCommand(),
+			scoresResetAllForAllCommand(),
+			scoresResetMultipleForAllCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			return flag.ErrHelp

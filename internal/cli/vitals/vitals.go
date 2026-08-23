@@ -26,6 +26,8 @@ func VitalsCommand() *ffcli.Command {
 			CrashesCommand(),
 			performance.PerformanceCommand(),
 			errors.ErrorsCommand(),
+			MetricSetsCommand(),
+			ReleaseFiltersCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {

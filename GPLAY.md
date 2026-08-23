@@ -15,6 +15,21 @@
 - [setup](#setup)
 - [apps](#apps)
 - [apps list](#apps-list)
+- [app-signing](#app-signing)
+- [app-signing enroll](#app-signing-enroll)
+- [app-signing rotate-key](#app-signing-rotate-key)
+- [app-stores](#app-stores)
+- [app-stores create-app](#app-stores-create-app)
+- [app-stores update-app](#app-stores-update-app)
+- [app-stores publish-status](#app-stores-publish-status)
+- [app-stores upload-apk](#app-stores-upload-apk)
+- [app-stores upload-policy-file](#app-stores-upload-policy-file)
+- [app-stores upload-image](#app-stores-upload-image)
+- [app-stores recent-app-view](#app-stores-recent-app-view)
+- [app-stores recent-update-events](#app-stores-recent-update-events)
+- [capabilities](#capabilities)
+- [bootstrap](#bootstrap)
+- [bootstrap plan](#bootstrap-plan)
 - [audit](#audit)
 - [audit list](#audit-list)
 - [audit search](#audit-search)
@@ -57,6 +72,11 @@
 - [checks content](#checks-content)
 - [checks content classify](#checks-content-classify)
 - [checks classify](#checks-classify)
+- [checks repo-scans](#checks-repo-scans)
+- [checks repo-scans generate](#checks-repo-scans-generate)
+- [checks repo-scans get](#checks-repo-scans-get)
+- [checks repo-scans list](#checks-repo-scans-list)
+- [checks repo-scans operation](#checks-repo-scans-operation)
 - [apks](#apks)
 - [apks upload](#apks-upload)
 - [apks list](#apks-list)
@@ -94,6 +114,10 @@
 - [images plan](#images-plan)
 - [images pull](#images-pull)
 - [images sync](#images-sync)
+- [integrity](#integrity)
+- [integrity decode](#integrity-decode)
+- [integrity decode-pc](#integrity-decode-pc)
+- [integrity device-recall-write](#integrity-device-recall-write)
 - [init](#init)
 - [reviews](#reviews)
 - [reviews list](#reviews-list)
@@ -131,6 +155,8 @@
 - [validate listing](#validate-listing)
 - [validate screenshots](#validate-screenshots)
 - [validate submission](#validate-submission)
+- [verification](#verification)
+- [verification status](#verification-status)
 - [status](#status)
 - [vitals](#vitals)
 - [vitals crashes](#vitals-crashes)
@@ -143,6 +169,10 @@
 - [vitals errors](#vitals-errors)
 - [vitals errors issues](#vitals-errors-issues)
 - [vitals errors reports](#vitals-errors-reports)
+- [vitals metric-sets](#vitals-metric-sets)
+- [vitals metric-sets get](#vitals-metric-sets-get)
+- [vitals metric-sets query](#vitals-metric-sets-query)
+- [vitals release-filters](#vitals-release-filters)
 - [iap](#iap)
 - [iap list](#iap-list)
 - [iap get](#iap-get)
@@ -208,6 +238,7 @@
 - [orders get](#orders-get)
 - [orders batch-get](#orders-batch-get)
 - [orders refund](#orders-refund)
+- [orders review-refund](#orders-review-refund)
 - [purchases](#purchases)
 - [purchases products](#purchases-products)
 - [purchases products get](#purchases-products-get)
@@ -242,6 +273,8 @@
 - [games achievements reset](#games-achievements-reset)
 - [games achievements reset-all](#games-achievements-reset-all)
 - [games achievements reset-for-all-players](#games-achievements-reset-for-all-players)
+- [games achievements reset-all-for-all-players](#games-achievements-reset-all-for-all-players)
+- [games achievements reset-multiple-for-all-players](#games-achievements-reset-multiple-for-all-players)
 - [games leaderboards](#games-leaderboards)
 - [games leaderboards list](#games-leaderboards-list)
 - [games leaderboards get](#games-leaderboards-get)
@@ -252,10 +285,14 @@
 - [games scores reset](#games-scores-reset)
 - [games scores reset-all](#games-scores-reset-all)
 - [games scores reset-for-all-players](#games-scores-reset-for-all-players)
+- [games scores reset-all-for-all-players](#games-scores-reset-all-for-all-players)
+- [games scores reset-multiple-for-all-players](#games-scores-reset-multiple-for-all-players)
 - [games events](#games-events)
 - [games events reset](#games-events-reset)
 - [games events reset-all](#games-events-reset-all)
 - [games events reset-for-all-players](#games-events-reset-for-all-players)
+- [games events reset-all-for-all-players](#games-events-reset-all-for-all-players)
+- [games events reset-multiple-for-all-players](#games-events-reset-multiple-for-all-players)
 - [games players](#games-players)
 - [games players hide](#games-players-hide)
 - [games players unhide](#games-players-unhide)
@@ -547,6 +584,313 @@ gplay apps list [flags]
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--page-size` | Page size (1-1000) | `50` |
 | `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay app-signing
+
+Manage enterprise self-hosted Cloud KMS Play App Signing.
+
+```
+gplay app-signing <subcommand> [flags]
+```
+
+Manage the official Android Publisher self-hosted Cloud KMS signing APIs.
+
+These commands are only for enterprise organizations required to retain key
+custody in Google Cloud KMS. They do not automate ordinary Google-managed Play
+App Signing enrollment or legal agreements.
+
+---
+
+## gplay app-signing enroll
+
+Enroll an app with an enterprise self-hosted Cloud KMS key.
+
+```
+gplay app-signing enroll --package <pkg> --confirm-package <pkg> --json @request.json --enterprise-self-hosted-kms --confirm
+```
+
+Enroll an enterprise app using a self-hosted Cloud KMS key.
+
+Existing-app JSON example: {"enrollExistingApp":{"cloudKmsKey":{"cryptoKeyVersionResource":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1"}}}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm enterprise Cloud KMS signing enrollment | `false` |
+| `--confirm-package` | Repeat the exact package name being enrolled or rotated | `` |
+| `--enterprise-self-hosted-kms` | Acknowledge this app uses the enterprise self-hosted Cloud KMS program | `false` |
+| `--json` | Official API request JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay app-signing rotate-key
+
+Rotate an enterprise self-hosted Cloud KMS signing key.
+
+```
+gplay app-signing rotate-key --package <pkg> --confirm-package <pkg> --json @request.json --enterprise-self-hosted-kms --confirm
+```
+
+Rotate an enterprise self-hosted Cloud KMS app-signing key.
+
+JSON example: {"keyRotationReason":"ROUTINE_KEY_UPGRADE","rotatedCloudKmsKey":{"cloudKmsKeyAndCert":{"cloudKmsKey":{"cryptoKeyVersionResource":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/2"},"pemCertificate":"BASE64_PEM"},"signingCertificateLineage":"BASE64_LINEAGE"}}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm irreversible enterprise Cloud KMS key rotation | `false` |
+| `--confirm-package` | Repeat the exact package name being enrolled or rotated | `` |
+| `--enterprise-self-hosted-kms` | Acknowledge this app uses the enterprise self-hosted Cloud KMS program | `false` |
+| `--json` | Official API request JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay app-stores
+
+Operate official APIs for registered third-party Android app stores.
+
+```
+gplay app-stores <subcommand> [flags]
+```
+
+Operate the Android Publisher App Store Review and Play Catalog APIs.
+
+This namespace is only for organizations registered in Google's third-party
+app-store program. It does not create or manage a normal Google Play listing.
+Every command requires --registered-third-party-store to prevent accidental use.
+
+---
+
+## gplay app-stores create-app
+
+Create a third-party-app-store hosted app record.
+
+```
+gplay app-stores create-app --app-store-package <pkg> --package <pkg> --registered-third-party-store --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm creation of the hosted app record | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name of the hosted app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores update-app
+
+Update and submit a hosted app for review.
+
+```
+gplay app-stores update-app --app-store-package <pkg> --json @app.json --registered-third-party-store --confirm
+```
+
+Update a registered third-party-store hosted app and submit it for review.
+
+JSON example: {"packageName":"app.example","activeApks":{},"activeLocalizedStoreListings":[],"appDetails":{},"policyDeclarations":[]}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm submission for immediate review | `false` |
+| `--json` | UpdateAppStoreHostedAppRequest JSON (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores publish-status
+
+Update a hosted app's publish status.
+
+```
+gplay app-stores publish-status --app-store-package <pkg> --package <pkg> --state <state> --registered-third-party-store --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm the publish-state change | `false` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name of the hosted app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+| `--state` | Publish state: PUBLISHED or UNPUBLISHED | `` |
+
+---
+
+## gplay app-stores upload-apk
+
+Upload review media for a hosted app.
+
+```
+gplay app-stores upload-apk --app-store-package <pkg> --package <pkg> --file <path> --registered-third-party-store --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm upload to the third-party app-store review service | `false` |
+| `--file` | File to upload | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name of the hosted app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores upload-policy-file
+
+Upload review media for a hosted app.
+
+```
+gplay app-stores upload-policy-file --app-store-package <pkg> --package <pkg> --file <path> --registered-third-party-store --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm upload to the third-party app-store review service | `false` |
+| `--file` | File to upload | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name of the hosted app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores upload-image
+
+Upload review media for a hosted app.
+
+```
+gplay app-stores upload-image --app-store-package <pkg> --package <pkg> --file <path> --registered-third-party-store --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--confirm` | Confirm upload to the third-party app-store review service | `false` |
+| `--file` | File to upload | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name of the hosted app | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores recent-app-view
+
+Get a recent Play Catalog app view.
+
+```
+gplay app-stores recent-app-view --app-store-package <pkg> --package <pkg> --registered-third-party-store
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Google Play app package name | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+
+---
+
+## gplay app-stores recent-update-events
+
+List recent Play Catalog update events.
+
+```
+gplay app-stores recent-update-events --app-store-package <pkg> --registered-third-party-store [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-store-package` | Package name of the registered third-party app store | `` |
+| `--end-time` | Exclusive RFC3339 end time | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--page-size` | Maximum events per page | `0` |
+| `--page-token` | Continuation token | `` |
+| `--paginate` | Fetch every page | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--registered-third-party-store` | Acknowledge that this account is enrolled in Google's third-party app-store program | `false` |
+| `--start-time` | Inclusive RFC3339 start time | `` |
+
+---
+
+## gplay capabilities
+
+Show policy-aware Google Play workflow capabilities.
+
+```
+gplay capabilities [flags]
+```
+
+Show which workflows use documented Google APIs and which require a
+manual Play Console handoff. This command is a static, offline inventory: it
+does not authenticate, contact Google, or change any account.
+
+Examples:
+  gplay capabilities
+  gplay capabilities --status manual
+  gplay capabilities --provider android-publisher-api --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--provider` | Filter by provider | `` |
+| `--query` | Filter by ID, intent, command, provider, or notes | `` |
+| `--status` | Filter by status: official, manual, unsupported | `` |
+
+---
+
+## gplay bootstrap
+
+Plan policy-safe initial app setup.
+
+```
+gplay bootstrap <subcommand> [flags]
+```
+
+---
+
+## gplay bootstrap plan
+
+Build an offline manual-handoff plan for initial app setup.
+
+```
+gplay bootstrap plan --package <name> --name <app-name> --aab <path> [flags]
+```
+
+Validate local inputs and build a deterministic initial-app setup plan.
+
+This command does not authenticate, contact Google, open a browser, accept any
+agreement, upload an artifact, or change a Play Console account. Unsupported
+initial setup actions are emitted as explicit steps for you to complete manually.
+
+Examples:
+  gplay bootstrap plan --package dev.example.app --name "Example App" --aab ./app.aab
+  gplay bootstrap plan --package dev.example.app --name "Example App" --aab ./app.aab --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--aab` | Path to the first Android App Bundle | `` |
+| `--name` | App name shown in Play Console | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -1370,6 +1714,97 @@ gplay checks classify --text <content> [flags]
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--severity-threshold` | Fail if any policy result is VIOLATIVE | `false` |
 | `--text` | Text content to classify, or @file | `` |
+
+---
+
+## gplay checks repo-scans
+
+Generate and inspect official Checks repository scans.
+
+```
+gplay checks repo-scans <subcommand> [flags]
+```
+
+Repository scan generation sends the explicitly supplied CLI analysis and SCM metadata JSON to the Google Checks API. It does not discover or upload source files itself.
+
+---
+
+## gplay checks repo-scans generate
+
+Generate a Checks repository scan from explicit analysis metadata.
+
+```
+gplay checks repo-scans generate --account <id> --repo <id> --json @scan.json --confirm
+```
+
+Generate a repository scan from data produced by a local Checks-compatible analyzer.
+
+Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":".","cliAnalysis":{},"scmMetadata":{}}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Checks account ID | `` |
+| `--confirm` | Confirm upload of the supplied analysis and repository metadata | `false` |
+| `--json` | GenerateScanRequest JSON containing the explicit CLI analysis and SCM metadata (or @file) | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--repo` | Checks repository ID or resource name | `` |
+
+---
+
+## gplay checks repo-scans get
+
+Get a repository scan.
+
+```
+gplay checks repo-scans get --account <id> --repo <id> --scan <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Checks account ID | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--repo` | Checks repository ID or resource name | `` |
+| `--scan` | Scan ID or resource name | `` |
+
+---
+
+## gplay checks repo-scans list
+
+List repository scans.
+
+```
+gplay checks repo-scans list --account <id> --repo <id> [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Checks account ID | `` |
+| `--filter` | Checks API filter | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--page-size` | Results per page (1-50) | `10` |
+| `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--repo` | Checks repository ID or resource name | `` |
+
+---
+
+## gplay checks repo-scans operation
+
+Get a repository-scan long-running operation.
+
+```
+gplay checks repo-scans operation --account <id> --repo <id> --operation <id>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--account` | Checks account ID | `` |
+| `--operation` | Repository operation ID or resource name | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--repo` | Checks repository ID or resource name | `` |
 
 ---
 
@@ -2216,6 +2651,73 @@ preview of the upload calls.
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay integrity
+
+Decode Play Integrity tokens and manage restricted Device Recall state.
+
+```
+gplay integrity <subcommand> [flags]
+```
+
+---
+
+## gplay integrity decode
+
+Decode an official Play Integrity token without placing it in process arguments.
+
+```
+gplay integrity decode --package <pkg> --token-file <path|->
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--token-file` | File containing the encoded integrity token; use - for stdin | `` |
+
+---
+
+## gplay integrity decode-pc
+
+Decode an official Play Integrity token without placing it in process arguments.
+
+```
+gplay integrity decode-pc --package <pkg> --token-file <path|->
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--token-file` | File containing the encoded integrity token; use - for stdin | `` |
+
+---
+
+## gplay integrity device-recall-write
+
+Write restricted Device Recall bits for anti-abuse use.
+
+```
+gplay integrity device-recall-write --package <pkg> --json @request.json --security-fraud-abuse-use --confirm
+```
+
+Write restricted Device Recall bits. Google permits this only for security, fraud, and abuse prevention.
+
+The token-bearing request must be read from a file. JSON example: {"integrityToken":"TOKEN","newValues":{"bitFirst":true}}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm mutation of per-device recall state | `false` |
+| `--json` | @file containing WriteDeviceRecallRequest JSON | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--security-fraud-abuse-use` | Acknowledge Device Recall is used only for security, fraud, or abuse prevention | `false` |
 
 ---
 
@@ -3088,6 +3590,34 @@ This command remains for compatibility, but new docs and workflows should use:
 
 ---
 
+## gplay verification
+
+Check official Android developer package-registration status.
+
+```
+gplay verification <subcommand> [flags]
+```
+
+---
+
+## gplay verification status
+
+Check whether a package/certificate is registered to a verified Android developer.
+
+```
+gplay verification status --package <pkg> [--certificate-fingerprint <sha256>] --api-key <key>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--api-key` | Android Developer ID Status API key (or GPLAY_ANDROID_DEVELOPER_ID_API_KEY) | `` |
+| `--certificate-fingerprint` | Optional SHA-256 certificate fingerprint: 64 lowercase hex characters without separators | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Android package name | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay status
 
 Show a deterministic release-health snapshot.
@@ -3367,6 +3897,71 @@ Examples:
 | `--package` | Package name (applicationId) | `` |
 | `--page-size` | Max results per page (1-100) | `50` |
 | `--paginate` | Fetch all pages | `false` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals metric-sets
+
+Describe or query any official Play Developer Reporting metric set.
+
+```
+gplay vitals metric-sets <subcommand> [flags]
+```
+
+---
+
+## gplay vitals metric-sets get
+
+Get dimensions, metrics, and freshness metadata for a metric set.
+
+```
+gplay vitals metric-sets get --package <pkg> --metric-set <name>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--metric-set` | Metric set: anr, crash, error-count, excessive-wakeup, lmk, slow-rendering, slow-start, stuck-wakelock, anon-rss-swap-memory, bitmap-memory | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals metric-sets query
+
+Query any official metric set with its typed REST request body.
+
+```
+gplay vitals metric-sets query --package <pkg> --metric-set <name> --json @query.json
+```
+
+Query any current Play Developer Reporting metric set using its official request schema.
+
+JSON example: {"metrics":["distinctUsers"],"timelineSpec":{"aggregationPeriod":"DAILY"},"pageSize":1000}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | Official metric-set query request JSON (or @file) | `` |
+| `--metric-set` | Metric set: anr, crash, error-count, excessive-wakeup, lmk, slow-rendering, slow-start, stuck-wakelock, anon-rss-swap-memory, bitmap-memory | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay vitals release-filters
+
+Fetch valid release filters for reporting queries.
+
+```
+gplay vitals release-filters --package <pkg>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
@@ -5316,6 +5911,33 @@ Options:
 
 ---
 
+## gplay orders review-refund
+
+Submit an explicit preference for a pending refund review.
+
+```
+gplay orders review-refund --package <name> --order-id <id> --json <json> --confirm
+```
+
+Submit evidence and an explicit developer preference for a pending refund.
+
+Gplay does not decide whether a refund should be approved. Supply the exact
+request received from your own operational review and confirm its submission.
+
+Example:
+  gplay orders review-refund --package dev.example.app --order-id GPA.123 --json '{"pendingRefundToken":"token","refundPreference":"DECLINE","sampleContentProvided":true}' --confirm
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm` | Confirm submission of the refund preference | `false` |
+| `--json` | OrdersReviewRefundRequest JSON (or @file) | `` |
+| `--order-id` | Order ID under refund review | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay purchases
 
 Verify and manage purchases.
@@ -6047,6 +6669,43 @@ gplay games achievements reset-for-all-players --achievement-id <id> --confirm
 
 ---
 
+## gplay games achievements reset-all-for-all-players
+
+Reset all achievements for every tester in the application.
+
+```
+gplay games achievements reset-all-for-all-players --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games achievements reset-multiple-for-all-players
+
+Reset selected achievements for every tester in the application.
+
+```
+gplay games achievements reset-multiple-for-all-players --ids <id,id> --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--ids` | Comma-separated achievement, event, or leaderboard IDs | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay games leaderboards
 
 Manage leaderboard definitions.
@@ -6197,6 +6856,43 @@ gplay games scores reset-for-all-players --leaderboard-id <id> --confirm
 
 ---
 
+## gplay games scores reset-all-for-all-players
+
+Reset all scores for every tester in the application.
+
+```
+gplay games scores reset-all-for-all-players --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games scores reset-multiple-for-all-players
+
+Reset selected scores for every tester in the application.
+
+```
+gplay games scores reset-multiple-for-all-players --ids <id,id> --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--ids` | Comma-separated achievement, event, or leaderboard IDs | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
 ## gplay games events
 
 Reset event progress for testers.
@@ -6247,6 +6943,43 @@ gplay games events reset-for-all-players --event-id <id> --confirm
 |------|-------------|---------|
 | `--confirm` | Confirm resetting this event for ALL testers | `false` |
 | `--event-id` | Event ID | `` |
+
+---
+
+## gplay games events reset-all-for-all-players
+
+Reset all events for every tester in the application.
+
+```
+gplay games events reset-all-for-all-players --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay games events reset-multiple-for-all-players
+
+Reset selected events for every tester in the application.
+
+```
+gplay games events reset-multiple-for-all-players --ids <id,id> --application-id <id> --confirm-application-id <id> --confirm
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--application-id` | Numeric Play Games application ID (required explicitly for this global operation) | `` |
+| `--confirm` | Confirm resetting tester data for every player | `false` |
+| `--confirm-application-id` | Repeat the exact Play Games application ID being targeted | `` |
+| `--ids` | Comma-separated achievement, event, or leaderboard IDs | `` |
+| `--output` | Output format: json (default), table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 

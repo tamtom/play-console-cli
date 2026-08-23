@@ -164,3 +164,37 @@ func TestPowerShellCommand_Output(t *testing.T) {
 		t.Error("expected PowerShell completion commands")
 	}
 }
+
+func TestCompletions_IncludePolicySafeCommands(t *testing.T) {
+	tests := []struct {
+		name   string
+		script string
+		want   []string
+	}{
+		{name: "bash", script: bashCompletion, want: []string{"capabilities", "bootstrap", `bootstrap_commands="plan"`}},
+		{name: "zsh", script: zshCompletion, want: []string{"capabilities:", "bootstrap:", "bootstrap_commands"}},
+		{name: "fish", script: fishCompletion, want: []string{"-a capabilities", "-a bootstrap", "__fish_seen_subcommand_from bootstrap' -a plan"}},
+		{name: "powershell", script: powershellCompletion, want: []string{"'capabilities'", "'bootstrap'", "'bootstrap' = @('plan')"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, want := range tt.want {
+				if !strings.Contains(tt.script, want) {
+					t.Errorf("completion missing %q", want)
+				}
+			}
+		})
+	}
+}
+
+func TestCompletions_IncludeNewOfficialAPINamespaces(t *testing.T) {
+	for name, script := range map[string]string{"bash": bashCompletion, "zsh": zshCompletion, "fish": fishCompletion, "powershell": powershellCompletion} {
+		t.Run(name, func(t *testing.T) {
+			for _, command := range []string{"app-signing", "app-stores", "integrity", "verification"} {
+				if !strings.Contains(script, command) {
+					t.Errorf("completion missing %q", command)
+				}
+			}
+		})
+	}
+}

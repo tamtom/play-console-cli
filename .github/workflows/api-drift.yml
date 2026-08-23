@@ -1,0 +1,20 @@
+name: Official Google Play API Drift
+
+on:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discovery-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Compare reviewed manifest with official discovery documents
+        run: python3 scripts/check-api-drift.py

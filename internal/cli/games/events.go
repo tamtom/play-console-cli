@@ -24,6 +24,8 @@ func EventsCommand() *ffcli.Command {
 			eventsResetCommand(),
 			eventsResetAllCommand(),
 			eventsResetForAllCommand(),
+			eventsResetAllForAllCommand(),
+			eventsResetMultipleForAllCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			return flag.ErrHelp

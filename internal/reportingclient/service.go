@@ -19,8 +19,10 @@ var scopes = []string{
 
 // Service wraps the Play Developer Reporting service and config.
 type Service struct {
-	API *playdeveloperreporting.Service
-	Cfg *config.Config
+	API        *playdeveloperreporting.Service
+	HTTPClient *http.Client
+	BasePath   string
+	Cfg        *config.Config
 }
 
 // NewService creates an authenticated Play Developer Reporting service.
@@ -41,7 +43,7 @@ func NewService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{API: api, Cfg: cfg}, nil
+	return &Service{API: api, HTTPClient: client, BasePath: api.BasePath, Cfg: cfg}, nil
 }
 
 // NewServiceWithClient creates a reporting service using a provided HTTP client.
@@ -54,7 +56,7 @@ func NewServiceWithClient(ctx context.Context, client *http.Client, basePath str
 	if basePath != "" {
 		api.BasePath = basePath
 	}
-	return &Service{API: api, Cfg: &config.Config{}}, nil
+	return &Service{API: api, HTTPClient: client, BasePath: api.BasePath, Cfg: &config.Config{}}, nil
 }
 
 func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error) {

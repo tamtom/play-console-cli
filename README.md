@@ -6,9 +6,9 @@
   <img src="https://img.shields.io/badge/Homebrew-compatible-blue?style=for-the-badge" alt="Homebrew">
 </p>
 
-**gplay** is a fast, single-binary CLI for **Google Play Console**, built for **AI coding agents** — Claude Code, Codex, Cursor, Gemini CLI — and for humans who script. Release Android apps, create **subscriptions, in-app products, and one-time purchases**, verify purchases server-side, monitor crashes and reviews — all from the terminal, no Play Console clicking.
+**gplay** is a fast, single-binary CLI for **Google Play Console**, built for **AI coding agents** — Claude Code, Codex, Cursor, Gemini CLI — and for humans who script. Release Android apps, create **subscriptions, in-app products, and one-time purchases**, verify purchases server-side, and monitor crashes and reviews through documented Google APIs.
 
-It **completely replaces opening the web browser console** for day-to-day work. Most deployment tools only handle standard AAB uploads — gplay supports **250+ endpoints across 6 Google APIs** (Android Publisher, Play Developer Reporting, Checks, Play Games, Managed Google Play, and Cloud Storage): complete console management, staged rollouts, store listings, screenshots, localization, vitals, and private app publishing. And it's **lightweight with zero runtime to install** — no Node.js, no Python, no JVM, just one static binary.
+It replaces Play Console clicking for many day-to-day workflows. Most deployment tools only handle standard AAB uploads — gplay supports **250+ commands across 9 official Google APIs**: Android Publisher, Play Developer Reporting, Checks, both Play Games admin APIs, Managed Google Play, Play Integrity, Android Developer ID Status, and Cloud Storage for reports. Initial public-app setup, first upload, ordinary Google-managed Play App Signing enrollment, and legal declarations still require a manual Play Console handoff. Enterprise self-hosted Cloud KMS signing is supported through its separate official API. Gplay does not use private Console endpoints or authenticated browser automation.
 
 ## Table of Contents
 
@@ -123,7 +123,8 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 
 ## Highlights
 
-- **250+ commands across 6 Google APIs** — not just AAB uploads like most deployment tools. gplay covers 98% of the Google Play Developer API v3 (134/137 endpoints) plus Play Developer Reporting, Checks, Play Games, Managed Google Play, and Cloud Storage — complete console management from the terminal, so gplay replaces opening the web browser console.
+- **Current official API coverage** — the reviewed manifest tracks 218 methods across eight Play-specific discovery APIs, plus the two Cloud Storage methods needed for reports. All 145 current Android Publisher methods have a CLI path; specialized third-party-store and enterprise-KMS commands are explicitly scope-gated.
+- **Explicit safety boundary** — `gplay capabilities` distinguishes official, manual, and unsupported workflows; `gplay bootstrap plan` prepares initial app setup without logging in, contacting Google, or changing an account.
 - **Managed Google Play** — publish private (custom) apps to specific organizations with `gplay custom-apps create`, straight from the terminal.
 - **Complete releases & rollouts** — upload, track assignment, staged rollout with pause/resume/percentage control, promote between tracks, release notes from git history.
 - **Store listings, screenshots & localization** — manage listing text, images, and metadata across every locale; sync with a local directory or Fastlane.
@@ -131,6 +132,7 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 - **Purchase verification** — verify tokens, acknowledge purchases, refund orders, decode RTDN webhooks.
 - **Offline preflight** — `gplay preflight --file app.aab` fully decodes `AndroidManifest.xml` (binary AXML for APKs, aapt2 protobuf for App Bundles) and runs nine scanners with no API calls and no credentials: manifest flags, restricted permissions, 64-bit and **16 KB page alignment**, listing text and real screenshot dimensions, secrets, billing, privacy SDKs, target API floor, and size. Catches the rejections *before* you upload.
 - **App health** — crash clusters, ANRs, performance vitals, review replies, financial & statistics reports.
+- **Integrity and verification** — decode Android/PC Play Integrity tokens, safely gate Device Recall writes, and check Android Developer ID package/certificate registration.
 - **AI-agent native** — minified JSON output, explicit flags, `--help` everywhere, `--dry-run` for every write, no interactive prompts, [Agent Skills](docs/ai-agents.md) included.
 - **Lightweight, zero runtime to install** — a single compiled Go binary with instant startup. No Node.js, no Python, no JVM, no Gradle project required.
 
@@ -174,6 +176,8 @@ Versus [Fastlane `supply`](https://docs.fastlane.tools/actions/supply/) and [gra
 | [AI agents](docs/ai-agents.md) | Agent setup, skills, example prompts |
 | [Configuration](docs/configuration.md) | Config file, env vars, output formats, shell completion |
 | [CI/CD](docs/ci-cd.md) | GitHub Actions, GitLab CI, release gates |
+| [Policy-safe automation](docs/policy-safe-automation.md) | Official API boundary and manual Play Console handoffs |
+| [Official API audit](docs/research/google-play-go-api-audit-2026-08-23.md) | Versions, method inventory, gaps, and testing boundary |
 | [Contributing](CONTRIBUTING.md) | Development setup, testing, PR guidelines |
 
 ## Contributing

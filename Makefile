@@ -323,6 +323,8 @@ help:
 	@echo "  docs            Generate GPLAY.md command reference"
 	@echo "  check-docs      Verify GPLAY.md is up to date"
 	@echo "  update-api-spec Update Google Play API discovery document"
+	@echo "  check-api-drift Check reviewed API manifest against official discovery"
+	@echo "  update-api-manifest Refresh reviewed official API manifest"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
@@ -339,3 +341,10 @@ update-api-spec:
 	@echo "$(BLUE)Generating endpoints index...$(NC)"
 	@python3 scripts/gen-endpoints.py
 	@echo "$(GREEN)✓ API spec updated. Review changes with: git diff docs/api/$(NC)"
+
+.PHONY: check-api-drift update-api-manifest
+check-api-drift:
+	@python3 scripts/check-api-drift.py
+
+update-api-manifest:
+	@python3 scripts/check-api-drift.py --update

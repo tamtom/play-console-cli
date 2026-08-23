@@ -8,11 +8,15 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/apks"
 	"github.com/tamtom/play-console-cli/internal/cli/apps"
+	"github.com/tamtom/play-console-cli/internal/cli/appsigning"
+	"github.com/tamtom/play-console-cli/internal/cli/appstores"
 	"github.com/tamtom/play-console-cli/internal/cli/auditcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/auth"
 	"github.com/tamtom/play-console-cli/internal/cli/availability"
 	"github.com/tamtom/play-console-cli/internal/cli/baseplans"
+	"github.com/tamtom/play-console-cli/internal/cli/bootstrap"
 	"github.com/tamtom/play-console-cli/internal/cli/bundles"
+	"github.com/tamtom/play-console-cli/internal/cli/capabilities"
 	"github.com/tamtom/play-console-cli/internal/cli/checks"
 	"github.com/tamtom/play-console-cli/internal/cli/completion"
 	"github.com/tamtom/play-console-cli/internal/cli/customapps"
@@ -31,6 +35,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/iap"
 	"github.com/tamtom/play-console-cli/internal/cli/images"
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
+	"github.com/tamtom/play-console-cli/internal/cli/integrity"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
 	"github.com/tamtom/play-console-cli/internal/cli/metadata"
@@ -66,6 +71,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/updatecmd"
 	"github.com/tamtom/play-console-cli/internal/cli/users"
 	"github.com/tamtom/play-console-cli/internal/cli/validate"
+	"github.com/tamtom/play-console-cli/internal/cli/verification"
 	"github.com/tamtom/play-console-cli/internal/cli/vitals"
 	"github.com/tamtom/play-console-cli/internal/cli/web"
 	"github.com/tamtom/play-console-cli/internal/cli/workflow"
@@ -97,6 +103,10 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		auth.AuthCommand(),
 		auth.SetupCommand(),
 		apps.AppsCommand(rt),
+		appsigning.Command(),
+		appstores.Command(),
+		capabilities.Command(),
+		bootstrap.Command(),
 		auditcmd.AuditCommand(),
 		quota.QuotaCommand(),
 		doctor.DoctorCommand(),
@@ -111,6 +121,7 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		listings.ListingsCommand(),
 		metadata.MetadataCommand(),
 		images.ImagesCommand(),
+		integrity.Command(),
 		initcmd.InitCommand(),
 		reviews.ReviewsCommand(),
 		details.DetailsCommand(),
@@ -123,6 +134,7 @@ func SubcommandsWithRuntime(version string, rt *cliruntime.Runtime) []*ffcli.Com
 		rollout.RolloutCommand(),
 		sync.SyncCommand(),
 		validate.ValidateCommand(),
+		verification.Command(),
 		status.StatusCommand(),
 		vitals.VitalsCommand(),
 		iap.IAPCommand(),

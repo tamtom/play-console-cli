@@ -33,6 +33,7 @@ the current media upload endpoint, /upload/v1alpha/{parent=accounts/*/apps/*}/re
 			UploadCommand("analyze"),
 			ContentCommand(),
 			ClassifyCommand("classify"),
+			RepoScansCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {

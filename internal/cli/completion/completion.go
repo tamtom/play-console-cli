@@ -141,10 +141,15 @@ _gplay_completions() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="auth edits bundles apks tracks listings images reviews details testers availability deobfuscation release promote rollout completion version"
+    local commands="auth app-signing app-stores capabilities bootstrap integrity verification edits bundles apks tracks listings images reviews details testers availability deobfuscation release promote rollout completion version"
 
     # Subcommands for each main command
     local auth_commands="init login logout status profiles use doctor"
+    local bootstrap_commands="plan"
+    local app_signing_commands="enroll rotate-key"
+    local app_stores_commands="create-app update-app publish-status upload-apk upload-policy-file upload-image recent-app-view recent-update-events"
+    local integrity_commands="decode decode-pc device-recall-write"
+    local verification_commands="status"
     local edits_commands="create get validate commit delete"
     local bundles_commands="upload list"
     local apks_commands="upload list"
@@ -172,6 +177,21 @@ _gplay_completions() {
             case "${prev}" in
                 auth)
                     COMPREPLY=($(compgen -W "${auth_commands}" -- "${cur}"))
+                    ;;
+                bootstrap)
+                    COMPREPLY=($(compgen -W "${bootstrap_commands}" -- "${cur}"))
+                    ;;
+                app-signing)
+                    COMPREPLY=($(compgen -W "${app_signing_commands}" -- "${cur}"))
+                    ;;
+                app-stores)
+                    COMPREPLY=($(compgen -W "${app_stores_commands}" -- "${cur}"))
+                    ;;
+                integrity)
+                    COMPREPLY=($(compgen -W "${integrity_commands}" -- "${cur}"))
+                    ;;
+                verification)
+                    COMPREPLY=($(compgen -W "${verification_commands}" -- "${cur}"))
                     ;;
                 edits)
                     COMPREPLY=($(compgen -W "${edits_commands}" -- "${cur}"))
@@ -224,6 +244,12 @@ _gplay_completions() {
                     promote)
                         COMPREPLY=($(compgen -W "--package --from --to --rollout --status --release-notes --changes-not-sent-for-review --output --pretty" -- "${cur}"))
                         ;;
+                    capabilities)
+                        COMPREPLY=($(compgen -W "--status --provider --query --output --pretty" -- "${cur}"))
+                        ;;
+                    bootstrap)
+                        COMPREPLY=($(compgen -W "--package --name --aab --output --pretty" -- "${cur}"))
+                        ;;
                     *)
                         COMPREPLY=($(compgen -W "${common_flags} ${edit_flags} ${track_flags}" -- "${cur}"))
                         ;;
@@ -238,9 +264,13 @@ _gplay_completions() {
                     COMPREPLY=($(compgen -W "production beta alpha internal" -- "${cur}"))
                     ;;
                 --status)
-                    COMPREPLY=($(compgen -W "draft inProgress halted completed" -- "${cur}"))
+                    if [[ "${words[1]}" == "capabilities" ]]; then
+                        COMPREPLY=($(compgen -W "official manual unsupported" -- "${cur}"))
+                    else
+                        COMPREPLY=($(compgen -W "draft inProgress halted completed" -- "${cur}"))
+                    fi
                     ;;
-                --file|--bundle|--apk)
+                --file|--bundle|--apk|--aab)
                     _filedir
                     ;;
             esac
@@ -260,6 +290,12 @@ _gplay() {
     local -a commands
     commands=(
         'auth:Manage authentication profiles'
+        'capabilities:Show policy-aware workflow capabilities'
+        'bootstrap:Plan policy-safe initial app setup'
+        'app-signing:Manage enterprise self-hosted Cloud KMS Play App Signing'
+        'app-stores:Operate registered third-party Android app-store APIs'
+        'integrity:Decode Play Integrity tokens and manage Device Recall'
+        'verification:Check Android developer package registration'
         'edits:Manage Google Play app edits'
         'bundles:Manage app bundles in an edit'
         'apks:Manage APKs in an edit'
@@ -298,6 +334,11 @@ _gplay() {
         'delete:Delete an edit'
     )
 
+    local -a bootstrap_commands
+    bootstrap_commands=(
+        'plan:Build an offline manual-handoff plan'
+    )
+
     local -a rollout_commands
     rollout_commands=(
         'halt:Halt a staged rollout'
@@ -327,6 +368,21 @@ _gplay() {
             case $words[2] in
                 auth)
                     _describe -t auth_commands 'auth commands' auth_commands
+                    ;;
+                bootstrap)
+                    _describe -t bootstrap_commands 'bootstrap commands' bootstrap_commands
+                    ;;
+                app-signing)
+                    _values 'app-signing commands' 'enroll' 'rotate-key'
+                    ;;
+                app-stores)
+                    _values 'app-stores commands' 'create-app' 'update-app' 'publish-status' 'upload-apk' 'upload-policy-file' 'upload-image' 'recent-app-view' 'recent-update-events'
+                    ;;
+                integrity)
+                    _values 'integrity commands' 'decode' 'decode-pc' 'device-recall-write'
+                    ;;
+                verification)
+                    _values 'verification commands' 'status'
                     ;;
                 edits)
                     _describe -t edits_commands 'edits commands' edits_commands
@@ -396,6 +452,22 @@ _gplay() {
                         '--output[Output format]:format:(json table markdown)' \
                         '--pretty[Pretty print JSON]'
                     ;;
+                capabilities)
+                    _arguments \
+                        '--status[Capability status]:status:(official manual unsupported)' \
+                        '--provider[Provider name]:provider:' \
+                        '--query[Search text]:query:' \
+                        '--output[Output format]:format:(json table markdown)' \
+                        '--pretty[Pretty print JSON]'
+                    ;;
+                bootstrap)
+                    _arguments \
+                        '--package[Package name]:package:' \
+                        '--name[App name]:name:' \
+                        '--aab[Path to first app bundle]:file:_files -g "*.aab"' \
+                        '--output[Output format]:format:(json table markdown)' \
+                        '--pretty[Pretty print JSON]'
+                    ;;
                 *)
                     _arguments \
                         '--package[Package name]:package:' \
@@ -420,6 +492,12 @@ complete -c gplay -f
 
 # Main commands
 complete -c gplay -n '__fish_use_subcommand' -a auth -d 'Manage authentication profiles'
+complete -c gplay -n '__fish_use_subcommand' -a capabilities -d 'Show policy-aware workflow capabilities'
+complete -c gplay -n '__fish_use_subcommand' -a bootstrap -d 'Plan policy-safe initial app setup'
+complete -c gplay -n '__fish_use_subcommand' -a app-signing -d 'Manage enterprise self-hosted Cloud KMS Play App Signing'
+complete -c gplay -n '__fish_use_subcommand' -a app-stores -d 'Operate registered third-party Android app-store APIs'
+complete -c gplay -n '__fish_use_subcommand' -a integrity -d 'Decode Play Integrity tokens and manage Device Recall'
+complete -c gplay -n '__fish_use_subcommand' -a verification -d 'Check Android developer package registration'
 complete -c gplay -n '__fish_use_subcommand' -a edits -d 'Manage Google Play app edits'
 complete -c gplay -n '__fish_use_subcommand' -a bundles -d 'Manage app bundles in an edit'
 complete -c gplay -n '__fish_use_subcommand' -a apks -d 'Manage APKs in an edit'
@@ -452,6 +530,22 @@ complete -c gplay -n '__fish_seen_subcommand_from edits' -a get -d 'Get an edit'
 complete -c gplay -n '__fish_seen_subcommand_from edits' -a validate -d 'Validate an edit'
 complete -c gplay -n '__fish_seen_subcommand_from edits' -a commit -d 'Commit an edit'
 complete -c gplay -n '__fish_seen_subcommand_from edits' -a delete -d 'Delete an edit'
+
+# Bootstrap subcommands and flags
+complete -c gplay -n '__fish_seen_subcommand_from bootstrap' -a plan -d 'Build an offline manual-handoff plan'
+complete -c gplay -n '__fish_seen_subcommand_from bootstrap' -l name -d 'App name shown in Play Console'
+complete -c gplay -n '__fish_seen_subcommand_from bootstrap' -l aab -d 'Path to first app bundle' -r -F
+
+# New official API namespaces
+complete -c gplay -n '__fish_seen_subcommand_from app-signing' -a 'enroll rotate-key'
+complete -c gplay -n '__fish_seen_subcommand_from app-stores' -a 'create-app update-app publish-status upload-apk upload-policy-file upload-image recent-app-view recent-update-events'
+complete -c gplay -n '__fish_seen_subcommand_from integrity' -a 'decode decode-pc device-recall-write'
+complete -c gplay -n '__fish_seen_subcommand_from verification' -a status
+
+# Capability flags
+complete -c gplay -n '__fish_seen_subcommand_from capabilities' -l status -d 'Capability status' -a 'official manual unsupported'
+complete -c gplay -n '__fish_seen_subcommand_from capabilities' -l provider -d 'Provider name'
+complete -c gplay -n '__fish_seen_subcommand_from capabilities' -l query -d 'Search text'
 
 # Rollout subcommands
 complete -c gplay -n '__fish_seen_subcommand_from rollout' -a halt -d 'Halt a staged rollout'
@@ -494,8 +588,14 @@ Register-ArgumentCompleter -Native -CommandName gplay -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $commands = @{
-        'gplay' = @('auth', 'edits', 'bundles', 'apks', 'tracks', 'listings', 'images', 'reviews', 'details', 'testers', 'availability', 'deobfuscation', 'release', 'promote', 'rollout', 'completion', 'version')
+        'gplay' = @('auth', 'app-signing', 'app-stores', 'capabilities', 'bootstrap', 'integrity', 'verification', 'edits', 'bundles', 'apks', 'tracks', 'listings', 'images', 'reviews', 'details', 'testers', 'availability', 'deobfuscation', 'release', 'promote', 'rollout', 'completion', 'version')
         'auth' = @('init', 'login', 'logout', 'status', 'profiles', 'use', 'doctor')
+        'capabilities' = @()
+        'bootstrap' = @('plan')
+        'app-signing' = @('enroll', 'rotate-key')
+        'app-stores' = @('create-app', 'update-app', 'publish-status', 'upload-apk', 'upload-policy-file', 'upload-image', 'recent-app-view', 'recent-update-events')
+        'integrity' = @('decode', 'decode-pc', 'device-recall-write')
+        'verification' = @('status')
         'edits' = @('create', 'get', 'validate', 'commit', 'delete')
         'bundles' = @('upload', 'list')
         'apks' = @('upload', 'list')
@@ -531,6 +631,12 @@ Register-ArgumentCompleter -Native -CommandName gplay -ScriptBlock {
 
     # Check if we're completing a flag value
     $prevElement = $elements[-1].ToString()
+    if ($prevElement -eq '--status' -and $command -eq 'capabilities') {
+        @('official', 'manual', 'unsupported') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+        }
+        return
+    }
     if ($flagCompletions.ContainsKey($prevElement)) {
         $flagCompletions[$prevElement] | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
@@ -541,7 +647,7 @@ Register-ArgumentCompleter -Native -CommandName gplay -ScriptBlock {
     # Complete commands or subcommands
     if ($wordToComplete -like '-*') {
         # Flag completion
-        @('--package', '--edit', '--track', '--output', '--pretty') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+        @('--package', '--edit', '--track', '--name', '--aab', '--provider', '--query', '--status', '--output', '--pretty') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
         }
     } else {
