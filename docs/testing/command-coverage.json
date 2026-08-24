@@ -15,7 +15,7 @@
     "class": "offline"
   },
   "apks list": {
-    "class": "offline"
+    "class": "live"
   },
   "apks upload": {
     "class": "offline"
@@ -91,7 +91,7 @@
     "class": "offline"
   },
   "availability get": {
-    "class": "offline"
+    "class": "live"
   },
   "baseplans activate": {
     "class": "offline"
@@ -121,7 +121,7 @@
     "class": "offline"
   },
   "bundles list": {
-    "class": "offline"
+    "class": "live"
   },
   "bundles upload": {
     "class": "offline"
@@ -202,7 +202,7 @@
     "class": "offline"
   },
   "details get": {
-    "class": "offline"
+    "class": "live"
   },
   "details patch": {
     "class": "offline"
@@ -411,7 +411,7 @@
     "class": "offline"
   },
   "images list": {
-    "class": "offline"
+    "class": "live"
   },
   "images plan": {
     "class": "offline"
@@ -453,7 +453,7 @@
     "class": "offline"
   },
   "listings delete": {
-    "class": "offline"
+    "class": "live"
   },
   "listings delete-all": {
     "class": "offline"
@@ -470,7 +470,7 @@
     "class": "offline"
   },
   "listings patch": {
-    "class": "offline"
+    "class": "live"
   },
   "listings update": {
     "class": "live",
@@ -540,7 +540,7 @@
     "class": "offline"
   },
   "onetimeproducts list": {
-    "class": "offline"
+    "class": "live"
   },
   "onetimeproducts patch": {
     "class": "offline"
@@ -787,7 +787,7 @@
     "class": "offline"
   },
   "testers get": {
-    "class": "offline"
+    "class": "live"
   },
   "testers patch": {
     "class": "offline"
@@ -810,7 +810,7 @@
     "class": "offline"
   },
   "tracks releases list": {
-    "class": "offline"
+    "class": "live"
   },
   "tracks update": {
     "class": "offline"

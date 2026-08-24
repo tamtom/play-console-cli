@@ -46,6 +46,33 @@ func TestResourceName_ContainsPrefixAndRunID(t *testing.T) {
 	}
 }
 
+func TestIsJanitorTarget(t *testing.T) {
+	targets := []string{
+		ResourceName("123", "product"),
+		"lsmoke-456-iap",
+		"ci_otp_20260824120000",
+	}
+	for _, name := range targets {
+		if !IsJanitorTarget(name) {
+			t.Fatalf("name %q must be a janitor target", name)
+		}
+	}
+	foreign := []string{
+		"",
+		"premium_upgrade",
+		"coins_100",
+		"sku_livesmoke",
+		"otp_ci_backwards",
+		"my_ci_otp_lookalike",
+		"lsmoke", // bare prefix without separator
+	}
+	for _, name := range foreign {
+		if IsJanitorTarget(name) {
+			t.Fatalf("foreign name %q must not be a janitor target", name)
+		}
+	}
+}
+
 func TestIsManagedResourceName(t *testing.T) {
 	if !IsManagedResourceName(ResourceName("123", "product")) {
 		t.Fatal("generated names must be recognized as managed")

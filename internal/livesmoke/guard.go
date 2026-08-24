@@ -39,3 +39,14 @@ func ResourceName(runID, kind string) string {
 func IsManagedResourceName(name string) bool {
 	return strings.HasPrefix(name, NamePrefix+"-")
 }
+
+// ContractTestPrefix marks one-time products that the Go contract test
+// creates (see internal/cli/monetizationpricing/integration_test.go).
+const ContractTestPrefix = "ci_otp_"
+
+// IsJanitorTarget reports whether the janitor may delete the resource with
+// this name. Only names created by the live suite or the contract tests
+// qualify. Every other name is a foreign resource and must survive.
+func IsJanitorTarget(name string) bool {
+	return IsManagedResourceName(name) || strings.HasPrefix(name, ContractTestPrefix)
+}
