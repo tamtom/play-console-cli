@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [0.9.1] - 2026-08-24
+
+### Fixed
+
+- Release binaries now read the canonical linker-injected version, commit, and
+  build date instead of reporting `dev (commit: unknown, date: unknown)`.
+  v0.9.1 supersedes the affected v0.9.0 binaries; command behavior and API
+  compatibility are otherwise unchanged.
+
+### Testing
+
+- Added a black-box regression test that builds and executes the real CLI with
+  release linker metadata.
+- The release workflow now executes the Linux amd64 artifact and requires its
+  exact version output before publishing any release.
+
 ## [0.9.0] - 2026-08-24
 
 ### Added

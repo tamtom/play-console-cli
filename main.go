@@ -5,16 +5,11 @@ import (
 	"os"
 
 	"github.com/tamtom/play-console-cli/cmd"
-)
-
-var (
-	version = "dev"
-	commit  = "unknown"
-	date    = "unknown"
+	buildversion "github.com/tamtom/play-console-cli/internal/version"
 )
 
 func versionInfo() string {
-	return fmt.Sprintf("%s (commit: %s, date: %s)", version, commit, date)
+	return fmt.Sprintf("%s (commit: %s, date: %s)", buildversion.Version, buildversion.Commit, buildversion.BuildDate)
 }
 
 func main() {

@@ -77,6 +77,15 @@ jobs:
 
           echo "Built: $BINARY_NAME"
 
+          if [ "${{ matrix.os }}" = "linux" ] && [ "${{ matrix.arch }}" = "amd64" ]; then
+            EXPECTED="$VERSION (commit: $COMMIT, date: $DATE)"
+            ACTUAL=$(./"$BINARY_NAME" --version)
+            if [ "$ACTUAL" != "$EXPECTED" ]; then
+              echo "release version mismatch: got '$ACTUAL', want '$EXPECTED'" >&2
+              exit 1
+            fi
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
