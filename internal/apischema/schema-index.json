@@ -20,7 +20,7 @@
       "base_url": "https://checks.googleapis.com/",
       "discovery_url": "https://checks.googleapis.com/$discovery/rest?version=v1alpha",
       "name": "checks",
-      "revision": "20260820",
+      "revision": "20260823",
       "service_path": "",
       "version": "v1alpha"
     },

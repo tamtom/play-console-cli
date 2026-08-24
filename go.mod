@@ -1,6 +1,6 @@
 module github.com/tamtom/play-console-cli
 
-go 1.25.8
+go 1.25.13
 
 require (
 	github.com/olekukonko/tablewriter v1.1.4

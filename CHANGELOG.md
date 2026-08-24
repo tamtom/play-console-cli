@@ -8,6 +8,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [0.9.0] - 2026-08-24
+
+### Added
+
+- Added 58 command paths across policy-safe Google Play automation and local
+  Android tooling. New command families include `android`, `app-signing`,
+  `app-stores`, `bootstrap`, `capabilities`, `experiments`, `insights`,
+  `install-skills`, `integrity`, `schema`, `search`, and `verification`.
+- Added reviewed discovery coverage for 218 methods and 566 types across eight
+  official Google Play API families, with a credential-free drift gate.
+- Added official Orders batch retrieval and refund-review submission, Checks
+  repository scans, Play Developer Reporting metric sets and release filters,
+  Play Integrity decoding/device recall, Developer ID verification, and Play
+  Games global tester-data resets.
+- Added deterministic metadata and image plan/apply/run transactions with
+  content hashes, remote preconditions, sealed receipts, reconciliation, and
+  resumable execution.
+- Added offline app-content readiness validation, Android build/signing and
+  screenshot helpers, local command/schema discovery, verified skill
+  installation, and daily/weekly report insights.
+- Added explicit bounded workflow retry and timeout policies, per-attempt
+  diagnostics, definition fingerprints, and ambiguity-safe resume behavior.
+
+### Changed
+
+- Updated `google.golang.org/api` to `v0.293.0` and protobuf to `v1.36.12`.
+- Raised the source-build toolchain requirement from Go 1.25.8 to the patched
+  Go 1.25.13 release. Published binaries continue to cover macOS amd64/arm64,
+  Linux amd64/arm64, and Windows amd64.
+- `orders batch-get` now uses Google's official batch endpoint, deduplicates
+  input IDs, and enforces the documented 1,000-ID request limit.
+- Root help, docs, search, and completion now share one lazy command catalog.
+- Config, workflow state, metadata, generated docs, and update installation use
+  atomic, symlink-safe filesystem operations.
+- Readiness validation now runs the complete offline artifact preflight and can
+  validate an explicit inventory for Console-only app-content declarations.
+
+### Security
+
+- No private Play Console RPCs, authenticated browser automation, cookie/session
+  import, or automated legal-agreement acceptance are used. Console-only app
+  creation, first upload, ordinary signing enrollment, agreements, and
+  experiment lifecycle/results remain explicit manual steps.
+- Added fail-closed scope gates for registered third-party app stores,
+  enterprise self-hosted KMS App Signing, Device Recall, and destructive global
+  Play Games resets.
+- Added no-replay handling for ambiguous App Signing outcomes, reviewed upload
+  manifests for Checks repository scans, credential isolation in CLI tests, and
+  redaction of `--json` audit arguments.
+
+### Compatibility notes
+
+- No existing command or flag was removed or renamed, and `cmd.Run` remains
+  source compatible.
+- Workflow state created before v0.9.0 has no definition fingerprint and cannot
+  be resumed safely; start a fresh workflow run after upgrading.
+- Workflow JSON adds fingerprint/status fields, so strict schema consumers must
+  accept the additive fields.
+- `validate --strict` can now fail on newly detected artifact, listing-quality,
+  or missing app-content-inventory warnings.
+- Writes through symlinked destination components are now rejected by design.
+
 
 ## [0.8.1] - 2026-08-06
 

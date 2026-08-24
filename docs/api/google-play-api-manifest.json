@@ -179,7 +179,7 @@
         "checks.aisafety.classifyContent",
         "checks.media.upload"
       ],
-      "revision": "20260820",
+      "revision": "20260823",
       "version": "v1alpha"
     },
     "gamesconfiguration": {
