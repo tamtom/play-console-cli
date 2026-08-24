@@ -1,43 +1,197 @@
-name: Integration Tests
+name: Live Smoke
+
+# Live tests against the Google Play API. All mutations are restricted to the
+# dedicated fixture app com.itdeveapps.stepsshare. The package name is a
+# compile-time constant in internal/livesmoke; this workflow takes NO inputs,
+# so a dispatch can never point mutations at another app.
+#
+# Quota budget: one shared edit in the binary suite plus two edits in the Go
+# contract suite. Keep it small — the daily edit-creation quota is limited.
 
 on:
   schedule:
-    - cron: "0 6 * * 1" # Mondays at 06:00 UTC
-  workflow_dispatch: # Manual trigger
+    - cron: "0 6 * * 1" # weekly smoke, Mondays 06:00 UTC
+    - cron: "0 5 * * *" # daily janitor, 05:00 UTC
+  workflow_dispatch: # manual trigger; intentionally no inputs
+
+permissions:
+  contents: read
+
+# Single-run locking: every job that can touch the fixture app shares this
+# group, so two live runs never mutate the same app at the same time.
+concurrency:
+  group: live-fixture-app
+  cancel-in-progress: false
 
 jobs:
-  integration:
-    name: Integration Tests
+  smoke:
+    name: Live smoke (compiled CLI)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    # Only run on the main repo, not forks
-    if: github.repository == 'tamtom/play-console-cli'
+    timeout-minutes: 25
+    if: >
+      github.repository == 'tamtom/play-console-cli' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * 1')
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.25.13'
+          go-version: "1.25.13"
+          cache: true
+
+      # The key lives outside the workspace, is only readable by the runner
+      # user, and is shredded in the always() step below. Never print it.
+      - name: Write service account key
+        env:
+          GPLAY_SA_CONTENT: ${{ secrets.GPLAY_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          printenv GPLAY_SA_CONTENT > "$RUNNER_TEMP/gplay-sa.json"
+
+      - name: Binary black-box live smoke
+        env:
+          GPLAY_LIVE_SMOKE: "1"
+          GPLAY_LIVE_SMOKE_MUTATIONS: "1"
+          GPLAY_LIVE_SMOKE_LEDGER: ${{ runner.temp }}/ledger.jsonl
+          GPLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/gplay-sa.json
+          GPLAY_NO_UPDATE: "1"
+        run: go test -tags=livesmoke -v -timeout 15m ./internal/livesmoke/
+
+      - name: Go client contract tests (quota-frugal)
+        env:
+          GPLAY_INTEGRATION_TEST: "1"
+          GPLAY_MUTATING_INTEGRATION_TEST: "1"
+          GPLAY_INTEGRATION_PACKAGE: "com.itdeveapps.stepsshare"
+          GPLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/gplay-sa.json
+          GPLAY_CONFIG_PATH: ${{ runner.temp }}/gplay-integration-config.json
+          HOME: ${{ runner.temp }}/home
+          GPLAY_NO_UPDATE: "1"
+          GPLAY_TIMEOUT: "30s"
+        run: |
+          mkdir -p "$HOME"
+          go test -tags=integration -v -timeout 10m ./...
+
+      # Second-chance cleanup: delete everything the ledger recorded, even
+      # when the test process crashed mid-run.
+      - name: Cleanup ledger resources
+        if: always()
+        env:
+          GPLAY_LIVE_SMOKE: "1"
+          GPLAY_LIVE_SMOKE_CLEANUP: "1"
+          GPLAY_LIVE_SMOKE_LEDGER: ${{ runner.temp }}/ledger.jsonl
+          GPLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/gplay-sa.json
+          GPLAY_NO_UPDATE: "1"
+        run: go test -tags=livesmoke -run TestLive_Cleanup -v ./internal/livesmoke/
+
+      - name: Remove credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gplay-sa.json" "$RUNNER_TEMP/ledger.jsonl" "$RUNNER_TEMP/gplay-integration-config.json"
+
+  janitor:
+    name: Janitor (leftover fixtures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >
+      github.repository == 'tamtom/play-console-cli' &&
+      github.event_name == 'schedule' && github.event.schedule == '0 5 * * *'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25.13"
           cache: true
 
       - name: Write service account key
         env:
           GPLAY_SA_CONTENT: ${{ secrets.GPLAY_SERVICE_ACCOUNT }}
-        run: printenv GPLAY_SA_CONTENT > /tmp/gplay-sa.json
+        run: |
+          umask 077
+          printenv GPLAY_SA_CONTENT > "$RUNNER_TEMP/gplay-sa.json"
 
-      - name: Run integration tests
+      - name: Delete leftover lsmoke-* resources
         env:
-          GPLAY_INTEGRATION_TEST: "1"
-          GPLAY_MUTATING_INTEGRATION_TEST: "1"
-          GPLAY_INTEGRATION_PACKAGE: "com.itdeveapps.stepsshare"
-          GPLAY_SERVICE_ACCOUNT_JSON: /tmp/gplay-sa.json
-          GPLAY_CONFIG_PATH: /tmp/gplay-integration-config.json
+          GPLAY_LIVE_SMOKE: "1"
+          GPLAY_LIVE_SMOKE_JANITOR: "1"
+          GPLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/gplay-sa.json
           GPLAY_NO_UPDATE: "1"
-          GPLAY_TIMEOUT: "30s"
-        run: go test -tags=integration -v -timeout 10m ./...
+        run: go test -tags=livesmoke -run TestLive_Janitor -v ./internal/livesmoke/
 
-      - name: Cleanup
+      - name: Remove credentials
         if: always()
-        run: rm -f /tmp/gplay-sa.json /tmp/gplay-integration-config.json
+        run: rm -f "$RUNNER_TEMP/gplay-sa.json"
+
+  # Internal-track release check with the fixture Android app. Uploads a
+  # freshly built AAB and publishes ONLY to the internal track, then verifies
+  # the release through a readback with the compiled CLI. The job is inert
+  # until the upload-key secrets exist (see test/fixtureapp/README.md).
+  fixture-release:
+    name: Internal-track release (fixture app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: smoke
+    if: github.repository == 'tamtom/play-console-cli' && github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check upload-key secrets
+        id: gate
+        env:
+          KEYSTORE_B64: ${{ secrets.GPLAY_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Upload keystore secrets are absent; the fixture release is skipped."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-go@v7
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          go-version: "1.25.13"
+          cache: true
+
+      - uses: actions/setup-java@v5
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Write credentials
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GPLAY_SA_CONTENT: ${{ secrets.GPLAY_SERVICE_ACCOUNT }}
+          KEYSTORE_B64: ${{ secrets.GPLAY_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          umask 077
+          printenv GPLAY_SA_CONTENT > "$RUNNER_TEMP/gplay-sa.json"
+          printenv KEYSTORE_B64 | base64 -d > "$RUNNER_TEMP/upload.keystore"
+
+      - name: Build CLI
+        if: steps.gate.outputs.enabled == 'true'
+        run: make build
+
+      - name: Build and release fixture AAB to internal track
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GPLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/gplay-sa.json
+          GPLAY_NO_UPDATE: "1"
+          FIXTURE_KEYSTORE: ${{ runner.temp }}/upload.keystore
+          FIXTURE_KEYSTORE_PASSWORD: ${{ secrets.GPLAY_UPLOAD_KEYSTORE_PASSWORD }}
+          FIXTURE_KEY_ALIAS: ${{ secrets.GPLAY_UPLOAD_KEY_ALIAS }}
+          FIXTURE_KEY_PASSWORD: ${{ secrets.GPLAY_UPLOAD_KEY_PASSWORD }}
+        run: ./test/fixtureapp/release-internal.sh
+
+      - name: Remove credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gplay-sa.json" "$RUNNER_TEMP/upload.keystore"

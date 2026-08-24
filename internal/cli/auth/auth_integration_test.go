@@ -22,9 +22,14 @@ func skipUnlessIntegration(t *testing.T) {
 
 func requireServiceAccount(t *testing.T) string {
 	t.Helper()
-	path := os.Getenv("GPLAY_SERVICE_ACCOUNT")
+	// GPLAY_SERVICE_ACCOUNT_JSON is the canonical key-path variable that the
+	// CLI itself reads; GPLAY_SERVICE_ACCOUNT stays as a fallback.
+	path := os.Getenv("GPLAY_SERVICE_ACCOUNT_JSON")
 	if path == "" {
-		t.Skip("skipping: GPLAY_SERVICE_ACCOUNT not set")
+		path = os.Getenv("GPLAY_SERVICE_ACCOUNT")
+	}
+	if path == "" {
+		t.Skip("skipping: GPLAY_SERVICE_ACCOUNT_JSON not set")
 	}
 	return path
 }

@@ -5,11 +5,60 @@ package playclient
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
 
 const integrationPackage = "com.itdeveapps.stepsshare"
+
+// The daily edit-creation quota is small. All read-only tests share ONE
+// edit; only the create/delete lifecycle test makes its own. TestMain
+// deletes the shared edit after the run.
+var (
+	sharedEditOnce sync.Once
+	sharedEditID   string
+	sharedEditErr  error
+)
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	deleteSharedEdit()
+	os.Exit(code)
+}
+
+// sharedEdit returns the ID of the single shared edit, creating it on first
+// use.
+func sharedEdit(t *testing.T, service *Service) string {
+	t.Helper()
+	sharedEditOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		edit, err := service.API.Edits.Insert(integrationPackage, nil).Context(ctx).Do()
+		if err != nil {
+			sharedEditErr = err
+			return
+		}
+		sharedEditID = edit.Id
+	})
+	if sharedEditErr != nil {
+		t.Fatalf("creating shared edit: %v", sharedEditErr)
+	}
+	return sharedEditID
+}
+
+func deleteSharedEdit() {
+	if sharedEditID == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	service, err := NewService(ctx)
+	if err != nil {
+		return
+	}
+	_ = service.API.Edits.Delete(integrationPackage, sharedEditID).Context(ctx).Do()
+}
 
 // newIntegrationService creates an authenticated service for integration tests.
 // It skips the test if credentials are not available.
@@ -28,27 +77,6 @@ func newIntegrationService(t *testing.T) *Service {
 		t.Fatalf("creating service: %v", err)
 	}
 	return service
-}
-
-// createAndCleanupEdit creates an edit and registers cleanup to delete it.
-func createAndCleanupEdit(t *testing.T, service *Service) string {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	edit, err := service.API.Edits.Insert(integrationPackage, nil).Context(ctx).Do()
-	if err != nil {
-		t.Fatalf("creating edit: %v", err)
-	}
-
-	t.Cleanup(func() {
-		delCtx, delCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer delCancel()
-		_ = service.API.Edits.Delete(integrationPackage, edit.Id).Context(delCtx).Do()
-	})
-
-	return edit.Id
 }
 
 // --- Edit lifecycle ---
@@ -77,7 +105,7 @@ func TestIntegration_EditsCreateAndDelete(t *testing.T) {
 
 func TestIntegration_TracksList(t *testing.T) {
 	service := newIntegrationService(t)
-	editID := createAndCleanupEdit(t, service)
+	editID := sharedEdit(t, service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -105,7 +133,7 @@ func TestIntegration_TracksList(t *testing.T) {
 
 func TestIntegration_TracksGet(t *testing.T) {
 	service := newIntegrationService(t)
-	editID := createAndCleanupEdit(t, service)
+	editID := sharedEdit(t, service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -131,7 +159,7 @@ func TestIntegration_TracksGet(t *testing.T) {
 
 func TestIntegration_ListingsList(t *testing.T) {
 	service := newIntegrationService(t)
-	editID := createAndCleanupEdit(t, service)
+	editID := sharedEdit(t, service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -166,7 +194,7 @@ func TestIntegration_ListingsList(t *testing.T) {
 
 func TestIntegration_ListingsGet(t *testing.T) {
 	service := newIntegrationService(t)
-	editID := createAndCleanupEdit(t, service)
+	editID := sharedEdit(t, service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -239,7 +267,7 @@ func TestIntegration_InvalidEditID_ReturnsError(t *testing.T) {
 
 func TestIntegration_InvalidTrack_ReturnsError(t *testing.T) {
 	service := newIntegrationService(t)
-	editID := createAndCleanupEdit(t, service)
+	editID := sharedEdit(t, service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
