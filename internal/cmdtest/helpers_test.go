@@ -3,6 +3,7 @@ package cmdtest_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,7 +13,9 @@ import (
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
+	appcmd "github.com/tamtom/play-console-cli/cmd"
 	"github.com/tamtom/play-console-cli/internal/cli/registry"
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
@@ -108,6 +111,31 @@ func runCommand(t *testing.T, args ...string) (stdout, stderr string, err error)
 
 	stdout, stderr = captureOutput(t, func() {
 		err = root.Run(context.Background())
+		var usageErr *shared.CommandUsageError
+		if errors.As(err, &usageErr) {
+			fmt.Fprintln(os.Stderr, usageErr.Error())
+		}
 	})
 	return stdout, stderr, err
+}
+
+type runtimeResult struct {
+	stdout   string
+	stderr   string
+	exitCode int
+}
+
+// runCommandWithRuntime exercises the production root runner while replacing
+// only explicit service/filesystem boundaries. This is the command-level seam
+// for official API success and failure tests; no host credentials are used.
+func runCommandWithRuntime(t *testing.T, configure func(*cliruntime.Runtime), args ...string) runtimeResult {
+	t.Helper()
+	var stdout, stderr bytes.Buffer
+	exitCode := appcmd.RunWithRuntime(args, "test", func(rt *cliruntime.Runtime) {
+		rt.WithIO(&stdout, &stderr)
+		if configure != nil {
+			configure(rt)
+		}
+	})
+	return runtimeResult{stdout: stdout.String(), stderr: stderr.String(), exitCode: exitCode}
 }

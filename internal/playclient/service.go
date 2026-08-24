@@ -22,8 +22,26 @@ type Service struct {
 	Cfg *config.Config
 }
 
+// ServiceFactory creates an Android Publisher service. Runtime wiring uses a
+// context-scoped factory so every command package can be tested without global
+// hooks or credential resolution.
+type ServiceFactory func(context.Context) (*Service, error)
+
+type serviceFactoryContextKey struct{}
+
+// ContextWithServiceFactory installs a scoped service factory.
+func ContextWithServiceFactory(ctx context.Context, factory ServiceFactory) context.Context {
+	if factory == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, serviceFactoryContextKey{}, factory)
+}
+
 // NewService creates an authenticated Android Publisher service.
 func NewService(ctx context.Context) (*Service, error) {
+	if factory, ok := ctx.Value(serviceFactoryContextKey{}).(ServiceFactory); ok && factory != nil {
+		return factory(ctx)
+	}
 	client, cfg, err := NewAuthenticatedClient(ctx)
 	if err != nil {
 		return nil, err

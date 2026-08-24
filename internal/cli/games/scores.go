@@ -24,6 +24,8 @@ func ScoresCommand() *ffcli.Command {
 			scoresResetCommand(),
 			scoresResetAllCommand(),
 			scoresResetForAllCommand(),
+			scoresResetAllForAllCommand(),
+			scoresResetMultipleForAllCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			return flag.ErrHelp
@@ -61,7 +63,7 @@ func scoresResetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset leaderboard scores", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -96,7 +98,7 @@ func scoresResetAllCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset all leaderboard scores", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -129,7 +131,7 @@ func scoresResetForAllCommand() *ffcli.Command {
 			if err := service.Management.Scores.ResetForAllPlayers(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("reset leaderboard scores for all players", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "reset", "leaderboardId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "reset", "leaderboardId": *id}, "json", false)
 		},
 	}
 }

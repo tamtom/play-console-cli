@@ -116,7 +116,7 @@ Example:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

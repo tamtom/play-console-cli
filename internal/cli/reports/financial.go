@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/gcsclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 var monthRegex = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
@@ -189,7 +188,7 @@ func FinancialListCommand() *ffcli.Command {
 				"bucket":  bucket,
 				"reports": reports,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -276,7 +275,7 @@ func FinancialDownloadCommand() *ffcli.Command {
 				"dir":    *dir,
 				"files":  downloaded,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -300,13 +299,7 @@ func downloadFile(ctx context.Context, svc *gcsclient.Service, bucket, object, l
 	}
 	defer rc.Close()
 
-	f, err := os.Create(localPath)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, rc); err != nil {
+	if _, err := rootfs.AtomicWriteFileFrom(localPath, rc, 0o644, 0o755); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 	return nil

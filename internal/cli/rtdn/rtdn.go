@@ -53,7 +53,7 @@ func RtdnCommand() *ffcli.Command {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}
@@ -91,7 +91,7 @@ at the end.`,
 				Output:  *outputFlag,
 				Pretty:  *pretty,
 				Runner:  realRunner{},
-				Stdout:  os.Stdout,
+				Stdout:  shared.Stdout(ctx),
 			})
 		},
 	}
@@ -129,7 +129,7 @@ func runSetup(ctx context.Context, opts SetupOptions) error {
 		opts.Runner = realRunner{}
 	}
 	if opts.Stdout == nil {
-		opts.Stdout = os.Stdout
+		opts.Stdout = shared.Stdout(ctx)
 	}
 	if _, err := opts.Runner.LookPath("gcloud"); err != nil {
 		return shared.NewReportedError(errors.New("gcloud CLI is required for rtdn setup"))
@@ -171,7 +171,7 @@ func runSetup(ctx context.Context, opts SetupOptions) error {
 	}
 
 	if strings.ToLower(opts.Output) == "json" {
-		return shared.PrintOutput(result, "json", opts.Pretty)
+		return shared.PrintOutputContext(ctx, result, "json", opts.Pretty)
 	}
 	fmt.Fprintln(opts.Stdout, "gplay rtdn setup")
 	fmt.Fprintln(opts.Stdout, "================")
@@ -212,7 +212,7 @@ func statusCommand() *ffcli.Command {
 				Output:  *outputFlag,
 				Pretty:  *pretty,
 				Runner:  realRunner{},
-				Stdout:  os.Stdout,
+				Stdout:  shared.Stdout(ctx),
 			})
 		},
 	}
@@ -257,7 +257,7 @@ func runStatus(ctx context.Context, opts StatusOptions) error {
 		RawPolicy:      strings.TrimSpace(string(out)),
 	}
 	if strings.ToLower(opts.Output) == "json" {
-		return shared.PrintOutput(result, "json", opts.Pretty)
+		return shared.PrintOutputContext(ctx, result, "json", opts.Pretty)
 	}
 	fmt.Fprintln(opts.Stdout, "gplay rtdn status")
 	fmt.Fprintf(opts.Stdout, "  Project: %s\n", result.Project)
@@ -306,7 +306,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(decoded, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, decoded, *outputFlag, *pretty)
 		},
 	}
 }

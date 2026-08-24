@@ -3,6 +3,7 @@ package snitch
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
 func TestIsValidSeverity(t *testing.T) {
@@ -708,7 +711,7 @@ func TestWriteLocalLog(t *testing.T) {
 		Timestamp:    time.Now().UTC(),
 	}
 
-	if err := writeLocalLog(entry); err != nil {
+	if err := writeLocalLog(entry, io.Discard); err != nil {
 		t.Fatalf("writeLocalLog() error: %v", err)
 	}
 
@@ -735,7 +738,7 @@ func TestWriteLocalLog(t *testing.T) {
 
 	// Write a second entry and verify append.
 	entry.Description = "second entry"
-	if err := writeLocalLog(entry); err != nil {
+	if err := writeLocalLog(entry, io.Discard); err != nil {
 		t.Fatalf("writeLocalLog() second call error: %v", err)
 	}
 
@@ -776,7 +779,7 @@ func TestWriteLocalLogSecuresExistingFilePermissions(t *testing.T) {
 		OS:           "darwin/arm64",
 		Timestamp:    time.Now().UTC(),
 	}
-	if err := writeLocalLog(entry); err != nil {
+	if err := writeLocalLog(entry, io.Discard); err != nil {
 		t.Fatalf("writeLocalLog() error: %v", err)
 	}
 
@@ -1108,6 +1111,10 @@ func runSnitchCommand(t *testing.T, args ...string) (string, string, error) {
 			return
 		}
 		runErr = cmd.Run(context.Background())
+		var usageErr *shared.CommandUsageError
+		if errors.As(runErr, &usageErr) {
+			fmt.Fprintln(os.Stderr, usageErr.Error())
+		}
 	})
 
 	return stdout, stderr, runErr
@@ -1127,6 +1134,10 @@ func runSnitchFlushCommand(t *testing.T, args ...string) (string, string, error)
 			return
 		}
 		runErr = cmd.Run(context.Background())
+		var usageErr *shared.CommandUsageError
+		if errors.As(runErr, &usageErr) {
+			fmt.Fprintln(os.Stderr, usageErr.Error())
+		}
 	})
 
 	return stdout, stderr, runErr

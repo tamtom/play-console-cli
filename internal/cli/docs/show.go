@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -35,15 +34,15 @@ Examples:
 				return flag.ErrHelp
 			}
 			if len(args) > 1 {
-				fmt.Fprintln(os.Stderr, "Error: docs show accepts exactly one topic name")
+				fmt.Fprintln(shared.Stderr(ctx), "Error: docs show accepts exactly one topic name")
 				return flag.ErrHelp
 			}
 
 			topicName := strings.TrimSpace(args[0])
 			topic, ok := findTopic(topicName)
 			if !ok {
-				fmt.Fprintf(os.Stderr, "Error: unknown topic %q\n", topicName)
-				fmt.Fprintf(os.Stderr, "Available topics: %s\n", strings.Join(topicSlugs(), ", "))
+				fmt.Fprintf(shared.Stderr(ctx), "Error: unknown topic %q\n", topicName)
+				fmt.Fprintf(shared.Stderr(ctx), "Available topics: %s\n", strings.Join(topicSlugs(), ", "))
 				return flag.ErrHelp
 			}
 
@@ -51,7 +50,7 @@ Examples:
 			if !strings.HasSuffix(content, "\n") {
 				content += "\n"
 			}
-			fmt.Fprint(os.Stdout, content)
+			fmt.Fprint(shared.Stdout(ctx), content)
 			return nil
 		},
 	}
@@ -68,17 +67,17 @@ func ListCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			fmt.Fprintln(os.Stdout, "Available documentation topics:")
-			fmt.Fprintln(os.Stdout)
+			fmt.Fprintln(shared.Stdout(ctx), "Available documentation topics:")
+			fmt.Fprintln(shared.Stdout(ctx))
 
-			tw := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
+			tw := tabwriter.NewWriter(shared.Stdout(ctx), 2, 4, 2, ' ', 0)
 			for _, topic := range topicRegistry {
 				fmt.Fprintf(tw, "  %s\t%s\n", topic.Slug, topic.Description)
 			}
 			tw.Flush()
 
-			fmt.Fprintln(os.Stdout)
-			fmt.Fprintln(os.Stdout, "Use 'gplay docs show <topic>' to view a topic.")
+			fmt.Fprintln(shared.Stdout(ctx))
+			fmt.Fprintln(shared.Stdout(ctx), "Use 'gplay docs show <topic>' to view a topic.")
 			return nil
 		},
 	}

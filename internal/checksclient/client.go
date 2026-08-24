@@ -38,8 +38,23 @@ type Service struct {
 	Cfg *config.Config
 }
 
+type (
+	ServiceFactory           func(context.Context) (*Service, error)
+	serviceFactoryContextKey struct{}
+)
+
+func ContextWithServiceFactory(ctx context.Context, factory ServiceFactory) context.Context {
+	if factory == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, serviceFactoryContextKey{}, factory)
+}
+
 // NewService creates an authenticated Checks API service.
 func NewService(ctx context.Context) (*Service, error) {
+	if factory, ok := ctx.Value(serviceFactoryContextKey{}).(ServiceFactory); ok && factory != nil {
+		return factory(ctx)
+	}
 	cfg, err := config.Load()
 	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		return nil, shared.NewActionableError(
@@ -63,6 +78,18 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	return &Service{API: api, Cfg: cfg}, nil
+}
+
+// NewServiceWithClient creates a Checks service on a caller-provided transport.
+func NewServiceWithClient(ctx context.Context, client *http.Client, basePath string) (*Service, error) {
+	api, err := checks.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, fmt.Errorf("create Checks service: %w", err)
+	}
+	if basePath != "" {
+		api.BasePath = basePath
+	}
+	return &Service{API: api, Cfg: &config.Config{}}, nil
 }
 
 // ResolveAccount returns the Checks account ID from flag, env, or config.

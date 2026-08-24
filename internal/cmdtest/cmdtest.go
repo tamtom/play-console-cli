@@ -3,9 +3,11 @@ package cmdtest
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -18,6 +20,12 @@ type Result struct {
 
 // BinaryPath is set by TestMain to point to the compiled gplay binary.
 var BinaryPath string
+
+var (
+	buildOnce sync.Once
+	buildErr  error
+	buildDir  string
+)
 
 // Run executes the gplay binary with the given arguments and returns the result.
 func Run(t *testing.T, args ...string) Result {
@@ -63,18 +71,36 @@ func RunJSON(t *testing.T, args ...string) (map[string]interface{}, Result) {
 // Build compiles the gplay binary into a temp directory and sets BinaryPath.
 func Build(t *testing.T) {
 	t.Helper()
-	dir := t.TempDir()
-	binary := dir + "/gplay"
-	if os.PathSeparator == '\\' {
-		binary += ".exe"
+	buildOnce.Do(func() {
+		buildDir, buildErr = os.MkdirTemp("", "gplay-cmdtest-binary-*")
+		if buildErr != nil {
+			return
+		}
+		binary := buildDir + "/gplay"
+		if os.PathSeparator == '\\' {
+			binary += ".exe"
+		}
+		cmd := exec.Command("go", "build", "-o", binary, ".") // #nosec G204 -- building our own project binary for tests
+		cmd.Dir = findProjectRoot()
+		var out []byte
+		out, buildErr = cmd.CombinedOutput()
+		if buildErr != nil {
+			buildErr = fmt.Errorf("failed to build gplay binary: %w\n%s", buildErr, out)
+			return
+		}
+		BinaryPath = binary
+	})
+	if buildErr != nil {
+		t.Fatal(buildErr)
 	}
-	cmd := exec.Command("go", "build", "-o", binary, ".") // #nosec G204 -- building our own project binary for tests
-	cmd.Dir = findProjectRoot()
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("failed to build gplay binary: %v\n%s", err, out)
+}
+
+// Cleanup removes the shared black-box binary directory after a package test
+// run. The binary intentionally outlives each individual test.
+func Cleanup() {
+	if buildDir != "" {
+		_ = os.RemoveAll(buildDir)
 	}
-	BinaryPath = binary
 }
 
 // findProjectRoot walks up from cwd to find go.mod

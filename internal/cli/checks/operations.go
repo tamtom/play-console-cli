@@ -146,7 +146,7 @@ func OperationsListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list Checks operations", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*checksapi.Operation
 			err = call.Pages(ctx, func(resp *checksapi.ListOperationsResponse) error {
@@ -156,7 +156,7 @@ func OperationsListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks operations", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -196,7 +196,7 @@ func operationCommand(name, usage, help string, fs *flag.FlagSet, outputFlag *st
 			if err != nil {
 				return shared.WrapGoogleAPIError(name+" Checks operation", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
-	"github.com/tamtom/play-console-cli/internal/output"
 )
 
 // AuthCommand builds the auth root command.
@@ -38,7 +38,7 @@ func AuthCommand() *ffcli.Command {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n\n", args[0])
 			return flag.ErrHelp
 		},
 	}
@@ -80,7 +80,7 @@ func AuthInitCommand() *ffcli.Command {
 				return err
 			}
 
-			fmt.Fprintf(os.Stderr, "Config created at %s\n\nNext steps:\n  gplay auth login --service-account /path/to/key.json\n  gplay auth doctor\n", path)
+			fmt.Fprintf(shared.Stderr(ctx), "Config created at %s\n\nNext steps:\n  gplay auth login --service-account /path/to/key.json\n  gplay auth doctor\n", path)
 
 			result := struct {
 				ConfigPath string         `json:"config_path"`
@@ -91,7 +91,7 @@ func AuthInitCommand() *ffcli.Command {
 				Created:    true,
 				Config:     template,
 			}
-			return output.PrintJSON(result)
+			return shared.PrintOutputContext(ctx, result, "json", false)
 		},
 	}
 }
@@ -157,7 +157,7 @@ Examples:
 				ConfigPath: path,
 				Profile:    newProfile,
 			}
-			return output.PrintJSON(result)
+			return shared.PrintOutputContext(ctx, result, "json", false)
 		},
 	}
 }
@@ -198,7 +198,7 @@ func AuthSwitchCommand() *ffcli.Command {
 				ConfigPath: path,
 				Default:    *profile,
 			}
-			return output.PrintJSON(result)
+			return shared.PrintOutputContext(ctx, result, "json", false)
 		},
 	}
 }
@@ -247,7 +247,7 @@ func AuthLogoutCommand() *ffcli.Command {
 				ConfigPath: path,
 				Removed:    *profile,
 			}
-			return output.PrintJSON(result)
+			return shared.PrintOutputContext(ctx, result, "json", false)
 		},
 	}
 }
@@ -284,7 +284,7 @@ func AuthStatusCommand() *ffcli.Command {
 			if cfg != nil {
 				result.Profiles = cfg.Profiles
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -323,21 +323,21 @@ func AuthDoctorCommand() *ffcli.Command {
 						Fixes  []fixResult `json:"fixes"`
 					}{Report: report, Fixes: fixes}
 					if *pretty {
-						return output.PrintPrettyJSON(result)
+						return shared.PrintOutputContext(ctx, result, "json", true)
 					}
-					return output.PrintJSON(result)
+					return shared.PrintOutputContext(ctx, result, "json", false)
 				}
 				if *pretty {
-					return output.PrintPrettyJSON(report)
+					return shared.PrintOutputContext(ctx, report, "json", true)
 				}
-				return output.PrintJSON(report)
+				return shared.PrintOutputContext(ctx, report, "json", false)
 			}
 
-			printAuthReport(report)
+			printAuthReport(shared.Stdout(ctx), report)
 
 			if *fix {
 				fixes := attemptFixes(report, *confirm)
-				printFixes(fixes)
+				printFixes(shared.Stdout(ctx), fixes)
 			}
 
 			if report.Errors > 0 {
@@ -386,15 +386,15 @@ func buildAuthReport() authReport {
 	return report
 }
 
-func printAuthReport(report authReport) {
-	fmt.Println("Auth Doctor")
+func printAuthReport(out io.Writer, report authReport) {
+	fmt.Fprintln(out, "Auth Doctor")
 	for _, check := range report.Checks {
-		fmt.Printf("  - %s\n", check)
+		fmt.Fprintf(out, "  - %s\n", check)
 	}
 	if report.Errors == 0 && report.Warnings == 0 {
-		fmt.Println("No issues found.")
+		fmt.Fprintln(out, "No issues found.")
 	} else {
-		fmt.Printf("Found %d warning(s) and %d error(s).\n", report.Warnings, report.Errors)
+		fmt.Fprintf(out, "Found %d warning(s) and %d error(s).\n", report.Warnings, report.Errors)
 	}
 }
 

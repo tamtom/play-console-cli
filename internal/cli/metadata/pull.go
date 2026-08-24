@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // PullCommand returns the metadata pull subcommand.
@@ -87,7 +87,7 @@ Examples:
 				"dir":     dirValue,
 				"status":  "pulled",
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -121,28 +121,32 @@ func executePull(ctx context.Context, api *androidpublisher.Service, packageName
 	}
 
 	var pulledLocales []string
+	outputRoot, err := rootfs.OpenOrCreate(dir, 0o755)
+	if err != nil {
+		return fmt.Errorf("open metadata output directory: %w", err)
+	}
+	defer func() { _ = outputRoot.Close() }()
 	for _, listing := range listResp.Listings {
 		locale := listing.Language
 		if len(filterSet) > 0 && !filterSet[locale] {
 			continue
 		}
 
-		localeDir := filepath.Join(dir, locale)
-		if err := os.MkdirAll(localeDir, 0o755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", localeDir, err)
+		if err := outputRoot.MkdirAll(locale, 0o755); err != nil {
+			return fmt.Errorf("failed to create locale directory %s: %w", locale, err)
 		}
 
-		if err := writeMetadataFile(filepath.Join(localeDir, "title.txt"), listing.Title); err != nil {
+		if err := writeMetadataFile(outputRoot, filepath.Join(locale, "title.txt"), listing.Title); err != nil {
 			return err
 		}
-		if err := writeMetadataFile(filepath.Join(localeDir, "short_description.txt"), listing.ShortDescription); err != nil {
+		if err := writeMetadataFile(outputRoot, filepath.Join(locale, "short_description.txt"), listing.ShortDescription); err != nil {
 			return err
 		}
-		if err := writeMetadataFile(filepath.Join(localeDir, "full_description.txt"), listing.FullDescription); err != nil {
+		if err := writeMetadataFile(outputRoot, filepath.Join(locale, "full_description.txt"), listing.FullDescription); err != nil {
 			return err
 		}
 		if strings.TrimSpace(listing.Video) != "" {
-			if err := writeMetadataFile(filepath.Join(localeDir, "video_url.txt"), listing.Video); err != nil {
+			if err := writeMetadataFile(outputRoot, filepath.Join(locale, "video_url.txt"), listing.Video); err != nil {
 				return err
 			}
 		}
@@ -151,12 +155,12 @@ func executePull(ctx context.Context, api *androidpublisher.Service, packageName
 	}
 
 	sort.Strings(pulledLocales)
-	fmt.Fprintf(os.Stderr, "Pulled %d locales to %s\n", len(pulledLocales), dir)
+	fmt.Fprintf(shared.Stderr(ctx), "Pulled %d locales to %s\n", len(pulledLocales), dir)
 	return nil
 }
 
-func writeMetadataFile(path, content string) error {
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+func writeMetadataFile(root *rootfs.Root, path, content string) error {
+	if err := root.AtomicWrite(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", path, err)
 	}
 	return nil

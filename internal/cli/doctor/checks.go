@@ -14,6 +14,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/audit"
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // Severity of a single check outcome.
@@ -321,16 +322,14 @@ func checkHomeWritable(env Env) CheckResult {
 		return CheckResult{Name: "home writable", Severity: SeveritySkip}
 	}
 	tmpDir := filepath.Join(home, ".gplay")
-	if err := os.MkdirAll(tmpDir, 0o755); err != nil {
-		return CheckResult{Name: "home writable", Severity: SeverityFail, Detail: err.Error()}
-	}
-	probe := filepath.Join(tmpDir, ".doctor.probe")
-	f, err := os.OpenFile(probe, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	root, err := rootfs.OpenOrCreate(tmpDir, 0o700)
 	if err != nil {
 		return CheckResult{Name: "home writable", Severity: SeverityFail, Detail: err.Error()}
 	}
-	_ = f.Close()
-	_ = os.Remove(probe)
+	defer func() { _ = root.Close() }()
+	if err := root.CheckWritable(); err != nil {
+		return CheckResult{Name: "home writable", Severity: SeverityFail, Detail: err.Error()}
+	}
 	return CheckResult{Name: "home writable", Severity: SeverityOK, Detail: tmpDir}
 }
 

@@ -82,7 +82,7 @@ func ListCommand() *ffcli.Command {
 					return err
 				}
 				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
+					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.Users...)
 				if resp.NextPageToken == "" {
@@ -91,7 +91,7 @@ func ListCommand() *ffcli.Command {
 				pageToken = resp.NextPageToken
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -168,7 +168,7 @@ Available account permissions:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -251,7 +251,7 @@ fields in the request body are applied.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -301,7 +301,7 @@ func DeleteCommand() *ffcli.Command {
 				"deleted": true,
 				"email":   *email,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

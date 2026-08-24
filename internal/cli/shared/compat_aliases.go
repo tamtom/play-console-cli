@@ -3,7 +3,6 @@ package shared
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -22,7 +21,7 @@ func DeprecatedAliasLeafCommand(original *ffcli.Command, oldName, newCommandPath
 		Subcommands: original.Subcommands,
 		UsageFunc:   original.UsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			fmt.Fprintf(os.Stderr, "Warning: %q is deprecated. Use `%s` instead.\n", oldName, newCommandPath)
+			fmt.Fprintf(Stderr(ctx), "Warning: %q is deprecated. Use `%s` instead.\n", oldName, newCommandPath)
 			if original.Exec != nil {
 				return original.Exec(ctx, args)
 			}

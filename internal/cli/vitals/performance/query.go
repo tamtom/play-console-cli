@@ -70,7 +70,7 @@ func executeStartupQuery(ctx context.Context, packageName string, opts queryOpti
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }
 
 func executeRenderingQuery(ctx context.Context, packageName string, opts queryOptions, outputFlag string, pretty bool) error {
@@ -90,7 +90,7 @@ func executeRenderingQuery(ctx context.Context, packageName string, opts queryOp
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }
 
 func executeBatteryQuery(ctx context.Context, packageName, metricType string, opts queryOptions, outputFlag string, pretty bool) error {
@@ -130,7 +130,7 @@ func executeBatteryQuery(ctx context.Context, packageName, metricType string, op
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }
 
 func querySlowStartRate(ctx context.Context, service *reportingclient.Service, pkg string, opts queryOptions) (interface{}, error) {

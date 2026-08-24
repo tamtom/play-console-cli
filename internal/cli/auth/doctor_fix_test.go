@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,8 +77,8 @@ func TestAttemptFixes_ServiceAccountEnvMissingFile(t *testing.T) {
 
 func TestPrintFixes_Empty(t *testing.T) {
 	// Should not panic
-	printFixes(nil)
-	printFixes([]fixResult{})
+	printFixes(io.Discard, nil)
+	printFixes(io.Discard, []fixResult{})
 }
 
 func TestPrintFixes_WithResults(t *testing.T) {
@@ -86,5 +87,5 @@ func TestPrintFixes_WithResults(t *testing.T) {
 		{Name: "service_account", Status: "manual_action_required", Message: "Run: gplay auth login"},
 	}
 	// Should not panic
-	printFixes(fixes)
+	printFixes(io.Discard, fixes)
 }

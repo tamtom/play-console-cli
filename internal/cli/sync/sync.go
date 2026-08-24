@@ -14,6 +14,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // FastLane metadata file names
@@ -68,6 +69,9 @@ Directory structure (FastLane format):
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
+			PlanCommand(),
+			ApplyCommand(),
+			RunCommand(),
 			ExportListingsCommand(),
 			ImportListingsCommand(),
 			ExportImagesCommand(),
@@ -134,62 +138,63 @@ func ExportListingsCommand() *ffcli.Command {
 				return fmt.Errorf("failed to list listings: %w", err)
 			}
 
-			// Create output directory
-			if err := os.MkdirAll(*outputDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+			outputRoot, err := rootfs.OpenOrCreate(*outputDir, 0o755)
+			if err != nil {
+				return fmt.Errorf("failed to open output directory: %w", err)
 			}
-
-			// Export each listing
+			defer func() { _ = outputRoot.Close() }()
+			if err := exportListingsToRoot(outputRoot, *format, listingsResp.Listings); err != nil {
+				return err
+			}
 			for _, listing := range listingsResp.Listings {
-				localeDir := filepath.Join(*outputDir, listing.Language)
-				if err := os.MkdirAll(localeDir, 0o755); err != nil {
-					return fmt.Errorf("failed to create locale directory: %w", err)
-				}
-
-				if *format == "json" {
-					// Export as JSON
-					data, err := json.MarshalIndent(listing, "", "  ")
-					if err != nil {
-						return fmt.Errorf("failed to marshal listing: %w", err)
-					}
-					if err := os.WriteFile(filepath.Join(localeDir, "listing.json"), data, 0o644); err != nil {
-						return fmt.Errorf("failed to write listing.json: %w", err)
-					}
-				} else {
-					// Export as FastLane format
-					if listing.Title != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, titleFile), []byte(listing.Title), 0o644); err != nil {
-							return fmt.Errorf("failed to write title: %w", err)
-						}
-					}
-					if listing.ShortDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, shortDescFile), []byte(listing.ShortDescription), 0o644); err != nil {
-							return fmt.Errorf("failed to write short description: %w", err)
-						}
-					}
-					if listing.FullDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, fullDescFile), []byte(listing.FullDescription), 0o644); err != nil {
-							return fmt.Errorf("failed to write full description: %w", err)
-						}
-					}
-					if listing.Video != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, videoFile), []byte(listing.Video), 0o644); err != nil {
-							return fmt.Errorf("failed to write video: %w", err)
-						}
-					}
-				}
-
-				fmt.Fprintf(os.Stderr, "Exported: %s\n", listing.Language)
+				fmt.Fprintf(shared.Stderr(ctx), "Exported: %s\n", listing.Language)
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "Note: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "Note: Used temporary edit (deleted automatically)\n")
 			}
 
-			fmt.Fprintf(os.Stderr, "Exported %d listings to %s\n", len(listingsResp.Listings), *outputDir)
+			fmt.Fprintf(shared.Stderr(ctx), "Exported %d listings to %s\n", len(listingsResp.Listings), *outputDir)
 			return nil
 		},
 	}
+}
+
+func exportListingsToRoot(root *rootfs.Root, format string, listings []*androidpublisher.Listing) error {
+	for _, listing := range listings {
+		locale := strings.TrimSpace(listing.Language)
+		if err := root.MkdirAll(locale, 0o755); err != nil {
+			return fmt.Errorf("failed to create locale directory %q: %w", locale, err)
+		}
+		if format == "json" {
+			data, err := json.MarshalIndent(listing, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal listing: %w", err)
+			}
+			if err := root.AtomicWrite(filepath.Join(locale, "listing.json"), data, 0o644); err != nil {
+				return fmt.Errorf("failed to write listing.json: %w", err)
+			}
+			continue
+		}
+		fields := []struct {
+			name  string
+			value string
+		}{
+			{name: titleFile, value: listing.Title},
+			{name: shortDescFile, value: listing.ShortDescription},
+			{name: fullDescFile, value: listing.FullDescription},
+			{name: videoFile, value: listing.Video},
+		}
+		for _, field := range fields {
+			if field.value == "" {
+				continue
+			}
+			if err := root.AtomicWrite(filepath.Join(locale, field.name), []byte(field.value), 0o644); err != nil {
+				return fmt.Errorf("failed to write %s: %w", field.name, err)
+			}
+		}
+	}
+	return nil
 }
 
 func ImportListingsCommand() *ffcli.Command {
@@ -276,21 +281,21 @@ func ImportListingsCommand() *ffcli.Command {
 				}
 
 				if *dryRun {
-					fmt.Fprintf(os.Stderr, "Would import: %s (title: %q)\n", locale, truncate(listing.Title, 30))
+					fmt.Fprintf(shared.Stderr(ctx), "Would import: %s (title: %q)\n", locale, truncate(listing.Title, 30))
 				} else {
 					_, err := service.API.Edits.Listings.Update(pkg, *editID, locale, listing).Context(ctx).Do()
 					if err != nil {
 						return fmt.Errorf("failed to update listing for %s: %w", locale, err)
 					}
-					fmt.Fprintf(os.Stderr, "Imported: %s\n", locale)
+					fmt.Fprintf(shared.Stderr(ctx), "Imported: %s\n", locale)
 				}
 				imported++
 			}
 
 			if *dryRun {
-				fmt.Fprintf(os.Stderr, "Dry run: would import %d listings\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Dry run: would import %d listings\n", imported)
 			} else {
-				fmt.Fprintf(os.Stderr, "Imported %d listings\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Imported %d listings\n", imported)
 			}
 			return nil
 		},
@@ -368,6 +373,11 @@ func ExportImagesCommand() *ffcli.Command {
 				"wearScreenshots",
 			}
 
+			outputRoot, err := rootfs.OpenOrCreate(*outputDir, 0o755)
+			if err != nil {
+				return fmt.Errorf("failed to open output directory: %w", err)
+			}
+			defer func() { _ = outputRoot.Close() }()
 			exported := 0
 			for _, loc := range locales {
 				for _, imageType := range imageTypes {
@@ -384,12 +394,12 @@ func ExportImagesCommand() *ffcli.Command {
 					var targetDir string
 					switch imageType {
 					case "phoneScreenshots", "sevenInchScreenshots", "tenInchScreenshots", "tvScreenshots", "wearScreenshots":
-						targetDir = filepath.Join(*outputDir, loc, imagesDir, imageType)
+						targetDir = filepath.Join(loc, imagesDir, imageType)
 					default:
-						targetDir = filepath.Join(*outputDir, loc, imagesDir)
+						targetDir = filepath.Join(loc, imagesDir)
 					}
 
-					if err := os.MkdirAll(targetDir, 0o755); err != nil {
+					if err := outputRoot.MkdirAll(targetDir, 0o755); err != nil {
 						return fmt.Errorf("failed to create directory: %w", err)
 					}
 
@@ -400,21 +410,21 @@ func ExportImagesCommand() *ffcli.Command {
 					if err != nil {
 						return fmt.Errorf("failed to marshal image metadata: %w", err)
 					}
-					if err := os.WriteFile(metaFile, data, 0o644); err != nil {
+					if err := outputRoot.AtomicWrite(metaFile, data, 0o644); err != nil {
 						return fmt.Errorf("failed to write image metadata: %w", err)
 					}
 
 					exported += len(images.Images)
-					fmt.Fprintf(os.Stderr, "Exported metadata for %d %s images in %s\n", len(images.Images), imageType, loc)
+					fmt.Fprintf(shared.Stderr(ctx), "Exported metadata for %d %s images in %s\n", len(images.Images), imageType, loc)
 				}
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "Note: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "Note: Used temporary edit (deleted automatically)\n")
 			}
 
-			fmt.Fprintf(os.Stderr, "Exported metadata for %d images to %s\n", exported, *outputDir)
-			fmt.Fprintf(os.Stderr, "Note: Image files must be downloaded manually from the Play Console\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Exported metadata for %d images to %s\n", exported, *outputDir)
+			fmt.Fprintf(shared.Stderr(ctx), "Note: Image files must be downloaded manually from the Play Console\n")
 			return nil
 		},
 	}
@@ -509,13 +519,13 @@ func ImportImagesCommand() *ffcli.Command {
 
 						filePath := filepath.Join(screenshotDir, file.Name())
 						if *dryRun {
-							fmt.Fprintf(os.Stderr, "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
+							fmt.Fprintf(shared.Stderr(ctx), "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
 						} else {
 							if err := uploadImage(ctx, service, pkg, *editID, loc, imageType, filePath); err != nil {
-								fmt.Fprintf(os.Stderr, "Warning: failed to upload %s: %v\n", filePath, err)
+								fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to upload %s: %v\n", filePath, err)
 								continue
 							}
-							fmt.Fprintf(os.Stderr, "Uploaded: %s -> %s/%s\n", file.Name(), loc, imageType)
+							fmt.Fprintf(shared.Stderr(ctx), "Uploaded: %s -> %s/%s\n", file.Name(), loc, imageType)
 						}
 						imported++
 					}
@@ -529,22 +539,22 @@ func ImportImagesCommand() *ffcli.Command {
 					}
 
 					if *dryRun {
-						fmt.Fprintf(os.Stderr, "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
+						fmt.Fprintf(shared.Stderr(ctx), "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
 					} else {
 						if err := uploadImage(ctx, service, pkg, *editID, loc, imageType, filePath); err != nil {
-							fmt.Fprintf(os.Stderr, "Warning: failed to upload %s: %v\n", filePath, err)
+							fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to upload %s: %v\n", filePath, err)
 							continue
 						}
-						fmt.Fprintf(os.Stderr, "Uploaded: %s -> %s/%s\n", fileName, loc, imageType)
+						fmt.Fprintf(shared.Stderr(ctx), "Uploaded: %s -> %s/%s\n", fileName, loc, imageType)
 					}
 					imported++
 				}
 			}
 
 			if *dryRun {
-				fmt.Fprintf(os.Stderr, "Dry run: would upload %d images\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Dry run: would upload %d images\n", imported)
 			} else {
-				fmt.Fprintf(os.Stderr, "Uploaded %d images\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Uploaded %d images\n", imported)
 			}
 			return nil
 		},
@@ -655,7 +665,7 @@ func DiffListingsCommand() *ffcli.Command {
 			// Check for locales only in remote
 			for locale := range remoteListings {
 				if _, ok := localListings[locale]; !ok {
-					fmt.Printf("- %s (only in remote)\n", locale)
+					fmt.Fprintf(shared.Stdout(ctx), "- %s (only in remote)\n", locale)
 					hasDiff = true
 				}
 			}
@@ -663,7 +673,7 @@ func DiffListingsCommand() *ffcli.Command {
 			// Check for locales only in local
 			for locale := range localListings {
 				if _, ok := remoteListings[locale]; !ok {
-					fmt.Printf("+ %s (only in local)\n", locale)
+					fmt.Fprintf(shared.Stdout(ctx), "+ %s (only in local)\n", locale)
 					hasDiff = true
 				}
 			}
@@ -690,17 +700,17 @@ func DiffListingsCommand() *ffcli.Command {
 				}
 
 				if len(diffs) > 0 {
-					fmt.Printf("~ %s: %s\n", locale, strings.Join(diffs, ", "))
+					fmt.Fprintf(shared.Stdout(ctx), "~ %s: %s\n", locale, strings.Join(diffs, ", "))
 					hasDiff = true
 				}
 			}
 
 			if !hasDiff {
-				fmt.Println("No differences found")
+				fmt.Fprintln(shared.Stdout(ctx), "No differences found")
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "\nNote: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "\nNote: Used temporary edit (deleted automatically)\n")
 			}
 
 			return nil

@@ -1,9 +1,12 @@
 package validate
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/release"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	preflightpkg "github.com/tamtom/play-console-cli/internal/preflight"
 	"github.com/tamtom/play-console-cli/internal/validation"
 )
 
@@ -24,6 +28,8 @@ type readinessOptions struct {
 	ListingsDir    string
 	ScreenshotsDir string
 	ReleaseNotes   string
+	AppContent     string
+	Offline        bool
 	Strict         bool
 	Output         string
 	Pretty         bool
@@ -39,13 +45,16 @@ type remoteReadinessState struct {
 	Listings    []*androidpublisher.Listing
 }
 
-var fetchRemoteReadinessStateFn = fetchRemoteReadinessState
+var (
+	fetchRemoteReadinessStateFn = fetchRemoteReadinessState
+	scanArtifactPreflightFn     = preflightpkg.Scan
+)
 
 func runReadinessCommand(ctx context.Context, opts readinessOptions) error {
 	report := buildReadinessReport(ctx, opts)
 
-	fmt.Fprintln(os.Stderr, report.SummaryLine())
-	if err := shared.PrintOutput(report, opts.Output, opts.Pretty); err != nil {
+	fmt.Fprintln(shared.Stderr(ctx), report.SummaryLine())
+	if err := shared.PrintOutputContext(ctx, report, opts.Output, opts.Pretty); err != nil {
 		return err
 	}
 
@@ -68,54 +77,112 @@ func buildReadinessReport(ctx context.Context, opts readinessOptions) *validatio
 	report := &validation.ReadinessReport{
 		PackageName: opts.PackageName,
 		Track:       normalizedTrack(opts.Track),
+		Offline:     opts.Offline,
 	}
 
 	addArtifactChecks(report, opts)
 	addLocalListingChecks(report, opts)
 	addLocalScreenshotChecks(report, opts)
 	addReleaseNotesChecks(report, opts.ReleaseNotes)
-	addRemoteChecks(ctx, report, opts)
+	addAppContentChecks(ctx, report, opts.AppContent)
+	if opts.Offline {
+		report.AddCheck(validation.ReadinessCheck{
+			ID:      "remote-checks-skipped",
+			Section: "remote",
+			State:   validation.ReadinessInfo,
+			Message: "Remote Play checks were explicitly skipped; no authentication or network call was made.",
+		})
+	} else {
+		addRemoteChecks(ctx, report, opts)
+	}
 	addManualChecks(report)
 
 	return report
 }
 
 func addArtifactChecks(report *validation.ReadinessReport, opts readinessOptions) {
-	switch {
-	case strings.TrimSpace(opts.BundlePath) != "":
-		report.Artifact = filepath.Base(opts.BundlePath)
-		result := validateBundle(opts.BundlePath)
-		addValidationResultChecks(report, "artifact", result)
-	case strings.TrimSpace(opts.APKPath) != "":
-		report.Artifact = filepath.Base(opts.APKPath)
-		info, err := os.Stat(opts.APKPath)
-		if err != nil {
-			report.AddCheck(validation.ReadinessCheck{
-				ID:          "apk-missing",
-				Section:     "artifact",
-				State:       validation.ReadinessBlocking,
-				Message:     fmt.Sprintf("APK file could not be read: %v", err),
-				Remediation: "Provide a readable .apk file with --apk.",
-			})
-			return
-		}
-		report.AddCheck(validation.ReadinessCheck{
-			ID:      "apk-present",
-			Section: "artifact",
-			State:   validation.ReadinessInfo,
-			Message: fmt.Sprintf("APK is present (%d bytes).", info.Size()),
-			Details: map[string]interface{}{
-				"path": opts.APKPath,
-				"size": info.Size(),
-			},
-		})
-	default:
+	artifactPath := strings.TrimSpace(opts.BundlePath)
+	if artifactPath == "" {
+		artifactPath = strings.TrimSpace(opts.APKPath)
+	}
+	if artifactPath == "" {
 		report.AddCheck(validation.ReadinessCheck{
 			ID:          "artifact-not-provided",
 			Section:     "artifact",
 			State:       validation.ReadinessWarning,
 			Message:     "No local artifact was provided for validation.",
 			Remediation: "Provide --bundle or --apk to verify the artifact before publishing.",
+		})
+		return
+	}
+
+	report.Artifact = filepath.Base(artifactPath)
+	listingsDir := strings.TrimSpace(opts.ListingsDir)
+	if listingsDir == "" {
+		listingsDir = strings.TrimSpace(opts.MetadataDir)
+	}
+	preflightReport, err := scanArtifactPreflightFn(artifactPath, preflightpkg.Options{ListingsDir: listingsDir})
+	if err != nil {
+		report.AddCheck(validation.ReadinessCheck{
+			ID:          "artifact-preflight-failed",
+			Section:     "artifact",
+			State:       validation.ReadinessBlocking,
+			Message:     fmt.Sprintf("Offline artifact preflight could not run: %v", err),
+			Remediation: "Provide a readable AAB/APK ZIP archive and rerun gplay preflight for details.",
+		})
+		return
+	}
+	if preflightReport.Package != "" {
+		if report.PackageName == "" {
+			report.PackageName = preflightReport.Package
+		} else if report.PackageName != preflightReport.Package {
+			report.AddCheck(validation.ReadinessCheck{
+				ID:          "artifact-package-mismatch",
+				Section:     "artifact",
+				State:       validation.ReadinessBlocking,
+				Message:     fmt.Sprintf("Artifact package %q does not match requested package %q.", preflightReport.Package, report.PackageName),
+				Remediation: "Release the artifact under its manifest applicationId or provide the correct package.",
+			})
+		}
+	}
+	report.AddCheck(validation.ReadinessCheck{
+		ID:      "artifact-preflight-complete",
+		Section: "artifact",
+		State:   validation.ReadinessInfo,
+		Message: fmt.Sprintf("Ran %d offline artifact scanners.", len(preflightReport.Checks)),
+		Details: map[string]interface{}{
+			"format":      preflightReport.Format,
+			"package":     preflightReport.Package,
+			"versionCode": preflightReport.VersionCode,
+			"versionName": preflightReport.VersionName,
+			"minSdk":      preflightReport.MinSdk,
+			"targetSdk":   preflightReport.TargetSdk,
+			"size":        preflightReport.TotalSize,
+		},
+	})
+	for _, finding := range preflightReport.Findings {
+		state := validation.ReadinessInfo
+		switch finding.Severity {
+		case preflightpkg.SeverityError:
+			state = validation.ReadinessBlocking
+		case preflightpkg.SeverityWarning:
+			state = validation.ReadinessWarning
+		}
+		details := map[string]interface{}{"scanner": finding.Scanner}
+		if finding.Entry != "" {
+			details["entry"] = finding.Entry
+		}
+		if finding.Ref != "" {
+			details["reference"] = finding.Ref
+		}
+		report.AddCheck(validation.ReadinessCheck{
+			ID:          "preflight-" + finding.Scanner + "-" + finding.Check,
+			Section:     "artifact",
+			State:       state,
+			Field:       finding.Entry,
+			Message:     finding.Message,
+			Remediation: finding.Hint,
+			Details:     details,
 		})
 	}
 }
@@ -164,6 +231,7 @@ func addLocalListingChecks(report *validation.ReadinessReport, opts readinessOpt
 			"title":             listing.Title,
 			"short_description": listing.ShortDescription,
 			"full_description":  listing.FullDescription,
+			"video":             listing.Video,
 		}
 		for _, result := range validation.ValidateRequiredListingFields(locale, fields) {
 			report.AddCheck(readinessCheckFromValidation("metadata", result))
@@ -177,7 +245,75 @@ func addLocalListingChecks(report *validation.ReadinessReport, opts readinessOpt
 		if result := validation.ValidateFullDescription(locale, listing.FullDescription); result != nil {
 			report.AddCheck(readinessCheckFromValidation("metadata", *result))
 		}
+		for _, result := range validation.ValidateListingQuality(locale, fields) {
+			report.AddCheck(readinessCheckFromValidation("metadata", result))
+		}
 	}
+}
+
+func addAppContentChecks(ctx context.Context, report *validation.ReadinessReport, input string) {
+	if strings.TrimSpace(input) == "" {
+		report.AddCheck(validation.ReadinessCheck{
+			ID:          "app-content-inventory-not-provided",
+			Section:     "app-content",
+			State:       validation.ReadinessWarning,
+			Message:     "No offline app-content inventory was provided.",
+			Remediation: "Provide --app-content @app-content.json to inventory Console-only declarations.",
+		})
+		return
+	}
+	inventory, err := loadAppContentInventory(ctx, input)
+	if err != nil {
+		report.AddCheck(validation.ReadinessCheck{
+			ID:          "app-content-inventory-invalid",
+			Section:     "app-content",
+			State:       validation.ReadinessBlocking,
+			Message:     fmt.Sprintf("App-content inventory could not be loaded: %v", err),
+			Remediation: "Fix the JSON file and use only documented inventory fields.",
+		})
+		return
+	}
+	report.AddCheck(validation.ReadinessCheck{
+		ID:      "app-content-inventory-loaded",
+		Section: "app-content",
+		State:   validation.ReadinessInfo,
+		Message: "Offline app-content inventory was loaded; no Console-only state was inferred.",
+	})
+	for _, result := range validation.ValidateAppContent(inventory) {
+		report.AddCheck(readinessCheckFromValidation("app-content", result))
+	}
+}
+
+func loadAppContentInventory(ctx context.Context, input string) (validation.AppContentInventory, error) {
+	var inventory validation.AppContentInventory
+	trimmed := strings.TrimSpace(input)
+	var data []byte
+	if strings.HasPrefix(trimmed, "@") {
+		path := strings.TrimSpace(strings.TrimPrefix(trimmed, "@"))
+		if path == "" {
+			return inventory, fmt.Errorf("invalid @file path")
+		}
+		var err error
+		data, err = shared.FilesystemFrom(ctx).ReadFile(path)
+		if err != nil {
+			return inventory, err
+		}
+	} else {
+		data = []byte(trimmed)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&inventory); err != nil {
+		return inventory, err
+	}
+	var trailing interface{}
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return inventory, fmt.Errorf("unexpected trailing JSON value")
+		}
+		return inventory, err
+	}
+	return inventory, nil
 }
 
 func addLocalScreenshotChecks(report *validation.ReadinessReport, opts readinessOptions) {

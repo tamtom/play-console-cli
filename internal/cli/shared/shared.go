@@ -26,23 +26,29 @@ const (
 
 // PrintOutput renders output in the requested format.
 func PrintOutput(data interface{}, format string, pretty bool) error {
+	return PrintOutputContext(context.Background(), data, format, pretty)
+}
+
+// PrintOutputContext renders output to the command-scoped stdout stream.
+func PrintOutputContext(ctx context.Context, data interface{}, format string, pretty bool) error {
 	format = strings.ToLower(strings.TrimSpace(format))
+	w := Stdout(ctx)
 	switch format {
 	case "json", "":
 		if pretty {
-			return output.PrintPrettyJSON(data)
+			return output.PrintPrettyJSONTo(w, data)
 		}
-		return output.PrintJSON(data)
+		return output.PrintJSONTo(w, data)
 	case "markdown", "md":
 		if pretty {
 			return fmt.Errorf("--pretty is only valid with JSON output")
 		}
-		return output.PrintMarkdown(data)
+		return output.PrintMarkdownTo(w, data)
 	case "table":
 		if pretty {
 			return fmt.Errorf("--pretty is only valid with JSON output")
 		}
-		return output.PrintTable(data)
+		return output.PrintTableTo(w, data)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}

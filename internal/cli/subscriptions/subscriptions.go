@@ -105,7 +105,7 @@ func ListCommand() *ffcli.Command {
 					return err
 				}
 				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
+					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.Subscriptions...)
 				if resp.NextPageToken == "" {
@@ -114,7 +114,7 @@ func ListCommand() *ffcli.Command {
 				pageToken = resp.NextPageToken
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -155,7 +155,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -295,7 +295,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -392,7 +392,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -442,7 +442,7 @@ func DeleteCommand() *ffcli.Command {
 				"deleted":   true,
 				"productId": *productID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -484,7 +484,7 @@ func ArchiveCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -526,7 +526,7 @@ func BatchGetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -595,7 +595,7 @@ JSON format:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

@@ -17,6 +17,8 @@ func SubmissionCommand() *ffcli.Command {
 	dir := fs.String("dir", "./metadata", "Directory containing listing metadata")
 	track := fs.String("track", "production", "Target track to validate")
 	releaseNotes := fs.String("release-notes", "", "Release notes input: plain text, JSON array, or @file")
+	appContent := fs.String("app-content", "", "Offline app-content inventory JSON or @file")
+	offline := fs.Bool("offline", false, "Skip authentication and every remote Play check")
 	format := fs.String("format", "fastlane", "Metadata format: fastlane (default), json")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
@@ -38,9 +40,13 @@ This command remains for compatibility, but new docs and workflows should use:
 				return err
 			}
 
-			pkgName, err := shared.RequirePackageName(*pkg, nil)
-			if err != nil {
-				return err
+			pkgName := *pkg
+			if !*offline {
+				var err error
+				pkgName, err = shared.RequirePackageName(*pkg, nil)
+				if err != nil {
+					return err
+				}
 			}
 
 			_ = *format
@@ -50,6 +56,8 @@ This command remains for compatibility, but new docs and workflows should use:
 				Track:        *track,
 				MetadataDir:  *dir,
 				ReleaseNotes: *releaseNotes,
+				AppContent:   *appContent,
+				Offline:      *offline,
 				Strict:       *strict,
 				Output:       *outputFlag,
 				Pretty:       *pretty,

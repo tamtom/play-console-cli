@@ -16,7 +16,7 @@ func TestValidate_Help(t *testing.T) {
 	if !strings.Contains(combined, "validate") {
 		t.Fatalf("help should mention validate, got %q", combined)
 	}
-	for _, token := range []string{"bundle", "listing", "screenshots", "submission", "--track", "--release-notes"} {
+	for _, token := range []string{"bundle", "listing", "screenshots", "submission", "app-content", "--track", "--release-notes", "--offline"} {
 		if !strings.Contains(combined, token) {
 			t.Fatalf("help should mention %q, got %q", token, combined)
 		}
@@ -47,5 +47,22 @@ func TestValidate_RootRejectsConflictingArtifactFlags(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "use either --bundle or --apk") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateOfflineAppContentNeedsNoPackageOrAuthentication(t *testing.T) {
+	input := `{"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete","category":"APPLICATION","initialCountries":["US"],"policyDeclarationsReviewed":true,"declarations":{"financial-features":"not-applicable","health":"not-applicable","news":"not-applicable"},"sensitivePermissionsReviewed":true}`
+	stdout, stderr, err := runCommand(
+		t,
+		"validate", "--offline", "--app-content", input,
+		"--release-notes", "Bug fixes and stability improvements.",
+	)
+	if err != nil {
+		t.Fatalf("offline validate: %v\nstderr: %s", err, stderr)
+	}
+	for _, want := range []string{`"offline":true`, `"id":"remote-checks-skipped"`, `"id":"app-content-inventory-loaded"`} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("offline output missing %q: %s", want, stdout)
+		}
 	}
 }

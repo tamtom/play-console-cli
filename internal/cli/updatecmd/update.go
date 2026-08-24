@@ -48,20 +48,20 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 		return fmt.Errorf("checking for updates: %w", err)
 	}
 	if info == nil {
-		fmt.Fprintf(os.Stderr, "Could not determine latest version.\n")
+		fmt.Fprintf(shared.Stderr(ctx), "Could not determine latest version.\n")
 		return nil
 	}
 
 	currentVersion := version.Version
 	if !info.IsNewer && !force {
-		fmt.Fprintf(os.Stderr, "Already on latest version: %s\n", currentVersion)
+		fmt.Fprintf(shared.Stderr(ctx), "Already on latest version: %s\n", currentVersion)
 		return nil
 	}
 
 	if checkOnly {
-		fmt.Fprintf(os.Stderr, "Current: %s\nLatest:  %s\n", currentVersion, info.LatestVersion)
+		fmt.Fprintf(shared.Stderr(ctx), "Current: %s\nLatest:  %s\n", currentVersion, info.LatestVersion)
 		if info.IsNewer {
-			fmt.Fprintf(os.Stderr, "Update available! Run 'gplay update' to install.\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Update available! Run 'gplay update' to install.\n")
 		}
 		return nil
 	}
@@ -69,15 +69,15 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 	// Handle based on install method
 	switch method {
 	case "homebrew":
-		fmt.Fprintf(os.Stderr, "Installed via Homebrew. Run:\n  brew upgrade gplay\n")
+		fmt.Fprintf(shared.Stderr(ctx), "Installed via Homebrew. Run:\n  brew upgrade gplay\n")
 		return nil
 	case "goinstall":
-		fmt.Fprintf(os.Stderr, "Installed via go install. Run:\n  go install github.com/tamtom/play-console-cli@latest\n")
+		fmt.Fprintf(shared.Stderr(ctx), "Installed via go install. Run:\n  go install github.com/tamtom/play-console-cli@latest\n")
 		return nil
 	case "binary":
 		return selfUpdate(ctx, execPath, info)
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown installation method. Download the latest release from:\n  %s\n", info.ReleaseURL)
+		fmt.Fprintf(shared.Stderr(ctx), "Unknown installation method. Download the latest release from:\n  %s\n", info.ReleaseURL)
 		return nil
 	}
 }
@@ -101,12 +101,12 @@ func detectInstallMethod(path string) string {
 }
 
 func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
-	fmt.Fprintf(os.Stderr, "Updating %s -> %s...\n", version.Version, info.LatestVersion)
+	fmt.Fprintf(shared.Stderr(ctx), "Updating %s -> %s...\n", version.Version, info.LatestVersion)
 
 	if info.DownloadURL == "" {
 		assetName := fmt.Sprintf("gplay-%s-%s", runtime.GOOS, runtime.GOARCH)
-		fmt.Fprintf(os.Stderr, "No matching asset (%s) found in the release.\n", assetName)
-		fmt.Fprintf(os.Stderr, "Download the latest release manually:\n  %s\n", info.ReleaseURL)
+		fmt.Fprintf(shared.Stderr(ctx), "No matching asset (%s) found in the release.\n", assetName)
+		fmt.Fprintf(shared.Stderr(ctx), "Download the latest release manually:\n  %s\n", info.ReleaseURL)
 		return nil
 	}
 
@@ -122,6 +122,6 @@ func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
 		return fmt.Errorf("applying update: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Successfully updated to %s!\n", info.LatestVersion)
+	fmt.Fprintf(shared.Stderr(ctx), "Successfully updated to %s!\n", info.LatestVersion)
 	return nil
 }

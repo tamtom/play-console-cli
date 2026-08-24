@@ -217,3 +217,97 @@ func TestValidate_ParamRules(t *testing.T) {
 		t.Fatalf("expected duplicate and empty param errors, got %#v", errs)
 	}
 }
+
+func TestValidate_RetryPolicyIsExplicitAndBounded(t *testing.T) {
+	tests := []struct {
+		name string
+		step Step
+		code ValidationCode
+	}{
+		{
+			name: "too few attempts",
+			step: Step{Name: "release", Run: "false", Retry: &RetryPolicy{MaxAttempts: 1, Delay: "1s"}},
+			code: ErrInvalidRetryMaxAttempts,
+		},
+		{
+			name: "zero delay",
+			step: Step{Name: "release", Run: "false", Retry: &RetryPolicy{MaxAttempts: 2, Delay: "0s"}},
+			code: ErrInvalidRetryDelay,
+		},
+		{
+			name: "workflow call",
+			step: Step{Name: "child", Workflow: "child", Retry: &RetryPolicy{MaxAttempts: 2, Delay: "1s"}},
+			code: ErrStepRetryOnWorkflow,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			def := &Definition{Workflows: map[string]Workflow{
+				"main":  {Steps: []Step{tt.step}},
+				"child": {Steps: []Step{{Name: "ok", Run: "true"}}},
+			}}
+			var found bool
+			for _, validationErr := range Validate(def) {
+				if validationErr.Code == tt.code {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("expected %q, got %#v", tt.code, Validate(def))
+			}
+		})
+	}
+}
+
+func TestValidate_TimeoutPolicyIsRunOnlyAndBounded(t *testing.T) {
+	zero := "0s"
+	oneSecond := "1s"
+	tests := []struct {
+		name string
+		step Step
+		code ValidationCode
+	}{
+		{
+			name: "zero timeout",
+			step: Step{Name: "release", Run: "sleep 1", Timeout: &zero},
+			code: ErrInvalidStepTimeout,
+		},
+		{
+			name: "workflow call",
+			step: Step{Name: "child", Workflow: "child", Timeout: &oneSecond},
+			code: ErrStepTimeoutOnWorkflow,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			def := &Definition{Workflows: map[string]Workflow{
+				"main":  {Steps: []Step{tt.step}},
+				"child": {Steps: []Step{{Name: "ok", Run: "true"}}},
+			}}
+			for _, validationErr := range Validate(def) {
+				if validationErr.Code == tt.code {
+					return
+				}
+			}
+			t.Fatalf("expected %q, got %#v", tt.code, Validate(def))
+		})
+	}
+}
+
+func TestValidate_RetryAndTimeoutPoliciesInLifecycleHooks(t *testing.T) {
+	zero := "0s"
+	def := definitionForValidation(Workflow{
+		BeforeAll: []Step{{Name: "prepare", Run: "true", Retry: &RetryPolicy{MaxAttempts: 1, Delay: "1s"}}},
+		Steps:     []Step{{Name: "release", Run: "true"}},
+		AfterAll:  []Step{{Name: "cleanup", Run: "true", Timeout: &zero}},
+	})
+	foundRetry := false
+	foundTimeout := false
+	for _, validationErr := range Validate(def) {
+		foundRetry = foundRetry || validationErr.Code == ErrInvalidRetryMaxAttempts
+		foundTimeout = foundTimeout || validationErr.Code == ErrInvalidStepTimeout
+	}
+	if !foundRetry || !foundTimeout {
+		t.Fatalf("hook policies were not fully validated: %#v", Validate(def))
+	}
+}

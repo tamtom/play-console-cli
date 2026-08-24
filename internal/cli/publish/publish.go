@@ -115,13 +115,13 @@ This command:
 			}
 
 			if preflight.Summary.Blocking > 0 {
-				if err := shared.PrintOutput(result, *outputFlag, *pretty); err != nil {
+				if err := shared.PrintOutputContext(ctx, result, *outputFlag, *pretty); err != nil {
 					return err
 				}
 				return shared.NewReportedError(fmt.Errorf("publish track: found %d blocking readiness issue(s)", preflight.Summary.Blocking))
 			}
 			if *strict && preflight.Summary.Warnings > 0 {
-				if err := shared.PrintOutput(result, *outputFlag, *pretty); err != nil {
+				if err := shared.PrintOutputContext(ctx, result, *outputFlag, *pretty); err != nil {
 					return err
 				}
 				return shared.NewReportedError(fmt.Errorf("publish track: strict mode found %d warning(s)", preflight.Summary.Warnings))
@@ -151,7 +151,7 @@ This command:
 			result["published"] = true
 			result["release"] = releaseResult
 
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 	"github.com/tamtom/play-console-cli/internal/version"
 )
 
@@ -72,7 +73,11 @@ func getCacheDir() (string, error) {
 		return "", err
 	}
 	cacheDir := filepath.Join(homeDir, ".cache", "gplay")
-	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+	root, err := rootfs.OpenOrCreate(cacheDir, 0o700)
+	if err != nil {
+		return "", err
+	}
+	if err := root.Close(); err != nil {
 		return "", err
 	}
 	return cacheDir, nil
@@ -106,7 +111,7 @@ func recordCheck() {
 	}
 
 	lastCheckFile := filepath.Join(cacheDir, "last_update_check")
-	_ = os.WriteFile(lastCheckFile, []byte(time.Now().Format(time.RFC3339)), 0o644)
+	_ = rootfs.AtomicWriteFile(lastCheckFile, []byte(time.Now().Format(time.RFC3339)), 0o600, 0o700)
 }
 
 // CheckForUpdate checks if a newer version is available
@@ -257,26 +262,25 @@ func ApplyUpdate(newBinaryPath string) error {
 		return err
 	}
 
-	// Make the new binary executable
-	if err := os.Chmod(newBinaryPath, 0o755); err != nil {
+	sourceRoot, err := rootfs.Open(filepath.Dir(newBinaryPath))
+	if err != nil {
 		return err
 	}
-
-	// Backup current binary
-	backupPath := currentBinary + ".backup"
-	if err := os.Rename(currentBinary, backupPath); err != nil {
+	defer func() { _ = sourceRoot.Close() }()
+	source, err := sourceRoot.OpenRead(filepath.Base(newBinaryPath))
+	if err != nil {
 		return err
 	}
-
-	// Move new binary into place
-	if err := os.Rename(newBinaryPath, currentBinary); err != nil {
-		// Try to restore backup
-		_ = os.Rename(backupPath, currentBinary)
+	defer func() { _ = source.Close() }()
+	destinationRoot, err := rootfs.Open(filepath.Dir(currentBinary))
+	if err != nil {
 		return err
 	}
-
-	// Remove backup
-	_ = os.Remove(backupPath)
+	defer func() { _ = destinationRoot.Close() }()
+	if _, err := destinationRoot.AtomicWriteFrom(filepath.Base(currentBinary), source, 0o755); err != nil {
+		return err
+	}
+	_ = os.Remove(newBinaryPath)
 
 	return nil
 }

@@ -30,6 +30,8 @@ func AchievementsCommand() *ffcli.Command {
 			achievementsResetCommand(),
 			achievementsResetAllCommand(),
 			achievementsResetForAllCommand(),
+			achievementsResetAllForAllCommand(),
+			achievementsResetMultipleForAllCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			return flag.ErrHelp
@@ -78,7 +80,7 @@ func achievementsListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list achievement configurations", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*gamesconfiguration.AchievementConfiguration
 			err = call.Pages(ctx, func(resp *gamesconfiguration.AchievementConfigurationListResponse) error {
@@ -88,7 +90,7 @@ func achievementsListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list achievement configurations", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -123,7 +125,7 @@ func achievementsGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get achievement configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -170,7 +172,7 @@ func achievementsCreateCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("create achievement configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -213,7 +215,7 @@ func achievementsUpdateCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("update achievement configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -246,7 +248,7 @@ func achievementsDeleteCommand() *ffcli.Command {
 			if err := service.Configuration.AchievementConfigurations.Delete(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("delete achievement configuration", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "deleted", "achievementId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "deleted", "achievementId": *id}, "json", false)
 		},
 	}
 }
@@ -281,7 +283,7 @@ func achievementsResetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset achievement progress", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -316,7 +318,7 @@ func achievementsResetAllCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset all achievement progress", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -349,7 +351,7 @@ func achievementsResetForAllCommand() *ffcli.Command {
 			if err := service.Management.Achievements.ResetForAllPlayers(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("reset achievement for all players", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "reset", "achievementId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "reset", "achievementId": *id}, "json", false)
 		},
 	}
 }

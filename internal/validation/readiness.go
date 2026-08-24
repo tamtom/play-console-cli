@@ -38,6 +38,7 @@ type ReadinessReport struct {
 	PackageName string           `json:"packageName"`
 	Track       string           `json:"track,omitempty"`
 	Artifact    string           `json:"artifact,omitempty"`
+	Offline     bool             `json:"offline,omitempty"`
 	Checks      []ReadinessCheck `json:"checks"`
 	Summary     ReadinessSummary `json:"summary"`
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 const (
@@ -64,8 +66,8 @@ func (realRunner) Run(ctx context.Context, stdin []byte, name string, args ...st
 func (realRunner) RunInteractive(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = shared.Stdout(ctx)
+	cmd.Stderr = shared.Stderr(ctx)
 	return cmd.Run()
 }
 
@@ -114,8 +116,8 @@ func (realRunner) Copy(text string) error {
 
 func runInherit(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = shared.Stdout(ctx)
+	cmd.Stderr = shared.Stderr(ctx)
 	return cmd.Run()
 }
 
@@ -182,7 +184,7 @@ Example:
 				SaveConfig: saveProfileToConfig,
 				HomeDir:    os.UserHomeDir,
 			}
-			return RunSetup(ctx, opts, os.Stdout)
+			return RunSetup(ctx, opts, shared.Stdout(ctx))
 		},
 	}
 }
@@ -221,7 +223,10 @@ type SetupResult struct {
 
 // RunSetup performs the setup flow; stdout is where text-mode messages go.
 // Test entry point.
-func RunSetup(ctx context.Context, opts SetupOptions, stdout *os.File) error {
+func RunSetup(ctx context.Context, opts SetupOptions, stdout io.Writer) error {
+	if stdout == nil {
+		stdout = shared.Stdout(ctx)
+	}
 	if opts.SAName == "" {
 		opts.SAName = defaultSAName
 	}
@@ -309,8 +314,12 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout *os.File) error {
 		},
 	}
 
-	if err := os.MkdirAll(filepath.Dir(keyPath), 0o755); err != nil {
+	keyRoot, err := rootfs.OpenOrCreate(filepath.Dir(keyPath), 0o700)
+	if err != nil {
 		return fmt.Errorf("prepare key output dir: %w", err)
+	}
+	if err := keyRoot.Close(); err != nil {
+		return fmt.Errorf("close key output dir: %w", err)
 	}
 
 	// Enable API.
@@ -369,7 +378,7 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout *os.File) error {
 	}
 
 	if strings.ToLower(opts.Output) == "json" {
-		return shared.PrintOutput(result, "json", opts.Pretty)
+		return shared.PrintOutputContext(ctx, result, "json", opts.Pretty)
 	}
 	printSetupText(stdout, result)
 	return nil
@@ -461,10 +470,7 @@ func cmdString(argv []string) string {
 	return strings.Join(argv, " ")
 }
 
-func printSetupText(w *os.File, r SetupResult) {
-	if w == nil {
-		w = os.Stdout
-	}
+func printSetupText(w io.Writer, r SetupResult) {
 	fmt.Fprintln(w, "gplay setup")
 	fmt.Fprintln(w, "===========")
 	fmt.Fprintf(w, "  Project:          %s\n", r.Project)

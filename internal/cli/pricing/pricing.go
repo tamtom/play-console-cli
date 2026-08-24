@@ -104,7 +104,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(summary, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, summary, *outputFlag, *pretty)
 		},
 	}
 }
@@ -170,7 +170,7 @@ local currencies, adjusted to Google Play's pricing tiers.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

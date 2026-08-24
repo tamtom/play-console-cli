@@ -4,9 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +12,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 func GeneratedAPKsCommand() *ffcli.Command {
@@ -78,7 +77,7 @@ func ListCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -131,21 +130,9 @@ func DownloadCommand() *ffcli.Command {
 				return fmt.Errorf("download failed with status: %s", resp.Status)
 			}
 
-			// Create output directory
-			if err := os.MkdirAll(*outputDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
-			}
-
-			// Write file
 			fileName := fmt.Sprintf("%s_%d_%s.apk", pkg, *versionCode, *downloadID)
 			filePath := filepath.Join(*outputDir, fileName)
-			file, err := os.Create(filePath)
-			if err != nil {
-				return fmt.Errorf("failed to create file: %w", err)
-			}
-			defer file.Close()
-
-			written, err := io.Copy(file, resp.Body)
+			written, err := rootfs.AtomicWriteFileFrom(filePath, resp.Body, 0o644, 0o755)
 			if err != nil {
 				return fmt.Errorf("failed to write file: %w", err)
 			}
@@ -155,7 +142,7 @@ func DownloadCommand() *ffcli.Command {
 				"path":       filePath,
 				"size":       written,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

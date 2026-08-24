@@ -99,7 +99,7 @@ applications.tracks.releases.list API. This does not require an edit ID.`,
 			if err != nil {
 				return shared.WrapGoogleAPIError("list track releases", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -141,7 +141,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -184,7 +184,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -237,7 +237,7 @@ production, beta, alpha, and internal tracks.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -322,12 +322,12 @@ func updateTrack(ctx context.Context, packageName, editID, track, releasesJSON, 
 		if err != nil {
 			return err
 		}
-		return shared.PrintOutput(resp, outputFlag, pretty)
+		return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 	}
 
 	resp, err := service.API.Edits.Tracks.Update(pkg, editID, track, trackObj).Context(ctx).Do()
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(resp, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 }

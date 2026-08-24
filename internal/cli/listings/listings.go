@@ -86,7 +86,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -130,7 +130,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -233,7 +233,7 @@ func DeleteCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(nil, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, nil, *outputFlag, *pretty)
 		},
 	}
 }
@@ -276,7 +276,7 @@ func DeleteAllCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(nil, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, nil, *outputFlag, *pretty)
 		},
 	}
 }
@@ -318,11 +318,11 @@ func updateListing(ctx context.Context, packageName, editID, locale, title, full
 		if err != nil {
 			return err
 		}
-		return shared.PrintOutput(resp, outputFlag, pretty)
+		return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 	}
 	resp, err := service.API.Edits.Listings.Update(pkg, editID, locale, listing).Context(ctx).Do()
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(resp, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 }

@@ -79,7 +79,7 @@ Examples:
 				return err
 			}
 
-			if printErr := shared.PrintOutput(result, *outputFlag, *pretty); printErr != nil {
+			if printErr := shared.PrintOutputContext(ctx, result, *outputFlag, *pretty); printErr != nil {
 				return printErr
 			}
 

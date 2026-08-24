@@ -92,7 +92,7 @@ with internal testers for direct installation.`,
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload APK for internal sharing", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -145,7 +145,7 @@ with internal testers for direct installation.`,
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload bundle for internal sharing", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

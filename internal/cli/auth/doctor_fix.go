@@ -2,10 +2,12 @@ package auth
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 type fixResult struct {
@@ -23,7 +25,8 @@ func attemptFixes(_ authReport, apply bool) []fixResult {
 		configDir := filepath.Dir(configPath)
 		if _, statErr := os.Stat(configDir); os.IsNotExist(statErr) {
 			if apply {
-				if mkErr := os.MkdirAll(configDir, 0o700); mkErr == nil {
+				if root, mkErr := rootfs.OpenOrCreate(configDir, 0o700); mkErr == nil {
+					_ = root.Close()
 					fixes = append(fixes, fixResult{
 						Name:    "config_directory",
 						Status:  "fixed",
@@ -51,11 +54,18 @@ func attemptFixes(_ authReport, apply bool) []fixResult {
 		if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
 			if apply {
 				dir := filepath.Dir(configPath)
-				if mkErr := os.MkdirAll(dir, 0o700); mkErr != nil {
+				root, mkErr := rootfs.OpenOrCreate(dir, 0o700)
+				if mkErr != nil {
 					fixes = append(fixes, fixResult{
 						Name:    "config_file",
 						Status:  "failed",
 						Message: fmt.Sprintf("Failed to create directory %s: %v", dir, mkErr),
+					})
+				} else if closeErr := root.Close(); closeErr != nil {
+					fixes = append(fixes, fixResult{
+						Name:    "config_file",
+						Status:  "failed",
+						Message: fmt.Sprintf("Failed to close directory %s: %v", dir, closeErr),
 					})
 				} else if saveErr := config.SaveAt(configPath, &config.Config{}); saveErr == nil {
 					fixes = append(fixes, fixResult{
@@ -94,13 +104,13 @@ func attemptFixes(_ authReport, apply bool) []fixResult {
 	return fixes
 }
 
-func printFixes(fixes []fixResult) {
+func printFixes(out io.Writer, fixes []fixResult) {
 	if len(fixes) == 0 {
-		fmt.Println("No fixes available.")
+		fmt.Fprintln(out, "No fixes available.")
 		return
 	}
-	fmt.Println("\nFix Results:")
+	fmt.Fprintln(out, "\nFix Results:")
 	for _, f := range fixes {
-		fmt.Printf("  [%s] %s: %s\n", f.Status, f.Name, f.Message)
+		fmt.Fprintf(out, "  [%s] %s: %s\n", f.Status, f.Name, f.Message)
 	}
 }

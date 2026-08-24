@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 const (
@@ -298,14 +300,11 @@ func LoadAt(path string) (*Config, error) {
 
 // SaveAt writes configuration to a specific path.
 func SaveAt(path string, cfg *Config) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	if err := rootfs.AtomicWriteFile(path, data, 0o600, 0o700); err != nil {
 		return err
 	}
 	return nil

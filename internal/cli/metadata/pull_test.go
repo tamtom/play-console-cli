@@ -208,6 +208,33 @@ func TestPullWritesFiles_FilteredLocales(t *testing.T) {
 	}
 }
 
+func TestPullRejectsLocaleThatEscapesOutputRoot(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(androidpublisher.AppEdit{Id: "edit-123"})
+	})
+	mux.HandleFunc("/androidpublisher/v3/applications/com.example/edits/edit-123/listings", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(androidpublisher.ListingsListResponse{Listings: []*androidpublisher.Listing{{
+			Language: "../../escape", Title: "unsafe", ShortDescription: "unsafe", FullDescription: "unsafe",
+		}}})
+	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{}")) })
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	api, err := androidpublisher.NewService(context.Background(), option.WithHTTPClient(server.Client()), option.WithEndpoint(server.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent := t.TempDir()
+	output := filepath.Join(parent, "metadata")
+	if err := executePull(context.Background(), api, "com.example", output, nil); err == nil {
+		t.Fatal("executePull unexpectedly accepted an escaping locale")
+	}
+	if _, err := os.Stat(filepath.Join(parent, "escape", "title.txt")); !os.IsNotExist(err) {
+		t.Fatal("metadata pull wrote outside the selected output directory")
+	}
+}
+
 func TestPullCommand_LocalesFlagParsing(t *testing.T) {
 	cmd := PullCommand()
 	if err := cmd.FlagSet.Parse([]string{"--package", "com.example", "--dir", "/tmp/test", "--locales", "en-US,ja-JP"}); err != nil {

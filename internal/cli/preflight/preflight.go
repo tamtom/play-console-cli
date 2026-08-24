@@ -5,7 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
+	"io"
 	"sort"
 	"strings"
 
@@ -72,7 +72,7 @@ Examples:
 		Exec: func(ctx context.Context, args []string) error {
 			if *listScanners {
 				for _, id := range preflightpkg.ScannerIDs() {
-					fmt.Println(id)
+					fmt.Fprintln(shared.Stdout(ctx), id)
 				}
 				return nil
 			}
@@ -119,8 +119,8 @@ Examples:
 			}
 
 			if *outputFlag == "text" {
-				printTextReport(report)
-			} else if err := shared.PrintOutput(report, *outputFlag, *pretty); err != nil {
+				printTextReport(shared.Stdout(ctx), report)
+			} else if err := shared.PrintOutputContext(ctx, report, *outputFlag, *pretty); err != nil {
 				return err
 			}
 
@@ -149,9 +149,7 @@ func parseSeverity(s string) (preflightpkg.Severity, error) {
 }
 
 // printTextReport renders a human-readable report grouped by scanner.
-func printTextReport(r *preflightpkg.Report) {
-	out := os.Stdout
-
+func printTextReport(out io.Writer, r *preflightpkg.Report) {
 	fmt.Fprintln(out, "gplay preflight")
 	fmt.Fprintln(out, "===============")
 	fmt.Fprintf(out, "  File:   %s\n", r.Path)

@@ -3,15 +3,22 @@ package shared
 import (
 	"flag"
 	"fmt"
-	"os"
 )
 
-// UsageError prints msg to stderr and returns flag.ErrHelp.
+// CommandUsageError carries a user-facing usage failure while preserving
+// flag.ErrHelp semantics so ffcli renders the selected command's help.
+type CommandUsageError struct {
+	Message string
+}
+
+func (e *CommandUsageError) Error() string { return "Error: " + e.Message }
+func (e *CommandUsageError) Unwrap() error { return flag.ErrHelp }
+
+// UsageError returns a structured usage error.
 // This is the standard way to report missing/invalid flags.
 // It results in exit code 2 (usage error) when structured exit codes are wired.
 func UsageError(msg string) error {
-	fmt.Fprintln(os.Stderr, "Error: "+msg)
-	return flag.ErrHelp
+	return &CommandUsageError{Message: msg}
 }
 
 // UsageErrorf is like UsageError but with fmt.Sprintf formatting.

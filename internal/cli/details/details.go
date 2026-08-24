@@ -69,7 +69,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -198,12 +198,12 @@ func updateDetails(ctx context.Context, packageName, editID, contactEmail, conta
 		if err != nil {
 			return err
 		}
-		return shared.PrintOutput(resp, outputFlag, pretty)
+		return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 	}
 
 	resp, err := service.API.Edits.Details.Update(pkg, editID, &details).Context(ctx).Do()
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(resp, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
 }

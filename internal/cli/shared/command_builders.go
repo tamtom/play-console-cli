@@ -3,8 +3,6 @@ package shared
 import (
 	"context"
 	"flag"
-	"fmt"
-	"os"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
@@ -81,8 +79,7 @@ func BuildConfirmDeleteCommand(cfg ConfirmDeleteCommandConfig) *ffcli.Command {
 		UsageFunc:  DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if !*confirm {
-				fmt.Fprintln(os.Stderr, "Error: --confirm is required for destructive operations")
-				return flag.ErrHelp
+				return UsageError("--confirm is required for destructive operations")
 			}
 			return cfg.Exec(ctx)
 		},

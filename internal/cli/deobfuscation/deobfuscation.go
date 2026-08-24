@@ -125,7 +125,7 @@ func UploadCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload deobfuscation file", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

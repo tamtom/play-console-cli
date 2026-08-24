@@ -75,6 +75,39 @@ func operationResource(account, app, operation string) string {
 	return appResource(account, app) + "/operations/" + operation
 }
 
+func repoResource(account, repo string) string {
+	repo = strings.Trim(strings.TrimSpace(repo), "/")
+	if strings.HasPrefix(repo, "accounts/") {
+		return repo
+	}
+	if strings.HasPrefix(repo, "repos/") {
+		return accountResource(account) + "/" + repo
+	}
+	return accountResource(account) + "/repos/" + repo
+}
+
+func repoScanResource(account, repo, scan string) string {
+	scan = strings.Trim(strings.TrimSpace(scan), "/")
+	if strings.HasPrefix(scan, "accounts/") {
+		return scan
+	}
+	if strings.HasPrefix(scan, "scans/") {
+		return repoResource(account, repo) + "/" + scan
+	}
+	return repoResource(account, repo) + "/scans/" + scan
+}
+
+func repoOperationResource(account, repo, operation string) string {
+	operation = strings.Trim(strings.TrimSpace(operation), "/")
+	if strings.HasPrefix(operation, "accounts/") {
+		return operation
+	}
+	if strings.HasPrefix(operation, "operations/") {
+		return repoResource(account, repo) + "/" + operation
+	}
+	return repoResource(account, repo) + "/operations/" + operation
+}
+
 func validatePageSize(pageSize int) error {
 	if pageSize < 1 || pageSize > 50 {
 		return fmt.Errorf("--page-size must be between 1 and 50")

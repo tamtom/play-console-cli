@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -12,6 +11,12 @@ import (
 
 // DocsCommand returns the docs command group.
 func DocsCommand() *ffcli.Command {
+	return DocsCommandWithRoot(nil)
+}
+
+// DocsCommandWithRoot returns the docs group backed by a lazy full command
+// tree provider for generated reference output.
+func DocsCommandWithRoot(root func() *ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("docs", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "docs",
@@ -20,7 +25,7 @@ func DocsCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
-			GenerateCommand(),
+			GenerateCommandWithRoot(root),
 			ListCommand(),
 			ShowCommand(),
 		},
@@ -28,7 +33,7 @@ func DocsCommand() *ffcli.Command {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}

@@ -45,7 +45,7 @@ to surface the largest individual entries.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -91,7 +91,7 @@ When --threshold is set, exits non-zero if the uncompressed delta exceeds it.`,
 				return fmt.Errorf("analyze candidate: %w", err)
 			}
 			diff := bundleanalysis.Compare(baseA, candA, t)
-			if err := shared.PrintOutput(diff, *outputFlag, *pretty); err != nil {
+			if err := shared.PrintOutputContext(ctx, diff, *outputFlag, *pretty); err != nil {
 				return err
 			}
 			if diff.Regression {

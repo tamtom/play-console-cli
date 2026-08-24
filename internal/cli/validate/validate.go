@@ -38,6 +38,8 @@ func ValidateCommand() *ffcli.Command {
 	listingsDir := fs.String("listings-dir", "", "Directory containing listing metadata")
 	screenshotsDir := fs.String("screenshots-dir", "", "Directory containing screenshots grouped by locale/device type")
 	releaseNotes := fs.String("release-notes", "", "Release notes input: plain text, JSON array, or @file")
+	appContent := fs.String("app-content", "", "Offline app-content inventory JSON or @file")
+	offline := fs.Bool("offline", false, "Skip authentication and every remote Play check")
 	strict := fs.Bool("strict", false, "Treat warnings as failures")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
@@ -67,6 +69,7 @@ Legacy local-only validators remain available as subcommands:
 			ListingCommand(),
 			ScreenshotsCommand(),
 			SubmissionCommand(),
+			AppContentCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
@@ -84,13 +87,19 @@ Legacy local-only validators remain available as subcommands:
 				strings.TrimSpace(*listingsDir) == "" &&
 				strings.TrimSpace(*screenshotsDir) == "" &&
 				strings.TrimSpace(*releaseNotes) == "" &&
+				strings.TrimSpace(*appContent) == "" &&
+				!*offline &&
 				!*strict {
 				return flag.ErrHelp
 			}
 
-			pkgName, err := shared.RequirePackageName(*packageName, nil)
-			if err != nil {
-				return err
+			pkgName := strings.TrimSpace(*packageName)
+			if !*offline {
+				var err error
+				pkgName, err = shared.RequirePackageName(*packageName, nil)
+				if err != nil {
+					return err
+				}
 			}
 
 			return runReadinessCommand(ctx, readinessOptions{
@@ -102,6 +111,8 @@ Legacy local-only validators remain available as subcommands:
 				ListingsDir:    *listingsDir,
 				ScreenshotsDir: *screenshotsDir,
 				ReleaseNotes:   *releaseNotes,
+				AppContent:     *appContent,
+				Offline:        *offline,
 				Strict:         *strict,
 				Output:         *outputFlag,
 				Pretty:         *pretty,
@@ -138,7 +149,7 @@ Checks:
 			}
 
 			result := validateBundle(*filePath)
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -171,7 +182,7 @@ Checks:
 			}
 
 			result := validateListings(*dir, *locale, *format)
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -202,7 +213,7 @@ Checks:
 			}
 
 			result := validateScreenshots(*dir, *locale)
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

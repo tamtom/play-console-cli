@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 const (
@@ -116,10 +118,6 @@ func writeTo(path string, entry Entry) error {
 			return err
 		}
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return err
@@ -127,15 +125,12 @@ func writeTo(path string, entry Entry) error {
 
 	mu.Lock()
 	defer mu.Unlock()
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	root, err := rootfs.OpenOrCreate(filepath.Dir(path), 0o700)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	if _, err := f.Write(append(data, '\n')); err != nil {
-		return err
-	}
-	return nil
+	defer func() { _ = root.Close() }()
+	return root.Append(filepath.Base(path), append(data, '\n'), 0o600)
 }
 
 // Query filters audit entries.
