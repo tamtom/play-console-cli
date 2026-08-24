@@ -1,0 +1,896 @@
+{
+  "android build": {
+    "class": "offline"
+  },
+  "android screenshots capture": {
+    "class": "offline"
+  },
+  "android signing inspect": {
+    "class": "offline"
+  },
+  "android signing verify": {
+    "class": "offline"
+  },
+  "apks addexternallyhosted": {
+    "class": "offline"
+  },
+  "apks list": {
+    "class": "offline"
+  },
+  "apks upload": {
+    "class": "offline"
+  },
+  "app-signing apply": {
+    "class": "offline"
+  },
+  "app-signing plan-enroll": {
+    "class": "offline"
+  },
+  "app-signing plan-rotation": {
+    "class": "offline"
+  },
+  "app-stores create-app": {
+    "class": "offline"
+  },
+  "app-stores publish-status": {
+    "class": "offline"
+  },
+  "app-stores recent-app-view": {
+    "class": "offline"
+  },
+  "app-stores recent-update-events": {
+    "class": "offline"
+  },
+  "app-stores update-app": {
+    "class": "offline"
+  },
+  "app-stores upload-apk": {
+    "class": "offline"
+  },
+  "app-stores upload-image": {
+    "class": "offline"
+  },
+  "app-stores upload-policy-file": {
+    "class": "offline"
+  },
+  "apps list": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "audit clear": {
+    "class": "offline"
+  },
+  "audit list": {
+    "class": "offline"
+  },
+  "audit path": {
+    "class": "offline"
+  },
+  "audit search": {
+    "class": "offline"
+  },
+  "auth doctor": {
+    "class": "offline"
+  },
+  "auth init": {
+    "class": "offline"
+  },
+  "auth login": {
+    "class": "offline"
+  },
+  "auth logout": {
+    "class": "offline"
+  },
+  "auth setup": {
+    "class": "offline"
+  },
+  "auth status": {
+    "class": "offline"
+  },
+  "auth switch": {
+    "class": "offline"
+  },
+  "availability get": {
+    "class": "offline"
+  },
+  "baseplans activate": {
+    "class": "offline"
+  },
+  "baseplans batch-migrate-prices": {
+    "class": "offline"
+  },
+  "baseplans batch-update-states": {
+    "class": "offline"
+  },
+  "baseplans deactivate": {
+    "class": "offline"
+  },
+  "baseplans delete": {
+    "class": "offline"
+  },
+  "baseplans migrate-prices": {
+    "class": "offline"
+  },
+  "bootstrap plan": {
+    "class": "offline"
+  },
+  "bundles analyze": {
+    "class": "offline"
+  },
+  "bundles compare": {
+    "class": "offline"
+  },
+  "bundles list": {
+    "class": "offline"
+  },
+  "bundles upload": {
+    "class": "offline"
+  },
+  "capabilities": {
+    "class": "offline"
+  },
+  "checks analyze": {
+    "class": "offline"
+  },
+  "checks apps get": {
+    "class": "offline"
+  },
+  "checks apps list": {
+    "class": "offline"
+  },
+  "checks classify": {
+    "class": "offline"
+  },
+  "checks content classify": {
+    "class": "offline"
+  },
+  "checks operations cancel": {
+    "class": "offline"
+  },
+  "checks operations delete": {
+    "class": "offline"
+  },
+  "checks operations get": {
+    "class": "offline"
+  },
+  "checks operations list": {
+    "class": "offline"
+  },
+  "checks operations wait": {
+    "class": "offline"
+  },
+  "checks repo-scans generate": {
+    "class": "offline"
+  },
+  "checks repo-scans get": {
+    "class": "offline"
+  },
+  "checks repo-scans list": {
+    "class": "offline"
+  },
+  "checks repo-scans operation": {
+    "class": "offline"
+  },
+  "checks reports get": {
+    "class": "offline"
+  },
+  "checks reports list": {
+    "class": "offline"
+  },
+  "checks upload": {
+    "class": "offline"
+  },
+  "completion bash": {
+    "class": "offline"
+  },
+  "completion fish": {
+    "class": "offline"
+  },
+  "completion powershell": {
+    "class": "offline"
+  },
+  "completion zsh": {
+    "class": "offline"
+  },
+  "custom-apps create": {
+    "class": "offline"
+  },
+  "data-safety update": {
+    "class": "offline"
+  },
+  "deobfuscation upload": {
+    "class": "offline"
+  },
+  "details get": {
+    "class": "offline"
+  },
+  "details patch": {
+    "class": "offline"
+  },
+  "details update": {
+    "class": "offline"
+  },
+  "device-tiers create": {
+    "class": "offline"
+  },
+  "device-tiers get": {
+    "class": "offline"
+  },
+  "device-tiers list": {
+    "class": "offline"
+  },
+  "docs generate": {
+    "class": "offline"
+  },
+  "docs list": {
+    "class": "offline"
+  },
+  "docs show": {
+    "class": "offline"
+  },
+  "doctor": {
+    "class": "offline"
+  },
+  "edits commit": {
+    "class": "sandbox",
+    "note": "hermetic sandbox black-box"
+  },
+  "edits create": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "edits delete": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "edits get": {
+    "class": "sandbox",
+    "note": "hermetic sandbox black-box"
+  },
+  "edits validate": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "expansion get": {
+    "class": "offline"
+  },
+  "expansion patch": {
+    "class": "offline"
+  },
+  "expansion update": {
+    "class": "offline"
+  },
+  "expansion upload": {
+    "class": "offline"
+  },
+  "experiments apply-winner": {
+    "class": "offline"
+  },
+  "experiments support": {
+    "class": "offline"
+  },
+  "external-transactions create": {
+    "class": "offline"
+  },
+  "external-transactions get": {
+    "class": "offline"
+  },
+  "external-transactions refund": {
+    "class": "offline"
+  },
+  "games achievements create": {
+    "class": "offline"
+  },
+  "games achievements delete": {
+    "class": "offline"
+  },
+  "games achievements get": {
+    "class": "offline"
+  },
+  "games achievements list": {
+    "class": "offline"
+  },
+  "games achievements reset": {
+    "class": "offline"
+  },
+  "games achievements reset-all": {
+    "class": "offline"
+  },
+  "games achievements reset-all-for-all-players": {
+    "class": "offline"
+  },
+  "games achievements reset-for-all-players": {
+    "class": "offline"
+  },
+  "games achievements reset-multiple-for-all-players": {
+    "class": "offline"
+  },
+  "games achievements update": {
+    "class": "offline"
+  },
+  "games events reset": {
+    "class": "offline"
+  },
+  "games events reset-all": {
+    "class": "offline"
+  },
+  "games events reset-all-for-all-players": {
+    "class": "offline"
+  },
+  "games events reset-for-all-players": {
+    "class": "offline"
+  },
+  "games events reset-multiple-for-all-players": {
+    "class": "offline"
+  },
+  "games leaderboards create": {
+    "class": "offline"
+  },
+  "games leaderboards delete": {
+    "class": "offline"
+  },
+  "games leaderboards get": {
+    "class": "offline"
+  },
+  "games leaderboards list": {
+    "class": "offline"
+  },
+  "games leaderboards update": {
+    "class": "offline"
+  },
+  "games players hide": {
+    "class": "offline"
+  },
+  "games players list-hidden": {
+    "class": "offline"
+  },
+  "games players unhide": {
+    "class": "offline"
+  },
+  "games scores reset": {
+    "class": "offline"
+  },
+  "games scores reset-all": {
+    "class": "offline"
+  },
+  "games scores reset-all-for-all-players": {
+    "class": "offline"
+  },
+  "games scores reset-for-all-players": {
+    "class": "offline"
+  },
+  "games scores reset-multiple-for-all-players": {
+    "class": "offline"
+  },
+  "generated-apks download": {
+    "class": "offline"
+  },
+  "generated-apks list": {
+    "class": "offline"
+  },
+  "grants create": {
+    "class": "offline"
+  },
+  "grants delete": {
+    "class": "offline"
+  },
+  "grants update": {
+    "class": "offline"
+  },
+  "iap batch-delete": {
+    "class": "offline"
+  },
+  "iap batch-get": {
+    "class": "offline"
+  },
+  "iap batch-update": {
+    "class": "offline"
+  },
+  "iap create": {
+    "class": "offline"
+  },
+  "iap delete": {
+    "class": "offline"
+  },
+  "iap get": {
+    "class": "offline"
+  },
+  "iap list": {
+    "class": "offline"
+  },
+  "iap patch": {
+    "class": "offline"
+  },
+  "iap update": {
+    "class": "offline"
+  },
+  "images delete": {
+    "class": "offline"
+  },
+  "images delete-all": {
+    "class": "offline"
+  },
+  "images list": {
+    "class": "offline"
+  },
+  "images plan": {
+    "class": "offline"
+  },
+  "images pull": {
+    "class": "offline"
+  },
+  "images sync": {
+    "class": "offline"
+  },
+  "images upload": {
+    "class": "offline"
+  },
+  "init": {
+    "class": "offline"
+  },
+  "insights daily": {
+    "class": "offline"
+  },
+  "insights weekly": {
+    "class": "offline"
+  },
+  "install-skills": {
+    "class": "offline"
+  },
+  "integrity decode": {
+    "class": "offline"
+  },
+  "integrity decode-pc": {
+    "class": "offline"
+  },
+  "integrity device-recall-write": {
+    "class": "offline"
+  },
+  "internal-sharing upload-apk": {
+    "class": "offline"
+  },
+  "internal-sharing upload-bundle": {
+    "class": "offline"
+  },
+  "listings delete": {
+    "class": "offline"
+  },
+  "listings delete-all": {
+    "class": "offline"
+  },
+  "listings get": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "listings list": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "listings locales": {
+    "class": "offline"
+  },
+  "listings patch": {
+    "class": "offline"
+  },
+  "listings update": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "metadata pull": {
+    "class": "offline"
+  },
+  "metadata push": {
+    "class": "offline"
+  },
+  "metadata validate": {
+    "class": "offline"
+  },
+  "migrate fastlane": {
+    "class": "offline"
+  },
+  "notify send": {
+    "class": "offline"
+  },
+  "offers activate": {
+    "class": "offline"
+  },
+  "offers batch-get": {
+    "class": "offline"
+  },
+  "offers batch-update": {
+    "class": "offline"
+  },
+  "offers batch-update-states": {
+    "class": "offline"
+  },
+  "offers create": {
+    "class": "offline"
+  },
+  "offers deactivate": {
+    "class": "offline"
+  },
+  "offers delete": {
+    "class": "offline"
+  },
+  "offers get": {
+    "class": "offline"
+  },
+  "offers list": {
+    "class": "offline"
+  },
+  "offers update": {
+    "class": "offline"
+  },
+  "onetimeproducts batch-delete": {
+    "class": "offline"
+  },
+  "onetimeproducts batch-get": {
+    "class": "offline"
+  },
+  "onetimeproducts batch-update": {
+    "class": "offline"
+  },
+  "onetimeproducts create": {
+    "class": "offline"
+  },
+  "onetimeproducts delete": {
+    "class": "offline"
+  },
+  "onetimeproducts get": {
+    "class": "offline"
+  },
+  "onetimeproducts list": {
+    "class": "offline"
+  },
+  "onetimeproducts patch": {
+    "class": "offline"
+  },
+  "orders batch-get": {
+    "class": "offline"
+  },
+  "orders get": {
+    "class": "offline"
+  },
+  "orders refund": {
+    "class": "offline"
+  },
+  "orders review-refund": {
+    "class": "offline"
+  },
+  "otp-offers activate": {
+    "class": "offline"
+  },
+  "otp-offers batch-delete": {
+    "class": "offline"
+  },
+  "otp-offers batch-get": {
+    "class": "offline"
+  },
+  "otp-offers batch-update": {
+    "class": "offline"
+  },
+  "otp-offers batch-update-states": {
+    "class": "offline"
+  },
+  "otp-offers cancel": {
+    "class": "offline"
+  },
+  "otp-offers deactivate": {
+    "class": "offline"
+  },
+  "otp-offers list": {
+    "class": "offline"
+  },
+  "preflight": {
+    "class": "offline"
+  },
+  "pricing convert": {
+    "class": "offline"
+  },
+  "pricing regions-version": {
+    "class": "offline"
+  },
+  "promote": {
+    "class": "offline"
+  },
+  "publish track": {
+    "class": "offline"
+  },
+  "purchase-options batch-delete": {
+    "class": "offline"
+  },
+  "purchase-options batch-update-states": {
+    "class": "offline"
+  },
+  "purchases products acknowledge": {
+    "class": "offline"
+  },
+  "purchases products consume": {
+    "class": "offline"
+  },
+  "purchases products get": {
+    "class": "offline"
+  },
+  "purchases productsv2 get": {
+    "class": "offline"
+  },
+  "purchases subscriptions acknowledge": {
+    "class": "offline"
+  },
+  "purchases subscriptions cancel": {
+    "class": "offline"
+  },
+  "purchases subscriptions defer": {
+    "class": "offline"
+  },
+  "purchases subscriptions get": {
+    "class": "offline"
+  },
+  "purchases subscriptions revoke": {
+    "class": "offline"
+  },
+  "purchases subscriptionsv2 cancel": {
+    "class": "offline"
+  },
+  "purchases subscriptionsv2 defer": {
+    "class": "offline"
+  },
+  "purchases subscriptionsv2 get": {
+    "class": "offline"
+  },
+  "purchases subscriptionsv2 revoke": {
+    "class": "offline"
+  },
+  "purchases voided list": {
+    "class": "offline"
+  },
+  "quota status": {
+    "class": "offline"
+  },
+  "recovery add-targeting": {
+    "class": "offline"
+  },
+  "recovery cancel": {
+    "class": "offline"
+  },
+  "recovery create": {
+    "class": "offline"
+  },
+  "recovery deploy": {
+    "class": "offline"
+  },
+  "recovery list": {
+    "class": "offline"
+  },
+  "release": {
+    "class": "offline"
+  },
+  "release-notes generate": {
+    "class": "offline"
+  },
+  "reports financial download": {
+    "class": "offline"
+  },
+  "reports financial list": {
+    "class": "offline"
+  },
+  "reports stats download": {
+    "class": "offline"
+  },
+  "reports stats list": {
+    "class": "offline"
+  },
+  "reviews get": {
+    "class": "offline"
+  },
+  "reviews list": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "reviews reply": {
+    "class": "offline"
+  },
+  "rollout complete": {
+    "class": "offline"
+  },
+  "rollout halt": {
+    "class": "offline"
+  },
+  "rollout resume": {
+    "class": "offline"
+  },
+  "rollout update": {
+    "class": "offline"
+  },
+  "rtdn decode": {
+    "class": "offline"
+  },
+  "rtdn setup": {
+    "class": "offline"
+  },
+  "rtdn status": {
+    "class": "offline"
+  },
+  "schema": {
+    "class": "offline"
+  },
+  "search": {
+    "class": "offline"
+  },
+  "setup": {
+    "class": "offline"
+  },
+  "snitch flush": {
+    "class": "offline"
+  },
+  "status": {
+    "class": "offline"
+  },
+  "subscriptions archive": {
+    "class": "offline"
+  },
+  "subscriptions batch-get": {
+    "class": "offline"
+  },
+  "subscriptions batch-update": {
+    "class": "offline"
+  },
+  "subscriptions create": {
+    "class": "offline"
+  },
+  "subscriptions delete": {
+    "class": "offline"
+  },
+  "subscriptions get": {
+    "class": "offline"
+  },
+  "subscriptions list": {
+    "class": "offline"
+  },
+  "subscriptions update": {
+    "class": "offline"
+  },
+  "sync apply": {
+    "class": "offline"
+  },
+  "sync diff-listings": {
+    "class": "offline"
+  },
+  "sync export-images": {
+    "class": "offline"
+  },
+  "sync export-listings": {
+    "class": "offline"
+  },
+  "sync import-images": {
+    "class": "offline"
+  },
+  "sync import-listings": {
+    "class": "offline"
+  },
+  "sync plan": {
+    "class": "offline"
+  },
+  "sync run": {
+    "class": "offline"
+  },
+  "system-apks create": {
+    "class": "offline"
+  },
+  "system-apks download": {
+    "class": "offline"
+  },
+  "system-apks get": {
+    "class": "offline"
+  },
+  "system-apks list": {
+    "class": "offline"
+  },
+  "testers get": {
+    "class": "offline"
+  },
+  "testers patch": {
+    "class": "offline"
+  },
+  "testers update": {
+    "class": "offline"
+  },
+  "tracks create": {
+    "class": "offline"
+  },
+  "tracks get": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "tracks list": {
+    "class": "live",
+    "note": "weekly live smoke, compiled binary"
+  },
+  "tracks patch": {
+    "class": "offline"
+  },
+  "tracks releases list": {
+    "class": "offline"
+  },
+  "tracks update": {
+    "class": "offline"
+  },
+  "update": {
+    "class": "offline"
+  },
+  "users create": {
+    "class": "offline"
+  },
+  "users delete": {
+    "class": "offline"
+  },
+  "users list": {
+    "class": "offline"
+  },
+  "users update": {
+    "class": "offline"
+  },
+  "validate app-content": {
+    "class": "offline"
+  },
+  "validate bundle": {
+    "class": "offline"
+  },
+  "validate listing": {
+    "class": "offline"
+  },
+  "validate screenshots": {
+    "class": "offline"
+  },
+  "validate submission": {
+    "class": "offline"
+  },
+  "verification status": {
+    "class": "offline"
+  },
+  "version": {
+    "class": "offline"
+  },
+  "vitals crashes anomalies": {
+    "class": "offline"
+  },
+  "vitals crashes query": {
+    "class": "offline"
+  },
+  "vitals errors issues": {
+    "class": "offline"
+  },
+  "vitals errors reports": {
+    "class": "offline"
+  },
+  "vitals metric-sets get": {
+    "class": "offline"
+  },
+  "vitals metric-sets query": {
+    "class": "offline"
+  },
+  "vitals performance battery": {
+    "class": "offline"
+  },
+  "vitals performance rendering": {
+    "class": "offline"
+  },
+  "vitals performance startup": {
+    "class": "offline"
+  },
+  "vitals release-filters": {
+    "class": "offline"
+  },
+  "web open": {
+    "class": "offline"
+  },
+  "workflow list": {
+    "class": "offline"
+  },
+  "workflow run": {
+    "class": "offline"
+  },
+  "workflow validate": {
+    "class": "offline"
+  }
+}

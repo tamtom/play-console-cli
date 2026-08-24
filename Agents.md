@@ -77,6 +77,14 @@ make dev        # format + lint + test + build
 - For new features, begin with CLI-level tests (flags, output, errors) and add unit tests for core logic.
 - Verify the test fails for the right reason before implementing; keep tests green incrementally.
 
+### Command coverage manifest
+
+Every command carries a test-coverage class in `docs/testing/command-coverage.json`:
+`sandbox` (hermetic fake-API black-box), `live` (weekly live smoke), `offline`
+(cmdtest/unit only), or `manual`. The CI gate `internal/covgate` fails when a
+command has no class. After you add or remove a command, run
+`go run ./tools/covmanifest` to refresh the manifest.
+
 ## CLI Implementation Checklist
 
 - Register new commands in `internal/cli/registry/registry.go`.
