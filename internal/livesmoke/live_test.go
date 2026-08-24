@@ -222,15 +222,18 @@ func TestLive_DisposableEditWorkflow(t *testing.T) {
 		mustJSON(t, runCLI(t, "listings", "list", "--package", pkg, "--edit", editID, "--output", "json"), "listings list")
 	})
 
-	t.Run("listing update and readback inside edit", func(t *testing.T) {
+	t.Run("listing patch and readback inside edit", func(t *testing.T) {
 		marker := ResourceName(runID, "t")
 		if len(marker) > 30 {
 			marker = marker[:30] // Play listing titles are capped at 30 chars
 		}
-		update := runCLI(t, "listings", "update", "--package", pkg, "--edit", editID,
+		// listings update is a full PUT and would wipe the descriptions
+		// inside the edit, which then fails edits validate. Patch changes
+		// only the title.
+		update := runCLI(t, "listings", "patch", "--package", pkg, "--edit", editID,
 			"--locale", "en-US", "--title", marker)
 		if update.ExitCode != 0 {
-			t.Fatalf("listings update: %s", update.Stderr)
+			t.Fatalf("listings patch: %s", update.Stderr)
 		}
 
 		got := mustJSON(t, runCLI(t, "listings", "get", "--package", pkg, "--edit", editID, "--locale", "en-US", "--output", "json"), "listings get")
