@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [0.9.2] - 2026-08-25
+
+### Security
+
+- `GPLAY_API_BASE_URL` now accepts loopback hosts only. The API client attaches
+  the OAuth bearer token to every request, so a non-loopback value made the CLI
+  send a live Google access token to that host. Any other value is now refused
+  with an error instead of being ignored. The command fails closed, because a
+  silent fallback would let a hermetic test reach the real Play API. The
+  variable is for local testing only and is documented as such.
+
+### Fixed
+
+- `gplay external-transactions create` now sends the parent in the official
+  `applications/{packageName}` format. The command sent a bare package name, so
+  every call went to the wrong URL and failed. The `get` and `refund`
+  subcommands were already correct.
+
+### Testing
+
+- Verified all 218 official Google Play API methods against the live discovery
+  documents and confirmed each one is reachable from a command.
+- Added request-path tests for the three `external-transactions` subcommands.
+  The package had no tests before.
+- Expanded the live smoke suite from 10 to 20 commands and added a hermetic
+  sandbox for black-box tests of the compiled binary.
+
 ## [0.9.1] - 2026-08-24
 
 ### Fixed
