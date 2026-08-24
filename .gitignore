@@ -29,6 +29,7 @@ vendor/
 !internal/apischema/schema-index.json
 !docs/api/google-play-api-manifest.json
 !docs/api/discovery.json
+!docs/testing/command-coverage.json
 !go.mod
 !go.sum
 service-account*.json
