@@ -104,7 +104,8 @@ gplay auth doctor --fix --confirm
 
 | Variable | Purpose |
 |----------|---------|
-| `GPLAY_SERVICE_ACCOUNT` | Path to service account JSON |
+| `GPLAY_SERVICE_ACCOUNT_JSON` | Path to the service account JSON key (canonical) |
+| `GPLAY_SERVICE_ACCOUNT` | Path to the service account JSON key (legacy alias, some commands) |
 | `GPLAY_PACKAGE` | Default package name |
 | `GPLAY_PROFILE` | Active profile name |
 | `GPLAY_TIMEOUT` | Request timeout (e.g., `90s`, `2m`) |
