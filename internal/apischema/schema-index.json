@@ -4,7 +4,7 @@
       "base_url": "https://androiddeveloperidstatus.googleapis.com/",
       "discovery_url": "https://androiddeveloperidstatus.googleapis.com/$discovery/rest?version=v1",
       "name": "androiddeveloperidstatus",
-      "revision": "20260820",
+      "revision": "20260823",
       "service_path": "",
       "version": "v1"
     },
