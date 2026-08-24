@@ -112,7 +112,9 @@ For recurring subscriptions, use "recurringTransaction" instead of "oneTimeTrans
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 
-			resp, err := service.API.Externaltransactions.Createexternaltransaction(pkg, &tx).Context(ctx).ExternalTransactionId(*externalTxID).Do()
+			// The parent resource name format is: applications/{packageName}
+			parent := fmt.Sprintf("applications/%s", pkg)
+			resp, err := service.API.Externaltransactions.Createexternaltransaction(parent, &tx).Context(ctx).ExternalTransactionId(*externalTxID).Do()
 			if err != nil {
 				return err
 			}
