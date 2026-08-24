@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/tamtom/play-console-cli/internal/testutil"
@@ -41,6 +42,56 @@ func TestNewService_HonorsBaseURLOverride(t *testing.T) {
 	}
 	if gotPath == "" {
 		t.Fatal("the request did not reach the sandbox server")
+	}
+}
+
+// The override attaches the OAuth bearer token to every request it sends.
+// A non-loopback host would therefore receive a live Google access token,
+// so NewService must refuse it. It must fail closed: silently falling back
+// to the real API would let a "hermetic" test hit production instead.
+func TestNewService_RefusesNonLoopbackBaseURL(t *testing.T) {
+	for _, base := range []string{
+		"https://evil.example.com",
+		"http://10.0.0.5:8080",
+		"https://androidpublisher.googleapis.com.evil.example",
+		"not-a-url",
+		"file:///etc/passwd",
+	} {
+		t.Run(base, func(t *testing.T) {
+			t.Setenv("GPLAY_CONFIG_PATH", filepath.Join(t.TempDir(), "config.json"))
+			t.Setenv("GPLAY_SERVICE_ACCOUNT_JSON", testutil.SandboxServiceAccount(t, "https://oauth2.googleapis.com/token"))
+			t.Setenv("GPLAY_API_BASE_URL", base)
+
+			_, err := NewService(context.Background())
+			if err == nil {
+				t.Fatalf("base URL %q must be refused", base)
+			}
+			if !strings.Contains(err.Error(), "GPLAY_API_BASE_URL") {
+				t.Fatalf("error must name the variable, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestNewService_AcceptsLoopbackBaseURL(t *testing.T) {
+	for _, base := range []string{
+		"http://127.0.0.1:8080",
+		"http://localhost:9999",
+		"http://[::1]:8080",
+	} {
+		t.Run(base, func(t *testing.T) {
+			t.Setenv("GPLAY_CONFIG_PATH", filepath.Join(t.TempDir(), "config.json"))
+			t.Setenv("GPLAY_SERVICE_ACCOUNT_JSON", testutil.SandboxServiceAccount(t, "https://oauth2.googleapis.com/token"))
+			t.Setenv("GPLAY_API_BASE_URL", base)
+
+			service, err := NewService(context.Background())
+			if err != nil {
+				t.Fatalf("loopback base URL %q must be accepted: %v", base, err)
+			}
+			if service.API.BasePath != base+"/" {
+				t.Fatalf("BasePath = %q, want %q", service.API.BasePath, base+"/")
+			}
+		})
 	}
 }
 
