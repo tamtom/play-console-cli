@@ -21,21 +21,34 @@ for var in FIXTURE_KEYSTORE FIXTURE_KEYSTORE_PASSWORD FIXTURE_KEY_ALIAS FIXTURE_
   fi
 done
 
-# Version code: live readback of the internal track, plus one. This keeps
-# the version sequence of the app monotonic and small.
-echo "Reading current version codes on the $TRACK track..."
-RELEASES_JSON="$("$GPLAY" tracks releases list --package "$FIXTURE_PACKAGE" --track "$TRACK" --output json)"
-MAX_CODE="$(printf '%s' "$RELEASES_JSON" | python3 -c '
+# Version code: the store rejects any code that was ever uploaded, not only
+# the codes that are active on a track. The bundle and APK lists inside an
+# edit are the authoritative record of used codes, so we read those through
+# one disposable edit and delete the edit immediately.
+echo "Reading used version codes (bundles and APKs)..."
+EDIT_ID="$("$GPLAY" edits create --package "$FIXTURE_PACKAGE" --output json | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+cleanup_edit() {
+  "$GPLAY" edits delete --package "$FIXTURE_PACKAGE" --edit "$EDIT_ID" --confirm >/dev/null 2>&1 || true
+}
+trap cleanup_edit EXIT
+
+BUNDLES_JSON="$("$GPLAY" bundles list --package "$FIXTURE_PACKAGE" --edit "$EDIT_ID" --output json)"
+APKS_JSON="$("$GPLAY" apks list --package "$FIXTURE_PACKAGE" --edit "$EDIT_ID" --output json)"
+cleanup_edit
+trap - EXIT
+
+MAX_CODE="$(printf '%s\n---\n%s' "$BUNDLES_JSON" "$APKS_JSON" | python3 -c '
 import json, sys
-data = json.load(sys.stdin)
+bundles_raw, apks_raw = sys.stdin.read().split("\n---\n")
 codes = []
-for release in data.get("releases") or []:
-    for code in release.get("versionCodes") or []:
-        codes.append(int(code))
+for artifact in (json.loads(bundles_raw).get("bundles") or []):
+    codes.append(int(artifact["versionCode"]))
+for artifact in (json.loads(apks_raw).get("apks") or []):
+    codes.append(int(artifact["versionCode"]))
 print(max(codes) if codes else 0)
 ')"
 NEXT_CODE=$((MAX_CODE + 1))
-echo "Max version code on $TRACK: $MAX_CODE; building $NEXT_CODE"
+echo "Max used version code: $MAX_CODE; building $NEXT_CODE"
 
 echo "Building fixture AAB..."
 (cd "$APP_DIR" && gradle --no-daemon bundleRelease "-PfixtureVersionCode=$NEXT_CODE")
@@ -57,8 +70,8 @@ import json, sys
 data = json.load(sys.stdin)
 codes = set()
 for release in data.get('releases') or []:
-    for code in release.get('versionCodes') or []:
-        codes.add(int(code))
+    for artifact in release.get('activeArtifacts') or []:
+        codes.add(int(artifact['versionCode']))
 expected = $NEXT_CODE
 if expected not in codes:
     raise SystemExit(f'readback failed: version code {expected} not on track, saw {sorted(codes)}')
