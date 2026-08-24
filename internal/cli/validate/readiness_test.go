@@ -117,7 +117,10 @@ func TestBuildReadinessReportOfflineNeverFetchesRemoteState(t *testing.T) {
   "contentRatingStatus": "complete",
   "dataSafetyStatus": "complete",
   "category": "APPLICATION",
-  "initialCountries": ["US"]
+  "initialCountries": ["US"],
+  "policyDeclarationsReviewed": true,
+  "declarations": {"financial-features":"not-applicable","health":"not-applicable","news":"not-applicable"},
+  "sensitivePermissionsReviewed": true
 }`)
 	report := buildReadinessReport(context.Background(), readinessOptions{
 		Offline:        true,

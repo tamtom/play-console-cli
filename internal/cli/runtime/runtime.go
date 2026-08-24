@@ -5,10 +5,12 @@ import (
 	"flag"
 	"io"
 
+	"github.com/tamtom/play-console-cli/internal/appsigningclient"
 	"github.com/tamtom/play-console-cli/internal/audit"
 	"github.com/tamtom/play-console-cli/internal/checksclient"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/customappsclient"
+	"github.com/tamtom/play-console-cli/internal/developeridclient"
 	"github.com/tamtom/play-console-cli/internal/gamesclient"
 	"github.com/tamtom/play-console-cli/internal/gcsclient"
 	"github.com/tamtom/play-console-cli/internal/integrityclient"
@@ -21,18 +23,20 @@ import (
 type Runtime struct {
 	RootFlags *shared.RootFlags
 
-	newPlayService       playclient.ServiceFactory
-	newReportingService  reportingclient.ServiceFactory
-	newGamesService      gamesclient.ServiceFactory
-	newCustomAppsService customappsclient.ServiceFactory
-	newGCSService        gcsclient.ServiceFactory
-	newChecksService     checksclient.ServiceFactory
-	newIntegrityService  integrityclient.ServiceFactory
-	clock                shared.Clock
-	stdout               io.Writer
-	stderr               io.Writer
-	auditSink            AuditSink
-	filesystem           shared.Filesystem
+	newPlayService        playclient.ServiceFactory
+	newReportingService   reportingclient.ServiceFactory
+	newGamesService       gamesclient.ServiceFactory
+	newCustomAppsService  customappsclient.ServiceFactory
+	newGCSService         gcsclient.ServiceFactory
+	newChecksService      checksclient.ServiceFactory
+	newIntegrityService   integrityclient.ServiceFactory
+	newAppSigningService  appsigningclient.ServiceFactory
+	newDeveloperIDService developeridclient.ServiceFactory
+	clock                 shared.Clock
+	stdout                io.Writer
+	stderr                io.Writer
+	auditSink             AuditSink
+	filesystem            shared.Filesystem
 }
 
 // AuditSink receives completed command audit entries.
@@ -93,6 +97,20 @@ func (rt *Runtime) WithChecksServiceFactory(factory checksclient.ServiceFactory)
 func (rt *Runtime) WithIntegrityServiceFactory(factory integrityclient.ServiceFactory) *Runtime {
 	rt = Ensure(rt)
 	rt.newIntegrityService = factory
+	return rt
+}
+
+// WithAppSigningServiceFactory installs the enterprise App Signing boundary.
+func (rt *Runtime) WithAppSigningServiceFactory(factory appsigningclient.ServiceFactory) *Runtime {
+	rt = Ensure(rt)
+	rt.newAppSigningService = factory
+	return rt
+}
+
+// WithDeveloperIDServiceFactory installs the official Developer ID Status boundary.
+func (rt *Runtime) WithDeveloperIDServiceFactory(factory developeridclient.ServiceFactory) *Runtime {
+	rt = Ensure(rt)
+	rt.newDeveloperIDService = factory
 	return rt
 }
 
@@ -182,6 +200,12 @@ func (rt *Runtime) ApplyRootContext(ctx context.Context) (context.Context, error
 	}
 	if rt != nil && rt.newIntegrityService != nil {
 		ctx = integrityclient.ContextWithServiceFactory(ctx, rt.newIntegrityService)
+	}
+	if rt != nil && rt.newAppSigningService != nil {
+		ctx = appsigningclient.ContextWithServiceFactory(ctx, rt.newAppSigningService)
+	}
+	if rt != nil && rt.newDeveloperIDService != nil {
+		ctx = developeridclient.ContextWithServiceFactory(ctx, rt.newDeveloperIDService)
 	}
 	if rt == nil || rt.RootFlags == nil {
 		return ctx, nil

@@ -36,6 +36,21 @@ production Play Console account is required or permitted for these tests.
 Any separately enabled integration test for an existing official API must use a
 dedicated test resource and explicit opt-in. It is not part of bootstrap testing.
 
+## High-impact official APIs
+
+Official does not mean replay-safe. Enterprise self-hosted KMS enrollment and
+rotation use `gplay app-signing plan-*` followed by `app-signing apply` with the
+exact plan hash. Apply seals an in-progress receipt before sending the request;
+the reservation is created exclusively across processes. Definitive validation
+rejections and ambiguous transport, throttling, conflict, and server failures
+are recorded; ambiguous operations are never automatically replayed.
+
+Checks repository scans use a similar disclosure gate. Global `--dry-run`
+validates the explicit request and prints a redacted upload manifest without
+authenticating. The live generate command requires `--confirm-manifest` with
+that exact hash and rejects secrets, binary/invalid text, embedded URL
+credentials, and oversized excerpts before any Google request.
+
 ## Store-listing experiments
 
 Google's reviewed public Android Publisher discovery document currently has no

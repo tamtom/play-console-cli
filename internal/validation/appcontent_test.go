@@ -6,6 +6,7 @@ import (
 )
 
 func TestValidateAppContentCompleteInventory(t *testing.T) {
+	reviewed := true
 	inventory := AppContentInventory{
 		PrivacyPolicyURL:    "https://example.com/privacy",
 		SupportEmail:        "support@example.com",
@@ -18,10 +19,12 @@ func TestValidateAppContentCompleteInventory(t *testing.T) {
 		Tags:                []string{"productivity"},
 		InitialCountries:    []string{"US"},
 		Declarations: map[string]string{
-			"financial": "not-applicable",
-			"health":    "not-applicable",
-			"news":      "not-applicable",
+			"financial-features": "not-applicable",
+			"health":             "not-applicable",
+			"news":               "not-applicable",
 		},
+		PolicyDeclarationsReviewed:   &reviewed,
+		SensitivePermissionsReviewed: &reviewed,
 		SensitivePermissions: []PermissionDeclaration{
 			{Name: "android.permission.CAMERA", Status: "complete"},
 		},
@@ -30,6 +33,19 @@ func TestValidateAppContentCompleteInventory(t *testing.T) {
 	for _, result := range results {
 		if result.Severity == SeverityError || result.Severity == SeverityWarning {
 			t.Fatalf("unexpected finding: %#v", result)
+		}
+	}
+}
+
+func TestValidateAppContentDoesNotSilentlyAcceptOmittedDeclarations(t *testing.T) {
+	results := ValidateAppContent(AppContentInventory{})
+	for _, id := range []string{
+		"app-content-policy-review-missing",
+		"app-content-required-declaration-missing",
+		"app-content-sensitive-permissions-review-missing",
+	} {
+		if !containsCheckID(results, id) {
+			t.Fatalf("missing check %q in %#v", id, results)
 		}
 	}
 }

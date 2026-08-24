@@ -123,7 +123,7 @@ Example:
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
 			if err := service.API.Orders.Reviewrefund(pkg, *orderID, &req).Context(ctx).Do(); err != nil {
-				return err
+				return shared.WrapGoogleAPIError("review order refund", err)
 			}
 			return shared.PrintOutputContext(ctx, map[string]any{
 				"reviewed":         true,
@@ -213,7 +213,7 @@ func BatchGetCommand() *ffcli.Command {
 
 			resp, err := service.API.Orders.Batchget(pkg).OrderIds(idList...).Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("batch get orders", err)
 			}
 			return shared.PrintOutputContext(ctx, resp.Orders, *outputFlag, *pretty)
 		},

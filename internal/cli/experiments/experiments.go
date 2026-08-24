@@ -18,8 +18,8 @@ import (
 
 var runWinnerSync = sync.RunTransaction
 
-// Command returns the store-listing experiments boundary.
-func Command() *ffcli.Command {
+// ExperimentsCommand returns the store-listing experiments boundary.
+func ExperimentsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("experiments", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:        "experiments",

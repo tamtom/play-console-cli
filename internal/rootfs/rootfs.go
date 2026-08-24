@@ -37,6 +37,24 @@ func AtomicWriteFile(path string, data []byte, fileMode, dirMode os.FileMode) er
 	return err
 }
 
+// CreateExclusiveFile durably creates one operator-selected path and fails if
+// it already exists. It is suitable for cross-process operation reservations.
+func CreateExclusiveFile(path string, data []byte, fileMode, dirMode os.FileMode) error {
+	if strings.TrimSpace(path) == "" {
+		return fmt.Errorf("%w: invalid empty path", ErrEscapesRoot)
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, dirMode); err != nil {
+		return fmt.Errorf("create trusted parent directory %q: %w", dir, err)
+	}
+	root, err := Open(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = root.Close() }()
+	return root.CreateExclusive(filepath.Base(path), data, fileMode)
+}
+
 // AtomicWriteFileFrom streams one operator-selected path atomically. The
 // path's parent directory is the trusted root.
 func AtomicWriteFileFrom(path string, source io.Reader, fileMode, dirMode os.FileMode) (int64, error) {
@@ -202,6 +220,56 @@ func (r *Root) MkdirAll(name string, mode os.FileMode) error {
 func (r *Root) AtomicWrite(name string, data []byte, mode os.FileMode) error {
 	_, err := r.AtomicWriteFrom(name, bytes.NewReader(data), mode)
 	return err
+}
+
+// CreateExclusive durably creates a rooted regular file without replacing an
+// existing entry.
+func (r *Root) CreateExclusive(name string, data []byte, mode os.FileMode) error {
+	clean, err := normalize(name)
+	if err != nil {
+		return err
+	}
+	if clean == "." {
+		return fmt.Errorf("%w: destination must name a file", ErrEscapesRoot)
+	}
+	if mode&^os.FileMode(0o777) != 0 {
+		return fmt.Errorf("invalid file mode %o", mode)
+	}
+	parent := filepath.Dir(clean)
+	if err := r.MkdirAll(parent, 0o755); err != nil {
+		return err
+	}
+	if err := r.rejectSymlinks(clean, true); err != nil {
+		return err
+	}
+	file, err := r.root.OpenFile(clean, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return fmt.Errorf("create exclusive rooted file %q: %w", name, err)
+	}
+	remove := true
+	defer func() {
+		_ = file.Close()
+		if remove {
+			_ = r.root.Remove(clean)
+		}
+	}()
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("write exclusive rooted file %q: %w", name, err)
+	}
+	if err := file.Chmod(mode); err != nil {
+		return fmt.Errorf("set exclusive rooted file mode %q: %w", name, err)
+	}
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("sync exclusive rooted file %q: %w", name, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close exclusive rooted file %q: %w", name, err)
+	}
+	remove = false
+	if err := syncDirectory(r.root, parent); err != nil {
+		return fmt.Errorf("sync exclusive rooted directory: %w", err)
+	}
+	return nil
 }
 
 // AtomicWriteFrom streams a file through an exclusive, unpredictable

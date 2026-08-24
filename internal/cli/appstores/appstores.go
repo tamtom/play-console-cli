@@ -51,7 +51,7 @@ func (f commonFlags) validate() error {
 	return nil
 }
 
-func Command() *ffcli.Command {
+func AppStoresCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("app-stores", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "app-stores",
@@ -91,13 +91,13 @@ func CreateAppCommand() *ffcli.Command {
 			}
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
 			_, err = s.API.Appstoreappsreview.Createappstorehostedapp(*c.storePackage, &androidpublisher.CreateAppStoreHostedAppRequest{PackageName: *pkg}).Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("create third-party app-store hosted app", err)
 			}
 			return shared.PrintOutputContext(ctx, map[string]any{"created": true, "appStorePackageName": *c.storePackage, "packageName": *pkg}, *c.output, *c.pretty)
 		},
@@ -133,13 +133,13 @@ JSON example: {"packageName":"app.example","activeApks":{},"activeLocalizedStore
 			}
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
 			_, err = s.API.Appstoreappsreview.Updateappstorehostedapp(*c.storePackage, &req).Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("update third-party app-store hosted app", err)
 			}
 			return shared.PrintOutputContext(ctx, map[string]any{"updated": true, "appStorePackageName": *c.storePackage, "packageName": req.PackageName}, *c.output, *c.pretty)
 		},
@@ -170,14 +170,14 @@ func PublishStatusCommand() *ffcli.Command {
 			}
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
 			req := &androidpublisher.UpdateAppStoreHostedAppPublishStatusRequest{PublishState: "APP_STORE_APP_PUBLISH_STATE_" + stateValue}
 			_, err = s.API.Appstoreappsreview.Updateappstorehostedapppublishstatus(*c.storePackage, *pkg, req).Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("update third-party app-store publish status", err)
 			}
 			return shared.PrintOutputContext(ctx, map[string]any{"updated": true, "packageName": *pkg, "publishState": stateValue}, *c.output, *c.pretty)
 		},
@@ -223,10 +223,10 @@ func uploadCommand(kind uploadKind) *ffcli.Command {
 			if err != nil {
 				return fmt.Errorf("open upload file: %w", err)
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, s.Cfg)
 			defer cancel()
@@ -240,7 +240,12 @@ func uploadCommand(kind uploadKind) *ffcli.Command {
 				result, err = s.API.Appstoreappsreview.Uploadimage(*c.storePackage, *pkg, &androidpublisher.UploadImageRequest{}).Media(file, googleapi.ContentType(mediaType)).Context(ctx).Do()
 			}
 			if err != nil {
-				return err
+				operations := []string{
+					"upload third-party app-store APK",
+					"upload third-party app-store policy file",
+					"upload third-party app-store image",
+				}
+				return shared.WrapGoogleAPIError(operations[kind], err)
 			}
 			return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 		},
@@ -287,13 +292,13 @@ func RecentAppViewCommand() *ffcli.Command {
 			}
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
 			result, err := s.API.Appstorecatalog.Recentappviews.Get(*c.storePackage, *pkg).Context(ctx).Do()
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("get recent Play Catalog app view", err)
 			}
 			return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 		},
@@ -316,7 +321,7 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 			}
 			s, err := newPlayService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Google Play service: %w", err)
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
@@ -336,7 +341,7 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 			if !*paginate {
 				result, err := call.Do()
 				if err != nil {
-					return err
+					return shared.WrapGoogleAPIError("list recent Play Catalog update events", err)
 				}
 				return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 			}
@@ -346,7 +351,7 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 				return nil
 			})
 			if err != nil {
-				return err
+				return shared.WrapGoogleAPIError("list all recent Play Catalog update events", err)
 			}
 			return shared.PrintOutputContext(ctx, events, *c.output, *c.pretty)
 		},

@@ -12,19 +12,21 @@ import (
 // AppContentInventory is a local, user-maintained record of Play Console
 // declarations that are not fully readable through public Google APIs.
 type AppContentInventory struct {
-	PrivacyPolicyURL     string                  `json:"privacyPolicyUrl"`
-	SupportEmail         string                  `json:"supportEmail"`
-	Ads                  string                  `json:"ads"`
-	AppAccess            string                  `json:"appAccess"`
-	ReviewerInstructions string                  `json:"reviewerInstructions,omitempty"`
-	TargetAudience       []string                `json:"targetAudience"`
-	ContentRatingStatus  string                  `json:"contentRatingStatus"`
-	DataSafetyStatus     string                  `json:"dataSafetyStatus"`
-	Category             string                  `json:"category,omitempty"`
-	Tags                 []string                `json:"tags,omitempty"`
-	InitialCountries     []string                `json:"initialCountries,omitempty"`
-	Declarations         map[string]string       `json:"declarations,omitempty"`
-	SensitivePermissions []PermissionDeclaration `json:"sensitivePermissions,omitempty"`
+	PrivacyPolicyURL             string                  `json:"privacyPolicyUrl"`
+	SupportEmail                 string                  `json:"supportEmail"`
+	Ads                          string                  `json:"ads"`
+	AppAccess                    string                  `json:"appAccess"`
+	ReviewerInstructions         string                  `json:"reviewerInstructions,omitempty"`
+	TargetAudience               []string                `json:"targetAudience"`
+	ContentRatingStatus          string                  `json:"contentRatingStatus"`
+	DataSafetyStatus             string                  `json:"dataSafetyStatus"`
+	Category                     string                  `json:"category,omitempty"`
+	Tags                         []string                `json:"tags,omitempty"`
+	InitialCountries             []string                `json:"initialCountries,omitempty"`
+	Declarations                 map[string]string       `json:"declarations,omitempty"`
+	PolicyDeclarationsReviewed   *bool                   `json:"policyDeclarationsReviewed"`
+	SensitivePermissions         []PermissionDeclaration `json:"sensitivePermissions,omitempty"`
+	SensitivePermissionsReviewed *bool                   `json:"sensitivePermissionsReviewed"`
 }
 
 // PermissionDeclaration records whether a sensitive Android permission's Play
@@ -117,6 +119,23 @@ func ValidateAppContent(inventory AppContentInventory) []CheckResult {
 		results = append(results, appContentResult("app-content-initial-availability-missing", SeverityWarning, "initialCountries", "Initial country availability is not inventoried.", "Record the countries or regions intended for the initial release."))
 	}
 
+	if inventory.PolicyDeclarationsReviewed == nil || !*inventory.PolicyDeclarationsReviewed {
+		results = append(results, appContentResult(
+			"app-content-policy-review-missing", SeverityError, "policyDeclarationsReviewed",
+			"Policy declarations have not been explicitly reviewed.",
+			"Set policyDeclarationsReviewed to true after reviewing every applicable Play declaration.",
+		))
+	}
+	for _, required := range []string{"financial-features", "health", "news"} {
+		if _, present := inventory.Declarations[required]; !present {
+			results = append(results, appContentResult(
+				"app-content-required-declaration-missing", SeverityError, "declarations."+required,
+				fmt.Sprintf("%s declaration is not inventoried.", required),
+				"Record this declaration as complete or not-applicable after review.",
+			))
+		}
+	}
+
 	declarationNames := make([]string, 0, len(inventory.Declarations))
 	for name := range inventory.Declarations {
 		declarationNames = append(declarationNames, name)
@@ -134,6 +153,13 @@ func ValidateAppContent(inventory AppContentInventory) []CheckResult {
 		}
 	}
 
+	if inventory.SensitivePermissionsReviewed == nil || !*inventory.SensitivePermissionsReviewed {
+		results = append(results, appContentResult(
+			"app-content-sensitive-permissions-review-missing", SeverityError, "sensitivePermissionsReviewed",
+			"Sensitive permissions have not been explicitly reviewed.",
+			"Set sensitivePermissionsReviewed to true after comparing the release artifact permissions with Play declaration requirements.",
+		))
+	}
 	permissions := append([]PermissionDeclaration(nil), inventory.SensitivePermissions...)
 	sort.Slice(permissions, func(i, j int) bool { return permissions[i].Name < permissions[j].Name })
 	for _, permission := range permissions {

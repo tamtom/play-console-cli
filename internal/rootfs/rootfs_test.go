@@ -247,3 +247,21 @@ func TestRootCheckWritableLeavesNoProbeFile(t *testing.T) {
 		t.Fatalf("probe leftovers = %#v, %v", entries, err)
 	}
 }
+
+func TestCreateExclusiveFileNeverReplacesReservation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state", "receipt.json")
+	if err := CreateExclusiveFile(path, []byte("first"), 0o600, 0o700); err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+	if err := CreateExclusiveFile(path, []byte("second"), 0o600, 0o700); !errors.Is(err, os.ErrExist) {
+		t.Fatalf("second create error = %v, want ErrExist", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "first" {
+		t.Fatalf("reservation = %q, %v", data, err)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("reservation mode/error = %v, %v", info, err)
+	}
+}

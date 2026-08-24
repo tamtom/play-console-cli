@@ -147,16 +147,15 @@ Gplay can implement the same product idea over capabilities it already has: down
 - Continue expanding offline validation rules inside the canonical `gplay validate` surface: URL/contact syntax, placeholder and minimum-quality checks, stable check IDs, remediation, advisory severity, and strict-mode escalation. ASC 4.9.0 added this class of push-time metadata rejection checks offline. [ASC 4.9.0 metadata-validation change](https://github.com/rorkai/App-Store-Connect-CLI/pull/2086), [ASC validation module](https://github.com/rorkai/App-Store-Connect-CLI/tree/563ee9e0ba2652348a8defdd71ccb454c3aa7b60/internal/validation)
 - Preserve Gplay's stronger artifact preflight and race-detector CI; ASC's command count and raw test volume are not goals by themselves.
 
-## Suggested delivery order
+## Implemented order on one mergeable branch
 
-1. **Safety PR:** remove scheduled/mutating live integration defaults; scrub test environments; add fail-closed auth/network test seams.
-2. **Discovery PR:** lazy command catalog plus `gplay search`.
-3. **Schema PR:** `gplay schema`, discovery refresh, generator checks, read-only drift reporting.
-4. **Architecture series:** migrate two or three command families at a time to injected runtime and I/O.
-5. **Filesystem PR:** root-bound, symlink-safe, atomic local writes with attack-oriented tests.
-6. **Mutation-safety vertical slice:** metadata/image plan, apply, receipt, and resume using only official APIs.
-7. **Endpoint PR:** true order batch get and carefully guarded refund-review support.
-8. **Workflow PR:** explicit timeout/retry policy and ambiguity-safe resume.
-9. **Product PR:** local-first weekly insights.
+1. Test/account isolation and fail-closed client seams.
+2. Lazy command catalog, local search, embedded schema, and discovery drift checks.
+3. Runtime, output, clock, filesystem, and audit injection.
+4. Root-bound, symlink-safe, atomic local writes with attack-oriented tests.
+5. Metadata/image plan, apply, receipt, and resume using only official APIs.
+6. Current official endpoints, including true order batch get and guarded refund review.
+7. Timeout/retry policy and ambiguity-safe workflow resume.
+8. Local-first insights, verified skills installation, offline readiness, and Android helpers.
 
 All tests for these workstreams should be offline and mocked. No implementation step requires a Google Account browser session, private Play Console RPC, cookie import, authenticated UI automation, or automated legal acceptance.

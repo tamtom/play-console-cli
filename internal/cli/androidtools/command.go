@@ -11,8 +11,8 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
-// Command returns the local android toolchain command group.
-func Command() *ffcli.Command {
+// AndroidCommand returns the local Android toolchain command group.
+func AndroidCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("android", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "android",

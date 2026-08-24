@@ -64,8 +64,8 @@ func init() {
 	})
 }
 
-// Command returns the credential-free official API schema command.
-func Command() *ffcli.Command {
+// SchemaCommand returns the credential-free official API schema command.
+func SchemaCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("schema", flag.ExitOnError)
 	api := fs.String("api", "", "Filter by API name")
 	method := fs.String("method", "", "Filter endpoints by HTTP method")

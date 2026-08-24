@@ -27,6 +27,11 @@ func (f *recordingFilesystem) AtomicWriteFile(path string, _ []byte, _, _ os.Fil
 	return nil
 }
 
+func (f *recordingFilesystem) CreateExclusiveFile(path string, _ []byte, _, _ os.FileMode) error {
+	f.writes = append(f.writes, path)
+	return nil
+}
+
 func TestContextFilesystemOverridesHostFiles(t *testing.T) {
 	filesystem := &recordingFilesystem{}
 	ctx := ContextWithFilesystem(context.Background(), filesystem)

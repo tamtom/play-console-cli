@@ -17,16 +17,23 @@ import (
 
 var newIntegrityService = integrityclient.NewService
 
-func Command() *ffcli.Command {
+func IntegrityCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("integrity", flag.ExitOnError)
-	return &ffcli.Command{Name: "integrity", ShortUsage: "gplay integrity <subcommand> [flags]", ShortHelp: "Decode Play Integrity tokens and manage restricted Device Recall state.", FlagSet: fs, UsageFunc: shared.DefaultUsageFunc, Subcommands: []*ffcli.Command{DecodeCommand(false), DecodeCommand(true), DeviceRecallWriteCommand()}, Exec: func(context.Context, []string) error { return flag.ErrHelp }}
+	return &ffcli.Command{Name: "integrity", ShortUsage: "gplay integrity <subcommand> [flags]", ShortHelp: "Decode Play Integrity tokens and manage restricted Device Recall state.", FlagSet: fs, UsageFunc: shared.DefaultUsageFunc, Subcommands: []*ffcli.Command{DecodeAndroidCommand(), DecodePCCommand(), DeviceRecallWriteCommand()}, Exec: func(context.Context, []string) error { return flag.ErrHelp }}
 }
 
-func DecodeCommand(pc bool) *ffcli.Command {
-	name := "decode"
-	if pc {
-		name = "decode-pc"
-	}
+type decodeKind string
+
+const (
+	decodeAndroid decodeKind = "decode"
+	decodePC      decodeKind = "decode-pc"
+)
+
+func DecodeAndroidCommand() *ffcli.Command { return decodeCommand(decodeAndroid) }
+func DecodePCCommand() *ffcli.Command      { return decodeCommand(decodePC) }
+
+func decodeCommand(kind decodeKind) *ffcli.Command {
+	name := string(kind)
 	fs := flag.NewFlagSet("integrity "+name, flag.ExitOnError)
 	pkgFlag := fs.String("package", "", "Package name (applicationId)")
 	tokenFile := fs.String("token-file", "", "File containing the encoded integrity token; use - for stdin")
@@ -55,7 +62,7 @@ func DecodeCommand(pc bool) *ffcli.Command {
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			defer cancel()
-			if pc {
+			if kind == decodePC {
 				response, err := service.API.V1.DecodePcIntegrityToken(pkg, &playintegrity.DecodePcIntegrityTokenRequest{IntegrityToken: token}).Context(ctx).Do()
 				if err != nil {
 					return shared.WrapGoogleAPIError("decode PC integrity token", err)
@@ -82,7 +89,7 @@ func readToken(path string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("open token file: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		reader = file
 	}
 	data, err := io.ReadAll(io.LimitReader(reader, 4<<20))

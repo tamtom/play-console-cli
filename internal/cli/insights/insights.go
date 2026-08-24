@@ -23,8 +23,8 @@ func init() {
 	})
 }
 
-// Command returns the local-first insights command group.
-func Command() *ffcli.Command {
+// InsightsCommand returns the local-first insights command group.
+func InsightsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("insights", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "insights",

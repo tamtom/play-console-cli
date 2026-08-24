@@ -160,6 +160,22 @@ gplay validate app-content --package com.example.app \
 The app-content inventory covers privacy/support contacts, ads, reviewer
 access, target audience, content rating, Data Safety, category/tags, initial
 countries, policy declarations, and sensitive-permission declarations.
+Because several Console-only sections have no public read API, the inventory
+must explicitly record that both declaration groups were reviewed and include
+the core policy categories instead of treating an omitted array as complete:
+
+```json
+{
+  "policyDeclarationsReviewed": true,
+  "sensitivePermissionsReviewed": true,
+  "declarations": {
+    "financial-features": "not-applicable",
+    "health": "not-applicable",
+    "news": "not-applicable"
+  },
+  "sensitivePermissions": []
+}
+```
 
 ## Optional local Android helpers
 

@@ -68,9 +68,9 @@ func init() {
 	})
 }
 
-// Command returns the local command-discovery command. The command tree is
+// SearchCommand returns the local command-discovery command. The command tree is
 // supplied lazily so normal invocations never materialize it.
-func Command(commands func() []*ffcli.Command) *ffcli.Command {
+func SearchCommand(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("search", flag.ExitOnError)
 	limit := fs.Int("limit", defaultLimit, "Maximum number of results")
 	outputFlags := shared.BindOutputFlags(fs)

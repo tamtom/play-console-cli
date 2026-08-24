@@ -76,7 +76,7 @@ func MetricSetGetCommand() *ffcli.Command {
 			}
 			service, err := newMetricReportingService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Play Developer Reporting service: %w", err)
 			}
 			pkg := shared.ResolvePackageName(*f.packageName, service.Cfg)
 			if strings.TrimSpace(pkg) == "" {
@@ -86,7 +86,7 @@ func MetricSetGetCommand() *ffcli.Command {
 			defer cancel()
 			result, err := reportingJSON(ctx, service, http.MethodGet, metricSetURL(service, pkg, resource), nil)
 			if err != nil {
-				return err
+				return fmt.Errorf("get %s metric-set descriptor: %w", strings.TrimSpace(*f.metricSet), err)
 			}
 			return shared.PrintOutputContext(ctx, result, *f.output, *f.pretty)
 		},
@@ -116,7 +116,7 @@ JSON example: {"metrics":["distinctUsers"],"timelineSpec":{"aggregationPeriod":"
 			}
 			service, err := newMetricReportingService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Play Developer Reporting service: %w", err)
 			}
 			pkg := shared.ResolvePackageName(*f.packageName, service.Cfg)
 			if strings.TrimSpace(pkg) == "" {
@@ -126,7 +126,7 @@ JSON example: {"metrics":["distinctUsers"],"timelineSpec":{"aggregationPeriod":"
 			defer cancel()
 			result, err := reportingJSON(ctx, service, http.MethodPost, metricSetURL(service, pkg, resource)+":query", body)
 			if err != nil {
-				return err
+				return fmt.Errorf("query %s metric set: %w", strings.TrimSpace(*f.metricSet), err)
 			}
 			return shared.PrintOutputContext(ctx, result, *f.output, *f.pretty)
 		},
@@ -146,7 +146,7 @@ func ReleaseFiltersCommand() *ffcli.Command {
 			}
 			service, err := newMetricReportingService(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Play Developer Reporting service: %w", err)
 			}
 			pkg := shared.ResolvePackageName(*pkgFlag, service.Cfg)
 			if strings.TrimSpace(pkg) == "" {
@@ -157,7 +157,7 @@ func ReleaseFiltersCommand() *ffcli.Command {
 			endpoint := strings.TrimRight(service.BasePath, "/") + "/v1beta1/apps/" + url.PathEscape(pkg) + ":fetchReleaseFilterOptions"
 			result, err := reportingJSON(ctx, service, http.MethodGet, endpoint, nil)
 			if err != nil {
-				return err
+				return fmt.Errorf("fetch reporting release-filter options: %w", err)
 			}
 			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
@@ -173,13 +173,13 @@ func reportingJSON(ctx context.Context, service *reportingclient.Service, method
 	if body != nil {
 		encoded, err := json.Marshal(body)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("encode reporting request: %w", err)
 		}
 		reader = bytes.NewReader(encoded)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, reader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create reporting request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
@@ -187,12 +187,12 @@ func reportingJSON(ctx context.Context, service *reportingclient.Service, method
 	}
 	res, err := service.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send reporting request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, 16<<20))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read reporting response: %w", err)
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return nil, fmt.Errorf("reporting request failed: %s: %s", res.Status, strings.TrimSpace(string(responseBody)))

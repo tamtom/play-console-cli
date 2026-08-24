@@ -156,7 +156,7 @@ var catalog = []Capability{
 	},
 	{
 		ID: "app.checks_repo_scans", Intent: "Generate and inspect Checks repository scans", Command: "gplay checks repo-scans", Status: StatusOfficial,
-		Provider: "checks-api", APIResource: "accounts.repos.scans, accounts.repos.operations", Stability: "stable", Notes: "Generation sends only the explicitly supplied analysis and SCM metadata JSON.",
+		Provider: "checks-api", APIResource: "accounts.repos.scans, accounts.repos.operations", Stability: "stable", Notes: "Generation requires @file input, local source/secret checks, and an exact redacted upload-manifest hash.",
 	},
 	{
 		ID: "app.play_integrity", Intent: "Decode integrity tokens and manage restricted Device Recall state", Command: "gplay integrity", Status: StatusOfficial,
@@ -172,7 +172,7 @@ var catalog = []Capability{
 	},
 	{
 		ID: "app.enterprise_kms_signing", Intent: "Enroll or rotate enterprise self-hosted Cloud KMS app-signing keys", Command: "gplay app-signing", Status: StatusOfficial,
-		Provider: "android-publisher-api", APIResource: "appsigning.enrollApp, appsigning.rotateAppSigningKey", Stability: "stable", Notes: "Only for enterprise self-hosted Cloud KMS custody; exact package confirmation is required.",
+		Provider: "android-publisher-api", APIResource: "appsigning.enrollApp, appsigning.rotateAppSigningKey", Stability: "stable", Notes: "Only for enterprise self-hosted Cloud KMS custody; apply requires an exact sealed plan and an exclusive no-replay receipt.",
 	},
 	{
 		ID: "app.standard_signing_enrollment", Intent: "Enroll an ordinary app in Google-managed Play App Signing", Command: "gplay bootstrap plan", Status: StatusManual,

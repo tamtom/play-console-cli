@@ -171,6 +171,7 @@ func scrubArgs(args []string) []string {
 		"--client-secret":   true,
 		"--token":           true,
 		"--key":             true,
+		"--json":            true,
 	}
 	out := make([]string, 0, len(args))
 	skipNext := false

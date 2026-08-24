@@ -31,6 +31,7 @@ type (
 type Filesystem interface {
 	ReadFile(path string) ([]byte, error)
 	AtomicWriteFile(path string, data []byte, fileMode, dirMode os.FileMode) error
+	CreateExclusiveFile(path string, data []byte, fileMode, dirMode os.FileMode) error
 }
 
 type systemFilesystem struct{}
@@ -38,6 +39,10 @@ type systemFilesystem struct{}
 func (systemFilesystem) ReadFile(path string) ([]byte, error) { return rootfs.ReadFile(path) }
 func (systemFilesystem) AtomicWriteFile(path string, data []byte, fileMode, dirMode os.FileMode) error {
 	return rootfs.AtomicWriteFile(path, data, fileMode, dirMode)
+}
+
+func (systemFilesystem) CreateExclusiveFile(path string, data []byte, fileMode, dirMode os.FileMode) error {
+	return rootfs.CreateExclusiveFile(path, data, fileMode, dirMode)
 }
 
 // ContextWithFilesystem installs a command-scoped durable file boundary.

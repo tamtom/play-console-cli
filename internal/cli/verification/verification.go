@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
-	"google.golang.org/api/androiddeveloperidstatus/v1"
-	"google.golang.org/api/option"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/developeridclient"
 )
 
 const apiKeyEnv = "GPLAY_ANDROID_DEVELOPER_ID_API_KEY"
@@ -20,12 +19,10 @@ const apiKeyEnv = "GPLAY_ANDROID_DEVELOPER_ID_API_KEY"
 var (
 	fingerprintPattern    = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	packagePattern        = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$`)
-	newDeveloperIDService = func(ctx context.Context, apiKey string) (*androiddeveloperidstatus.Service, error) {
-		return androiddeveloperidstatus.NewService(ctx, option.WithAPIKey(apiKey))
-	}
+	newDeveloperIDService = developeridclient.NewService
 )
 
-func Command() *ffcli.Command {
+func VerificationCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("verification", flag.ExitOnError)
 	return &ffcli.Command{Name: "verification", ShortUsage: "gplay verification <subcommand> [flags]", ShortHelp: "Check official Android developer package-registration status.", FlagSet: fs, UsageFunc: shared.DefaultUsageFunc, Subcommands: []*ffcli.Command{StatusCommand()}, Exec: func(context.Context, []string) error { return flag.ErrHelp }}
 }
@@ -60,9 +57,9 @@ func StatusCommand() *ffcli.Command {
 			}
 			service, err := newDeveloperIDService(ctx, key)
 			if err != nil {
-				return err
+				return fmt.Errorf("create Android Developer ID Status service: %w", err)
 			}
-			call := service.Packages.PackageRegistrationStatus.Check("packages/" + strings.ReplaceAll(packageName, ".", "-") + "/packageRegistrationStatus").Context(ctx)
+			call := service.API.Packages.PackageRegistrationStatus.Check("packages/" + strings.ReplaceAll(packageName, ".", "-") + "/packageRegistrationStatus").Context(ctx)
 			if fingerprintValue != "" {
 				call.CertificateFingerprint(fingerprintValue)
 			}

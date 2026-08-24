@@ -23,8 +23,8 @@ func init() {
 	})
 }
 
-// Command returns the policy-aware capability inventory command.
-func Command() *ffcli.Command {
+// CapabilitiesCommand returns the policy-aware capability inventory command.
+func CapabilitiesCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("capabilities", flag.ExitOnError)
 	status := fs.String("status", "", "Filter by status: official, manual, unsupported")
 	provider := fs.String("provider", "", "Filter by provider")

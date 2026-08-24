@@ -27,8 +27,8 @@ func init() {
 	})
 }
 
-// Command returns the offline initial-app bootstrap command group.
-func Command() *ffcli.Command {
+// BootstrapCommand returns the offline initial-app bootstrap command group.
+func BootstrapCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("bootstrap", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "bootstrap",

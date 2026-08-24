@@ -51,7 +51,7 @@ func TestValidate_RootRejectsConflictingArtifactFlags(t *testing.T) {
 }
 
 func TestValidateOfflineAppContentNeedsNoPackageOrAuthentication(t *testing.T) {
-	input := `{"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete","category":"APPLICATION","initialCountries":["US"]}`
+	input := `{"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete","category":"APPLICATION","initialCountries":["US"],"policyDeclarationsReviewed":true,"declarations":{"financial-features":"not-applicable","health":"not-applicable","news":"not-applicable"},"sensitivePermissionsReviewed":true}`
 	stdout, stderr, err := runCommand(
 		t,
 		"validate", "--offline", "--app-content", input,

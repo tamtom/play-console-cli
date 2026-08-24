@@ -80,6 +80,18 @@ func NewService(ctx context.Context) (*Service, error) {
 	return &Service{API: api, Cfg: cfg}, nil
 }
 
+// NewServiceWithClient creates a Checks service on a caller-provided transport.
+func NewServiceWithClient(ctx context.Context, client *http.Client, basePath string) (*Service, error) {
+	api, err := checks.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, fmt.Errorf("create Checks service: %w", err)
+	}
+	if basePath != "" {
+		api.BasePath = basePath
+	}
+	return &Service{API: api, Cfg: &config.Config{}}, nil
+}
+
 // ResolveAccount returns the Checks account ID from flag, env, or config.
 func ResolveAccount(flagValue string, cfg *config.Config) string {
 	if v := strings.TrimSpace(flagValue); v != "" {

@@ -33,7 +33,7 @@ This command is fully offline. It does not authenticate, contact Google, or
 claim that Console-only state has been read.
 
 Example JSON:
-  {"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete"}`,
+  {"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete","policyDeclarationsReviewed":true,"declarations":{"financial-features":"not-applicable","health":"not-applicable","news":"not-applicable"},"sensitivePermissionsReviewed":true}`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {

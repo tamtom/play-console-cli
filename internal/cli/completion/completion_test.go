@@ -190,7 +190,7 @@ func TestCompletions_IncludePolicySafeCommands(t *testing.T) {
 func TestCompletions_IncludeNewOfficialAPINamespaces(t *testing.T) {
 	for name, script := range map[string]string{"bash": bashCompletion, "zsh": zshCompletion, "fish": fishCompletion, "powershell": powershellCompletion} {
 		t.Run(name, func(t *testing.T) {
-			for _, command := range []string{"app-signing", "app-stores", "integrity", "verification"} {
+			for _, command := range []string{"app-signing", "plan-enroll", "plan-rotation", "apply", "app-stores", "integrity", "verification"} {
 				if !strings.Contains(script, command) {
 					t.Errorf("completion missing %q", command)
 				}

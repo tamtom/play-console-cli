@@ -23,8 +23,9 @@
 - [apps](#apps)
 - [apps list](#apps-list)
 - [app-signing](#app-signing)
-- [app-signing enroll](#app-signing-enroll)
-- [app-signing rotate-key](#app-signing-rotate-key)
+- [app-signing plan-enroll](#app-signing-plan-enroll)
+- [app-signing plan-rotation](#app-signing-plan-rotation)
+- [app-signing apply](#app-signing-apply)
 - [app-stores](#app-stores)
 - [app-stores create-app](#app-stores-create-app)
 - [app-stores update-app](#app-stores-update-app)
@@ -742,65 +743,85 @@ gplay apps list [flags]
 
 ## gplay app-signing
 
-Manage enterprise self-hosted Cloud KMS Play App Signing.
+Plan and apply enterprise self-hosted Cloud KMS Play App Signing operations.
 
 ```
-gplay app-signing <subcommand> [flags]
+gplay app-signing <plan-enroll|plan-rotation|apply> [flags]
 ```
-
-Manage the official Android Publisher self-hosted Cloud KMS signing APIs.
 
 These commands are only for enterprise organizations required to retain key
 custody in Google Cloud KMS. They do not automate ordinary Google-managed Play
 App Signing enrollment or legal agreements.
 
+Planning is offline. Apply requires the exact SHA-256 plan ID and writes a
+sealed receipt before the irreversible request. Because Google exposes no
+readback endpoint for these operations, an ambiguous receipt is never replayed.
+
 ---
 
-## gplay app-signing enroll
+## gplay app-signing plan-enroll
 
-Enroll an app with an enterprise self-hosted Cloud KMS key.
+Create a sealed enterprise Cloud KMS enrollment plan offline.
 
 ```
-gplay app-signing enroll --package <pkg> --confirm-package <pkg> --json @request.json --enterprise-self-hosted-kms --confirm
+gplay app-signing plan-enroll --package <pkg> --json @request.json --plan-file <path> --enterprise-self-hosted-kms
 ```
-
-Enroll an enterprise app using a self-hosted Cloud KMS key.
 
 Existing-app JSON example: {"enrollExistingApp":{"cloudKmsKey":{"cryptoKeyVersionResource":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1"}}}
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--confirm` | Confirm enterprise Cloud KMS signing enrollment | `false` |
-| `--confirm-package` | Repeat the exact package name being enrolled or rotated | `` |
 | `--enterprise-self-hosted-kms` | Acknowledge this app uses the enterprise self-hosted Cloud KMS program | `false` |
 | `--json` | Official API request JSON (or @file) | `` |
-| `--output` | Output format: json (default), table, markdown | `json` |
+| `--output` | Output format: json, table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
+| `--plan-file` | Path for the sealed operation plan | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 
-## gplay app-signing rotate-key
+## gplay app-signing plan-rotation
 
-Rotate an enterprise self-hosted Cloud KMS signing key.
+Create a sealed enterprise Cloud KMS key-rotation plan offline.
 
 ```
-gplay app-signing rotate-key --package <pkg> --confirm-package <pkg> --json @request.json --enterprise-self-hosted-kms --confirm
+gplay app-signing plan-rotation --package <pkg> --json @request.json --plan-file <path> --enterprise-self-hosted-kms
 ```
-
-Rotate an enterprise self-hosted Cloud KMS app-signing key.
 
 JSON example: {"keyRotationReason":"ROUTINE_KEY_UPGRADE","rotatedCloudKmsKey":{"cloudKmsKeyAndCert":{"cloudKmsKey":{"cryptoKeyVersionResource":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/2"},"pemCertificate":"BASE64_PEM"},"signingCertificateLineage":"BASE64_LINEAGE"}}
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--confirm` | Confirm irreversible enterprise Cloud KMS key rotation | `false` |
-| `--confirm-package` | Repeat the exact package name being enrolled or rotated | `` |
 | `--enterprise-self-hosted-kms` | Acknowledge this app uses the enterprise self-hosted Cloud KMS program | `false` |
 | `--json` | Official API request JSON (or @file) | `` |
-| `--output` | Output format: json (default), table, markdown | `json` |
+| `--output` | Output format: json, table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
+| `--plan-file` | Path for the sealed operation plan | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay app-signing apply
+
+Apply an exact sealed enterprise App Signing plan once.
+
+```
+gplay app-signing apply --plan-file <path> --receipt-file <path> --confirm-plan <sha256> --enterprise-self-hosted-kms
+```
+
+A sealed in-progress receipt is written before the irreversible request. If
+the transport result is ambiguous, the receipt blocks automatic replay because
+Google publishes no App Signing readback endpoint. Resolve that state with
+Google support or Play Console before creating another plan.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm-plan` | Exact SHA-256 plan ID to authorize | `` |
+| `--enterprise-self-hosted-kms` | Acknowledge this app uses the enterprise self-hosted Cloud KMS program | `false` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--plan-file` | Path to the sealed operation plan | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--receipt-file` | Path for the sealed execution receipt | `` |
 
 ---
 
@@ -1979,13 +2000,20 @@ gplay checks repo-scans generate --account <id> --repo <id> --json @scan.json --
 
 Generate a repository scan from data produced by a local Checks-compatible analyzer.
 
-Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":".","cliAnalysis":{},"scmMetadata":{}}
+Only the supplied JSON is sent. Source snippets are checked for binary content
+and credential-shaped data first. The request must use @file so source never
+enters process arguments or audit logs. Run with global --dry-run to print the
+redacted upload manifest and its confirmation hash without authentication.
+
+Example: {"cliVersion":"1.0.0","localScanPath":".","cliAnalysis":{},"scmMetadata":{}}
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--account` | Checks account ID | `` |
 | `--confirm` | Confirm upload of the supplied analysis and repository metadata | `false` |
+| `--confirm-manifest` | Exact upload-manifest SHA-256 from a --dry-run | `` |
 | `--json` | GenerateScanRequest JSON containing the explicit CLI analysis and SCM metadata (or @file) | `` |
+| `--manifest-file` | Optional path for the redacted upload manifest | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--repo` | Checks repository ID or resource name | `` |
@@ -3960,7 +3988,7 @@ This command is fully offline. It does not authenticate, contact Google, or
 claim that Console-only state has been read.
 
 Example JSON:
-  {"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete"}
+  {"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete","policyDeclarationsReviewed":true,"declarations":{"financial-features":"not-applicable","health":"not-applicable","news":"not-applicable"},"sensitivePermissionsReviewed":true}
 
 | Flag | Description | Default |
 |------|-------------|---------|

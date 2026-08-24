@@ -36,8 +36,13 @@ normal invocation materializes only the selected root command family.
 - `gplay app-stores` is only for organizations registered in Google's
   third-party app-store program. It is not a normal Play publishing namespace.
 - `gplay app-signing` is only for enterprise self-hosted Google Cloud KMS key
-  custody. Commands require an exact `--confirm-package` match. Ordinary
-  Google-managed signing enrollment remains a manual Console workflow.
+  custody. Planning is offline; apply requires the exact content-addressed plan
+  hash, writes a sealed in-progress receipt before POST, and will not replay an
+  ambiguous result. Ordinary Google-managed signing enrollment remains a
+  manual Console workflow.
+- `gplay checks repo-scans generate` rejects credential-shaped, binary,
+  invalid-UTF-8, and oversized source excerpts locally. A dry run emits only a
+  redacted upload manifest; the real request requires its exact SHA-256 hash.
 - `gplay integrity device-recall-write` is restricted to security, fraud, and
   abuse prevention and requires an explicit acknowledgement.
 - Play Games global reset commands delete tester progress across every player

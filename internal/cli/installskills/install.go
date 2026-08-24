@@ -83,8 +83,8 @@ type skillInstallResult struct {
 	Skills           []skillInstallItem `json:"skills"`
 }
 
-// Command returns the top-level install-skills command.
-func Command() *ffcli.Command {
+// InstallSkillsCommand returns the top-level install-skills command.
+func InstallSkillsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("install-skills", flag.ExitOnError)
 	destination := fs.String("dest", "", "Skill destination (default: ~/.agents/skills)")
 	preview := fs.Bool("preview", false, "Show the verified plan without downloading or writing")

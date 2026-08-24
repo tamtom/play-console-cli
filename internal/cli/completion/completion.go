@@ -183,7 +183,7 @@ _gplay_completions() {
     # Subcommands for each main command
     local auth_commands="init login logout status profiles use doctor"
     local bootstrap_commands="plan"
-    local app_signing_commands="enroll rotate-key"
+    local app_signing_commands="plan-enroll plan-rotation apply"
     local app_stores_commands="create-app update-app publish-status upload-apk upload-policy-file upload-image recent-app-view recent-update-events"
     local integrity_commands="decode decode-pc device-recall-write"
     local verification_commands="status"
@@ -410,7 +410,7 @@ _gplay() {
                     _describe -t bootstrap_commands 'bootstrap commands' bootstrap_commands
                     ;;
                 app-signing)
-                    _values 'app-signing commands' 'enroll' 'rotate-key'
+                    _values 'app-signing commands' 'plan-enroll' 'plan-rotation' 'apply'
                     ;;
                 app-stores)
                     _values 'app-stores commands' 'create-app' 'update-app' 'publish-status' 'upload-apk' 'upload-policy-file' 'upload-image' 'recent-app-view' 'recent-update-events'
@@ -574,7 +574,7 @@ complete -c gplay -n '__fish_seen_subcommand_from bootstrap' -l name -d 'App nam
 complete -c gplay -n '__fish_seen_subcommand_from bootstrap' -l aab -d 'Path to first app bundle' -r -F
 
 # New official API namespaces
-complete -c gplay -n '__fish_seen_subcommand_from app-signing' -a 'enroll rotate-key'
+complete -c gplay -n '__fish_seen_subcommand_from app-signing' -a 'plan-enroll plan-rotation apply'
 complete -c gplay -n '__fish_seen_subcommand_from app-stores' -a 'create-app update-app publish-status upload-apk upload-policy-file upload-image recent-app-view recent-update-events'
 complete -c gplay -n '__fish_seen_subcommand_from integrity' -a 'decode decode-pc device-recall-write'
 complete -c gplay -n '__fish_seen_subcommand_from verification' -a status
@@ -629,7 +629,7 @@ Register-ArgumentCompleter -Native -CommandName gplay -ScriptBlock {
         'auth' = @('init', 'login', 'logout', 'status', 'profiles', 'use', 'doctor')
         'capabilities' = @()
         'bootstrap' = @('plan')
-        'app-signing' = @('enroll', 'rotate-key')
+        'app-signing' = @('plan-enroll', 'plan-rotation', 'apply')
         'app-stores' = @('create-app', 'update-app', 'publish-status', 'upload-apk', 'upload-policy-file', 'upload-image', 'recent-app-view', 'recent-update-events')
         'integrity' = @('decode', 'decode-pc', 'device-recall-write')
         'verification' = @('status')

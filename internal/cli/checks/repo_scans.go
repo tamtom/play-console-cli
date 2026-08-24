@@ -52,17 +52,27 @@ func RepoScanGenerateCommand() *ffcli.Command {
 	f := addRepoFlags(fs)
 	jsonArg := fs.String("json", "", "GenerateScanRequest JSON containing the explicit CLI analysis and SCM metadata (or @file)")
 	confirm := fs.Bool("confirm", false, "Confirm upload of the supplied analysis and repository metadata")
+	confirmManifest := fs.String("confirm-manifest", "", "Exact upload-manifest SHA-256 from a --dry-run")
+	manifestFile := fs.String("manifest-file", "", "Optional path for the redacted upload manifest")
 	return &ffcli.Command{
 		Name: "generate", ShortUsage: "gplay checks repo-scans generate --account <id> --repo <id> --json @scan.json --confirm", ShortHelp: "Generate a Checks repository scan from explicit analysis metadata.", FlagSet: fs, UsageFunc: shared.DefaultUsageFunc,
 		LongHelp: `Generate a repository scan from data produced by a local Checks-compatible analyzer.
 
-Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":".","cliAnalysis":{},"scmMetadata":{}}`,
+Only the supplied JSON is sent. Source snippets are checked for binary content
+and credential-shaped data first. The request must use @file so source never
+enters process arguments or audit logs. Run with global --dry-run to print the
+redacted upload manifest and its confirmation hash without authentication.
+
+Example: {"cliVersion":"1.0.0","localScanPath":".","cliAnalysis":{},"scmMetadata":{}}`,
 		Exec: func(ctx context.Context, _ []string) error {
 			if !*confirm {
 				return fmt.Errorf("--confirm is required")
 			}
 			if strings.TrimSpace(*jsonArg) == "" {
 				return fmt.Errorf("--json is required")
+			}
+			if !strings.HasPrefix(strings.TrimSpace(*jsonArg), "@") {
+				return shared.UsageError("--json must use @file so repository source and metadata never enter process arguments")
 			}
 			account, err := f.validate()
 			if err != nil {
@@ -75,6 +85,21 @@ Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":"
 			if strings.TrimSpace(req.CliVersion) == "" || strings.TrimSpace(req.LocalScanPath) == "" || req.CliAnalysis == nil || req.ScmMetadata == nil {
 				return shared.UsageError("--json requires cliVersion, localScanPath, cliAnalysis, and scmMetadata")
 			}
+			manifest, err := buildRepoUploadManifest(account, *f.repo, &req)
+			if err != nil {
+				return err
+			}
+			if shared.IsDryRun(ctx) {
+				return shared.PrintOutputContext(ctx, manifest, *f.output, *f.pretty)
+			}
+			if strings.TrimSpace(*confirmManifest) != manifest.ManifestHash {
+				return fmt.Errorf("--confirm-manifest must exactly match upload manifest %s; run with global --dry-run first", manifest.ManifestHash)
+			}
+			if strings.TrimSpace(*manifestFile) != "" {
+				if err := writeRepoUploadManifest(shared.FilesystemFrom(ctx), *manifestFile, manifest); err != nil {
+					return err
+				}
+			}
 			service, err := checksclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -85,7 +110,7 @@ Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":"
 			if err != nil {
 				return shared.WrapGoogleAPIError("generate Checks repository scan", err)
 			}
-			return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"uploadManifest": manifest, "operation": resp}, *f.output, *f.pretty)
 		},
 	}
 }

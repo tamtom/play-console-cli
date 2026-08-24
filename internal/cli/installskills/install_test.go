@@ -29,7 +29,7 @@ func preserveInstallerDependencies(t *testing.T) {
 
 func runCommand(t *testing.T, ctx context.Context, args ...string) error {
 	t.Helper()
-	command := Command()
+	command := InstallSkillsCommand()
 	if err := command.Parse(args); err != nil {
 		t.Fatalf("parse: %v", err)
 	}

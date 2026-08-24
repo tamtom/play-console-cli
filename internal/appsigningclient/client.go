@@ -19,6 +19,18 @@ type Client struct {
 	baseURL    string
 }
 
+// HTTPStatusError is an explicit non-2xx response. Callers can distinguish it
+// from transport failures whose mutation result is ambiguous.
+type HTTPStatusError struct {
+	StatusCode int
+	Status     string
+	Body       string
+}
+
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("Android Publisher request failed: %s: %s", e.Status, e.Body)
+}
+
 func New(httpClient *http.Client, baseURL string) *Client {
 	return &Client{httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/") + "/"}
 }
@@ -75,7 +87,7 @@ func (c *Client) EnrollApp(ctx context.Context, packageName string, request *Enr
 	var response EnrollAppResponse
 	path := "androidpublisher/v3/applications/" + url.PathEscape(packageName) + "/appSigning:enrollApp"
 	if err := c.post(ctx, path, request, &response); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("enroll app signing: %w", err)
 	}
 	return &response, nil
 }
@@ -84,7 +96,7 @@ func (c *Client) RotateAppSigningKey(ctx context.Context, packageName string, re
 	var response RotateAppSigningKeyResponse
 	path := "androidpublisher/v3/applications/" + url.PathEscape(packageName) + "/appSigning:rotateAppSigningKey"
 	if err := c.post(ctx, path, request, &response); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rotate app signing key: %w", err)
 	}
 	return &response, nil
 }
@@ -96,21 +108,21 @@ func (c *Client) post(ctx context.Context, path string, request, response any) e
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
 	if err != nil {
-		return err
+		return fmt.Errorf("create Android Publisher request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("send Android Publisher request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	responseBody, err := io.ReadAll(io.LimitReader(res.Body, 4<<20))
 	if err != nil {
-		return err
+		return fmt.Errorf("read Android Publisher response: %w", err)
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("androidpublisher request failed: %s: %s", res.Status, strings.TrimSpace(string(responseBody)))
+		return &HTTPStatusError{StatusCode: res.StatusCode, Status: res.Status, Body: strings.TrimSpace(string(responseBody))}
 	}
 	if len(bytes.TrimSpace(responseBody)) == 0 {
 		return nil

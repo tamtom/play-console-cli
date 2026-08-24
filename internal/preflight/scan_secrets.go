@@ -8,6 +8,21 @@ import (
 	"strings"
 )
 
+// DetectCredentialPatterns returns credential-shaped pattern IDs found in a
+// caller-supplied text payload. Informational URL patterns are excluded so the
+// result can be used as a fail-closed source-upload gate.
+func DetectCredentialPatterns(data []byte) []string {
+	var found []string
+	for _, pattern := range secretPatterns {
+		if pattern.Severity == SeverityInfo || !pattern.Re.Match(data) {
+			continue
+		}
+		found = append(found, pattern.ID)
+	}
+	sort.Strings(found)
+	return found
+}
+
 // secretPattern is one credential-shaped signature.
 type secretPattern struct {
 	ID       string

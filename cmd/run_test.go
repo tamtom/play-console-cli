@@ -150,3 +150,15 @@ func TestConstructRootCommandForArgs_MaterializesOnlySelectedFamily(t *testing.T
 		t.Fatal("selected rollout command is missing")
 	}
 }
+
+func TestScrubArgsRedactsJSONPayloadsAndFiles(t *testing.T) {
+	for _, args := range [][]string{
+		{"checks", "repo-scans", "generate", "--json", `{"source":"private"}`},
+		{"checks", "repo-scans", "generate", "--json=@/private/scan.json"},
+	} {
+		scrubbed := strings.Join(scrubArgs(args), " ")
+		if strings.Contains(scrubbed, "private") || !strings.Contains(scrubbed, "<redacted>") {
+			t.Fatalf("scrubbed args disclose JSON input: %q", scrubbed)
+		}
+	}
+}
