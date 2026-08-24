@@ -3,7 +3,10 @@ package playclient
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -51,7 +54,11 @@ func NewService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	if base := sandboxBaseURL(); base != "" {
+	base, err := sandboxBaseURL()
+	if err != nil {
+		return nil, err
+	}
+	if base != "" {
 		api.BasePath = base
 	}
 	return &Service{API: api, Cfg: cfg}, nil
@@ -60,15 +67,35 @@ func NewService(ctx context.Context) (*Service, error) {
 // sandboxBaseURL returns the GPLAY_API_BASE_URL override, normalized to end
 // with a slash. The override points the client at a local sandbox server for
 // hermetic black-box tests. It is not a supported production setting.
-func sandboxBaseURL() string {
+//
+// The client attaches the OAuth bearer token to every request it sends, so a
+// non-loopback host would receive a live Google access token. Only loopback
+// hosts are accepted. An invalid value is an error rather than a silent
+// fallback: a hermetic test must fail instead of reaching the real API.
+func sandboxBaseURL() (string, error) {
 	base := strings.TrimSpace(os.Getenv("GPLAY_API_BASE_URL"))
 	if base == "" {
-		return ""
+		return "", nil
+	}
+	parsed, err := url.Parse(base)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return "", fmt.Errorf("GPLAY_API_BASE_URL must be an http or https URL on a loopback host, got %q", base)
+	}
+	if !isLoopbackHost(parsed.Hostname()) {
+		return "", fmt.Errorf("GPLAY_API_BASE_URL must point at a loopback host; %q would receive the OAuth access token", base)
 	}
 	if !strings.HasSuffix(base, "/") {
 		base += "/"
 	}
-	return base
+	return base, nil
+}
+
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // NewAuthenticatedClient returns an HTTP client authenticated with the

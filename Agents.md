@@ -124,6 +124,7 @@ gplay auth doctor --fix --confirm
 | `GPLAY_MAX_RETRIES` | Max retries for failed requests (default: 3) |
 | `GPLAY_RETRY_DELAY` | Base delay between retries (default: `1s`) |
 | `GPLAY_DEFAULT_OUTPUT` | Default output format (`json`, `table`, `markdown`) |
+| `GPLAY_API_BASE_URL` | Test only. Points the API client at a local sandbox server. Loopback hosts only; any other host is refused because the client attaches the OAuth token to the request. |
 
 ## Config File
 
