@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -74,5 +75,30 @@ func TestIsVersionOnlyInvocation(t *testing.T) {
 				t.Errorf("isVersionOnlyInvocation(%v) = %v, want %v", tt.args, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestConstructRootCommandForArgs_MaterializesOnlySelectedFamily(t *testing.T) {
+	root, _ := constructRootCommandForArgs("test", []string{"--profile", "ci", "rollout", "update", "--help"})
+
+	var selectedFound bool
+	for _, command := range root.Subcommands {
+		switch command.Name {
+		case "rollout":
+			selectedFound = true
+			if len(command.Subcommands) == 0 {
+				t.Fatal("selected rollout command was not materialized")
+			}
+		case "apps":
+			if len(command.Subcommands) != 0 || command.FlagSet != nil {
+				t.Fatal("unselected apps command was unexpectedly materialized")
+			}
+			if !strings.Contains(command.ShortHelp, "service account") {
+				t.Fatalf("unselected metadata help was lost: %q", command.ShortHelp)
+			}
+		}
+	}
+	if !selectedFound {
+		t.Fatal("selected rollout command is missing")
 	}
 }

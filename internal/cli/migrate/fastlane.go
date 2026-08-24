@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +12,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // Known Fastlane text files that map to store listing fields.
@@ -274,26 +274,14 @@ func runFastlaneMigration(source, outputDir string, dryRun bool, localeFilter ma
 
 // copyFile copies a single file, creating parent directories as needed.
 func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return out.Close()
+	_, err = rootfs.AtomicWriteFileFrom(dst, in, 0o644, 0o755)
+	return err
 }
 
 // isImageFile checks if a filename has a common image extension.

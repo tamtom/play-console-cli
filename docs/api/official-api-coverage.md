@@ -20,6 +20,17 @@ official discovery documents. A credential-free scheduled workflow runs the
 same check weekly. After reviewing a legitimate API change and updating the
 implementation/tests, run `make update-api-manifest`.
 
+`gplay schema` embeds the complete reviewed surface: all 218 endpoints and 566
+request/response type definitions. It can inspect method IDs, HTTP paths,
+parameters, OAuth scopes, media upload paths, and Google's unmodified nested
+type definitions without credentials or network access. `make
+check-api-schema` verifies that this index and the reviewed manifest contain
+the same revisions and method IDs.
+
+`gplay search` uses the lazy root command catalog to search command paths,
+examples, flags, capability intents, providers, and API resources locally. A
+normal invocation materializes only the selected root command family.
+
 ## Specialized namespaces
 
 - `gplay app-stores` is only for organizations registered in Google's

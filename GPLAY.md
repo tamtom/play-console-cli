@@ -28,6 +28,8 @@
 - [app-stores recent-app-view](#app-stores-recent-app-view)
 - [app-stores recent-update-events](#app-stores-recent-update-events)
 - [capabilities](#capabilities)
+- [search](#search)
+- [schema](#schema)
 - [bootstrap](#bootstrap)
 - [bootstrap plan](#bootstrap-plan)
 - [audit](#audit)
@@ -173,6 +175,9 @@
 - [vitals metric-sets get](#vitals-metric-sets-get)
 - [vitals metric-sets query](#vitals-metric-sets-query)
 - [vitals release-filters](#vitals-release-filters)
+- [insights](#insights)
+- [insights weekly](#insights-weekly)
+- [insights daily](#insights-daily)
 - [iap](#iap)
 - [iap list](#iap-list)
 - [iap get](#iap-get)
@@ -854,6 +859,70 @@ Examples:
 | `--provider` | Filter by provider | `` |
 | `--query` | Filter by ID, intent, command, provider, or notes | `` |
 | `--status` | Filter by status: official, manual, unsupported | `` |
+
+---
+
+## gplay search
+
+Search commands, examples, flags, capabilities, and canonical intents.
+
+```
+gplay search [flags] <query>
+```
+
+Search the complete gplay command surface locally and deterministically.
+
+The index contains command paths, summaries, usages, examples, flags, official
+API resources, and policy-aware capability intents. Search never authenticates,
+contacts Google, reads credentials, or changes an account.
+
+Examples:
+  gplay search "initial app record"
+  gplay search "staged rollout fraction"
+  gplay search --limit 5 "reply to reviews"
+  gplay search --output table "upload bundle"
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--limit` | Maximum number of results | `10` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay schema
+
+Inspect embedded official Google Play API endpoint and type schemas.
+
+```
+gplay schema [flags] [query]
+```
+
+Inspect the reviewed official Google Play discovery documents locally.
+
+Endpoint results include the API and method ID, HTTP transport, path/query
+parameters, request and response types, OAuth scopes, and media-upload paths.
+Type results preserve Google's complete discovery definition, including nested
+properties, refs, enums, formats, descriptions, and constraints.
+
+This command never authenticates, contacts Google, or changes an account.
+
+Examples:
+  gplay schema androidpublisher.orders.batchget
+  gplay schema --api playintegrity --method POST decodeIntegrityToken
+  gplay schema --api androidpublisher --type OrdersReviewRefundRequest
+  gplay schema --api checks --list --output table
+  gplay schema --api playdeveloperreporting --list-types
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--api` | Filter by API name | `` |
+| `--list` | List all matching endpoints without a query | `false` |
+| `--list-types` | List all matching discovery types | `false` |
+| `--method` | Filter endpoints by HTTP method | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--type` | Inspect a request or response type by name | `` |
 
 ---
 
@@ -3963,6 +4032,84 @@ gplay vitals release-filters --package <pkg>
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay insights
+
+Compare trends from official Google Play report exports.
+
+```
+gplay insights <subcommand> [flags]
+```
+
+Compare Google Play trends from official CSV report exports.
+
+Insights are local and deterministic: they use no credentials, make no network
+requests, and never modify a Play account. Download source files with
+"gplay reports stats download" or Play Console's documented report export.
+
+---
+
+## gplay insights weekly
+
+Compare weekly trends with the previous week using official local CSV exports.
+
+```
+gplay insights weekly --package <name> --week <Monday> [report files]
+```
+
+Compare a Monday-to-Sunday window with the immediately preceding week.
+
+Inputs are the official Google Play monthly CSV exports. Supply at least one
+file. Each file must represent one breakdown/dimension so totals are not double
+counted. UTF-8 and Google Play's UTF-16 exports are supported.
+
+This command is entirely local: it uses no credentials, contacts no API, and
+does not change Google Play. Missing sources or columns are reported as
+unavailable instead of inventing values.
+
+Examples:
+  gplay insights weekly --package com.example.app --week 2026-08-17 --installs-file ./installs_com.example.app_202608_country.csv
+  gplay insights weekly --package com.example.app --week 2026-08-17 --installs-file ./installs.csv --crashes-file ./crashes.csv --store-performance-file ./store.csv --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--crashes-file` | Official crashes statistics CSV for one breakdown | `` |
+| `--installs-file` | Official installs statistics CSV for one breakdown | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--store-performance-file` | Official store performance CSV for one breakdown | `` |
+| `--week` | Monday starting the comparison week (YYYY-MM-DD) | `` |
+
+---
+
+## gplay insights daily
+
+Compare one day with the preceding day using official local CSV exports.
+
+```
+gplay insights daily --package <name> --date <YYYY-MM-DD> [report files]
+```
+
+Compare one UTC report date with the preceding date.
+
+The same official, local-only input and unavailable-metric guarantees as
+"insights weekly" apply. Supply at least one report file.
+
+Example:
+  gplay insights daily --package com.example.app --date 2026-08-24 --crashes-file ./crashes.csv --output table
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--crashes-file` | Official crashes statistics CSV for one breakdown | `` |
+| `--date` | UTC report date to compare (YYYY-MM-DD) | `` |
+| `--installs-file` | Official installs statistics CSV for one breakdown | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--store-performance-file` | Official store performance CSV for one breakdown | `` |
 
 ---
 
@@ -8162,7 +8309,12 @@ Example workflow file (.gplay/workflows/release.json):
       ],
       "steps": [
         {"name": "preflight", "workflow": "preflight", "with": {"PACKAGE": "{{ .PACKAGE }}", "TRACK": "{{ .TRACK }}", "BUNDLE": "{{ .BUNDLE }}"}},
-        {"name": "release", "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}"}
+        {
+          "name": "release",
+          "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}",
+          "retry": {"max_attempts": 3, "delay": "10s"},
+          "timeout": "2m"
+        }
       ]
     }
   }
@@ -8175,6 +8327,9 @@ Security note:
 Tips:
   Use gplay workflow validate before running a new workflow file.
   Preview the plan with gplay workflow run --dry-run release --workflow publish.
+  Configure retry only when a command is explicitly safe to repeat.
+  max_attempts includes the initial execution; timeout applies per attempt.
+  A timeout without retry is treated as ambiguous and cannot be resumed.
 
 Examples:
   gplay workflow list

@@ -125,6 +125,9 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 
 - **Current official API coverage** — the reviewed manifest tracks 218 methods across eight Play-specific discovery APIs, plus the two Cloud Storage methods needed for reports. All 145 current Android Publisher methods have a CLI path; specialized third-party-store and enterprise-KMS commands are explicitly scope-gated.
 - **Explicit safety boundary** — `gplay capabilities` distinguishes official, manual, and unsupported workflows; `gplay bootstrap plan` prepares initial app setup without logging in, contacting Google, or changing an account.
+- **Agent-native discovery** — `gplay search` ranks commands, examples, flags, and canonical intents locally; `gplay schema` embeds all 218 reviewed endpoints and 566 official request/response definitions with no credentials or network access.
+- **Resilient one-shot workflows** — workflow steps support opt-in bounded retries and per-attempt timeouts, persist structured attempt diagnostics, fingerprint definitions, and refuse ambiguous or changed-definition resumes.
+- **Local weekly/daily insights** — compare installs, uninstalls, crashes, ANRs, and store-listing conversion from official Google Play CSV exports; UTF-8/UTF-16 are supported and missing metrics remain explicitly unavailable.
 - **Managed Google Play** — publish private (custom) apps to specific organizations with `gplay custom-apps create`, straight from the terminal.
 - **Complete releases & rollouts** — upload, track assignment, staged rollout with pause/resume/percentage control, promote between tracks, release notes from git history.
 - **Store listings, screenshots & localization** — manage listing text, images, and metadata across every locale; sync with a local directory or Fastlane.

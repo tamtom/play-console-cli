@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
@@ -22,14 +23,32 @@ func RootCommand(version string) *ffcli.Command {
 func constructRootCommand(version string) (*ffcli.Command, *cliruntime.Runtime) {
 	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
 	rt := cliruntime.NewRoot(rootFS)
+	catalog := registry.NewCatalog(version, rt)
+	return newRootCommand(rootFS, rt, catalog.All())
+}
 
+// constructRootCommandForArgs builds complete metadata for root help while
+// materializing only the selected root family for normal execution.
+func constructRootCommandForArgs(version string, args []string) (*ffcli.Command, *cliruntime.Runtime) {
+	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
+	rt := cliruntime.NewRoot(rootFS)
+	catalog := registry.NewCatalog(version, rt)
+	commands := catalog.MetadataCommands()
+	if selected := selectedRootCommand(args); selected != "" {
+		commands = catalog.CommandsFor(selected)
+	}
+	return newRootCommand(rootFS, rt, commands)
+}
+
+func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []*ffcli.Command) (*ffcli.Command, *cliruntime.Runtime) {
 	var root *ffcli.Command
 	root = &ffcli.Command{
 		Name:        "gplay",
 		ShortUsage:  "gplay <command> [flags]",
 		ShortHelp:   "A CLI for Google Play Console.",
 		FlagSet:     rootFS,
-		Subcommands: registry.SubcommandsWithRuntime(version, rt),
+		UsageFunc:   RootUsageFunc,
+		Subcommands: subcommands,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return flag.ErrHelp
@@ -44,4 +63,33 @@ func constructRootCommand(version string) (*ffcli.Command, *cliruntime.Runtime) 
 	}
 
 	return root, rt
+}
+
+func selectedRootCommand(args []string) string {
+	valueFlags := map[string]bool{
+		"profile":     true,
+		"report":      true,
+		"report-file": true,
+	}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			if i+1 < len(args) {
+				return strings.TrimSpace(args[i+1])
+			}
+			return ""
+		}
+		if !strings.HasPrefix(arg, "-") || arg == "-" {
+			return strings.TrimSpace(arg)
+		}
+
+		name := strings.TrimLeft(arg, "-")
+		if _, _, found := strings.Cut(name, "="); found {
+			continue
+		}
+		if valueFlags[name] && i+1 < len(args) {
+			i++
+		}
+	}
+	return ""
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 var (
@@ -765,14 +766,6 @@ func defaultDownloadRemote(ctx context.Context, rawURL, targetPath string) error
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("download failed: %s", resp.Status)
 	}
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-		return err
-	}
-	file, err := os.Create(targetPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = io.Copy(file, resp.Body)
+	_, err = rootfs.AtomicWriteFileFrom(targetPath, resp.Body, 0o644, 0o755)
 	return err
 }

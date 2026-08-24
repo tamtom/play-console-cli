@@ -324,7 +324,8 @@ help:
 	@echo "  check-docs      Verify GPLAY.md is up to date"
 	@echo "  update-api-spec Update Google Play API discovery document"
 	@echo "  check-api-drift Check reviewed API manifest against official discovery"
-	@echo "  update-api-manifest Refresh reviewed official API manifest"
+	@echo "  update-api-manifest Refresh reviewed manifest and embedded schema index"
+	@echo "  check-api-schema Verify the embedded schema index"
 	@echo "  help            Show this help"
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC)"
@@ -340,11 +341,19 @@ update-api-spec:
 		python3 -m json.tool > docs/api/discovery.json
 	@echo "$(BLUE)Generating endpoints index...$(NC)"
 	@python3 scripts/gen-endpoints.py
+	@python3 scripts/check-api-drift.py --update
+	@python3 scripts/gen-schema-index.py --update
 	@echo "$(GREEN)✓ API spec updated. Review changes with: git diff docs/api/$(NC)"
 
-.PHONY: check-api-drift update-api-manifest
+.PHONY: check-api-drift update-api-manifest check-api-schema
 check-api-drift:
+	@python3 scripts/gen-schema-index.py --check
 	@python3 scripts/check-api-drift.py
 
 update-api-manifest:
 	@python3 scripts/check-api-drift.py --update
+	@python3 scripts/gen-schema-index.py --update
+	@python3 scripts/gen-schema-index.py --check
+
+check-api-schema:
+	@python3 scripts/gen-schema-index.py --check

@@ -38,8 +38,23 @@ type Service struct {
 	Cfg *config.Config
 }
 
+type (
+	ServiceFactory           func(context.Context) (*Service, error)
+	serviceFactoryContextKey struct{}
+)
+
+func ContextWithServiceFactory(ctx context.Context, factory ServiceFactory) context.Context {
+	if factory == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, serviceFactoryContextKey{}, factory)
+}
+
 // NewService creates an authenticated Checks API service.
 func NewService(ctx context.Context) (*Service, error) {
+	if factory, ok := ctx.Value(serviceFactoryContextKey{}).(ServiceFactory); ok && factory != nil {
+		return factory(ctx)
+	}
 	cfg, err := config.Load()
 	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		return nil, shared.NewActionableError(

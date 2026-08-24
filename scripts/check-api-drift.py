@@ -38,9 +38,12 @@ def method_ids(document):
 
 
 def fetch(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "gplay-api-drift-check/1"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+    documents = []
+    for _ in range(3):
+        request = urllib.request.Request(url, headers={"User-Agent": "gplay-api-discovery/1"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            documents.append(json.load(response))
+    return max(documents, key=lambda item: item.get("revision", ""))
 
 
 def current_manifest():

@@ -53,7 +53,12 @@ Example workflow file (.gplay/workflows/release.json):
       ],
       "steps": [
         {"name": "preflight", "workflow": "preflight", "with": {"PACKAGE": "{{ .PACKAGE }}", "TRACK": "{{ .TRACK }}", "BUNDLE": "{{ .BUNDLE }}"}},
-        {"name": "release", "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}"}
+        {
+          "name": "release",
+          "run": "gplay publish track --package {{ .PACKAGE }} --track {{ .TRACK }} --bundle {{ .BUNDLE }}",
+          "retry": {"max_attempts": 3, "delay": "10s"},
+          "timeout": "2m"
+        }
       ]
     }
   }
@@ -66,6 +71,9 @@ Security note:
 Tips:
   Use gplay workflow validate before running a new workflow file.
   Preview the plan with gplay workflow run --dry-run release --workflow publish.
+  Configure retry only when a command is explicitly safe to repeat.
+  max_attempts includes the initial execution; timeout applies per attempt.
+  A timeout without retry is treated as ambiguous and cannot be resumed.
 
 Examples:
   gplay workflow list

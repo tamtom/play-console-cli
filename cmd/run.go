@@ -24,8 +24,8 @@ func Run(args []string, versionInfo string) int {
 		return ExitSuccess
 	}
 
-	// Build command tree
-	root, rt := constructRootCommand(versionInfo)
+	// Build root metadata and materialize only the selected command family.
+	root, rt := constructRootCommandForArgs(versionInfo, args)
 
 	// Signal handling for graceful Ctrl+C
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

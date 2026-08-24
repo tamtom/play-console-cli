@@ -14,6 +14,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // FastLane metadata file names
@@ -134,51 +135,15 @@ func ExportListingsCommand() *ffcli.Command {
 				return fmt.Errorf("failed to list listings: %w", err)
 			}
 
-			// Create output directory
-			if err := os.MkdirAll(*outputDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+			outputRoot, err := rootfs.OpenOrCreate(*outputDir, 0o755)
+			if err != nil {
+				return fmt.Errorf("failed to open output directory: %w", err)
 			}
-
-			// Export each listing
+			defer func() { _ = outputRoot.Close() }()
+			if err := exportListingsToRoot(outputRoot, *format, listingsResp.Listings); err != nil {
+				return err
+			}
 			for _, listing := range listingsResp.Listings {
-				localeDir := filepath.Join(*outputDir, listing.Language)
-				if err := os.MkdirAll(localeDir, 0o755); err != nil {
-					return fmt.Errorf("failed to create locale directory: %w", err)
-				}
-
-				if *format == "json" {
-					// Export as JSON
-					data, err := json.MarshalIndent(listing, "", "  ")
-					if err != nil {
-						return fmt.Errorf("failed to marshal listing: %w", err)
-					}
-					if err := os.WriteFile(filepath.Join(localeDir, "listing.json"), data, 0o644); err != nil {
-						return fmt.Errorf("failed to write listing.json: %w", err)
-					}
-				} else {
-					// Export as FastLane format
-					if listing.Title != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, titleFile), []byte(listing.Title), 0o644); err != nil {
-							return fmt.Errorf("failed to write title: %w", err)
-						}
-					}
-					if listing.ShortDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, shortDescFile), []byte(listing.ShortDescription), 0o644); err != nil {
-							return fmt.Errorf("failed to write short description: %w", err)
-						}
-					}
-					if listing.FullDescription != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, fullDescFile), []byte(listing.FullDescription), 0o644); err != nil {
-							return fmt.Errorf("failed to write full description: %w", err)
-						}
-					}
-					if listing.Video != "" {
-						if err := os.WriteFile(filepath.Join(localeDir, videoFile), []byte(listing.Video), 0o644); err != nil {
-							return fmt.Errorf("failed to write video: %w", err)
-						}
-					}
-				}
-
 				fmt.Fprintf(os.Stderr, "Exported: %s\n", listing.Language)
 			}
 
@@ -190,6 +155,43 @@ func ExportListingsCommand() *ffcli.Command {
 			return nil
 		},
 	}
+}
+
+func exportListingsToRoot(root *rootfs.Root, format string, listings []*androidpublisher.Listing) error {
+	for _, listing := range listings {
+		locale := strings.TrimSpace(listing.Language)
+		if err := root.MkdirAll(locale, 0o755); err != nil {
+			return fmt.Errorf("failed to create locale directory %q: %w", locale, err)
+		}
+		if format == "json" {
+			data, err := json.MarshalIndent(listing, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal listing: %w", err)
+			}
+			if err := root.AtomicWrite(filepath.Join(locale, "listing.json"), data, 0o644); err != nil {
+				return fmt.Errorf("failed to write listing.json: %w", err)
+			}
+			continue
+		}
+		fields := []struct {
+			name  string
+			value string
+		}{
+			{name: titleFile, value: listing.Title},
+			{name: shortDescFile, value: listing.ShortDescription},
+			{name: fullDescFile, value: listing.FullDescription},
+			{name: videoFile, value: listing.Video},
+		}
+		for _, field := range fields {
+			if field.value == "" {
+				continue
+			}
+			if err := root.AtomicWrite(filepath.Join(locale, field.name), []byte(field.value), 0o644); err != nil {
+				return fmt.Errorf("failed to write %s: %w", field.name, err)
+			}
+		}
+	}
+	return nil
 }
 
 func ImportListingsCommand() *ffcli.Command {
@@ -368,6 +370,11 @@ func ExportImagesCommand() *ffcli.Command {
 				"wearScreenshots",
 			}
 
+			outputRoot, err := rootfs.OpenOrCreate(*outputDir, 0o755)
+			if err != nil {
+				return fmt.Errorf("failed to open output directory: %w", err)
+			}
+			defer func() { _ = outputRoot.Close() }()
 			exported := 0
 			for _, loc := range locales {
 				for _, imageType := range imageTypes {
@@ -384,12 +391,12 @@ func ExportImagesCommand() *ffcli.Command {
 					var targetDir string
 					switch imageType {
 					case "phoneScreenshots", "sevenInchScreenshots", "tenInchScreenshots", "tvScreenshots", "wearScreenshots":
-						targetDir = filepath.Join(*outputDir, loc, imagesDir, imageType)
+						targetDir = filepath.Join(loc, imagesDir, imageType)
 					default:
-						targetDir = filepath.Join(*outputDir, loc, imagesDir)
+						targetDir = filepath.Join(loc, imagesDir)
 					}
 
-					if err := os.MkdirAll(targetDir, 0o755); err != nil {
+					if err := outputRoot.MkdirAll(targetDir, 0o755); err != nil {
 						return fmt.Errorf("failed to create directory: %w", err)
 					}
 
@@ -400,7 +407,7 @@ func ExportImagesCommand() *ffcli.Command {
 					if err != nil {
 						return fmt.Errorf("failed to marshal image metadata: %w", err)
 					}
-					if err := os.WriteFile(metaFile, data, 0o644); err != nil {
+					if err := outputRoot.AtomicWrite(metaFile, data, 0o644); err != nil {
 						return fmt.Errorf("failed to write image metadata: %w", err)
 					}
 

@@ -157,7 +157,7 @@
         "androidpublisher.users.list",
         "androidpublisher.users.patch"
       ],
-      "revision": "20260820",
+      "revision": "20260824",
       "version": "v3"
     },
     "checks": {
@@ -229,7 +229,7 @@
       "methods": [
         "playcustomapp.accounts.customApps.create"
       ],
-      "revision": "20260820",
+      "revision": "20260823",
       "version": "v1"
     },
     "playdeveloperreporting": {
@@ -261,7 +261,7 @@
         "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.get",
         "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.query"
       ],
-      "revision": "20260820",
+      "revision": "20260823",
       "version": "v1beta1"
     },
     "playintegrity": {
@@ -271,7 +271,7 @@
         "playintegrity.decodePcIntegrityToken",
         "playintegrity.deviceRecall.write"
       ],
-      "revision": "20260820",
+      "revision": "20260823",
       "version": "v1"
     }
   },

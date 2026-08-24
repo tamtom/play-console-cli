@@ -20,7 +20,22 @@ type Service struct {
 	Cfg *config.Config
 }
 
+type (
+	ServiceFactory           func(context.Context) (*Service, error)
+	serviceFactoryContextKey struct{}
+)
+
+func ContextWithServiceFactory(ctx context.Context, factory ServiceFactory) context.Context {
+	if factory == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, serviceFactoryContextKey{}, factory)
+}
+
 func NewService(ctx context.Context) (*Service, error) {
+	if factory, ok := ctx.Value(serviceFactoryContextKey{}).(ServiceFactory); ok && factory != nil {
+		return factory(ctx)
+	}
 	client, cfg, err := playclient.NewAuthenticatedClientWithScopes(ctx, Scope)
 	if err != nil {
 		return nil, err

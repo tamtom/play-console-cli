@@ -21,6 +21,19 @@ func TestWorkflow_Help(t *testing.T) {
 	}
 }
 
+func TestWorkflow_HelpDocumentsRetryAndTimeoutContract(t *testing.T) {
+	stdout, stderr, err := runCommand(t, "workflow")
+	if err == nil {
+		t.Fatal("expected workflow root to return help")
+	}
+	combined := stdout + stderr
+	for _, expected := range []string{"max_attempts", `"timeout": "2m"`, "explicitly safe to repeat"} {
+		if !strings.Contains(combined, expected) {
+			t.Fatalf("workflow help missing %q", expected)
+		}
+	}
+}
+
 func TestWorkflowValidate_PrintsStructuredErrors(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "release.json")

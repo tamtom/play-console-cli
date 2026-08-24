@@ -6,7 +6,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/tamtom/play-console-cli/internal/checksclient"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/customappsclient"
+	"github.com/tamtom/play-console-cli/internal/gamesclient"
+	"github.com/tamtom/play-console-cli/internal/gcsclient"
+	"github.com/tamtom/play-console-cli/internal/integrityclient"
+	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/reportingclient"
 )
 
 func TestNewRoot_BindsRootFlags(t *testing.T) {
@@ -68,5 +75,62 @@ func TestApplyRootContext_ValidatesReportFlags(t *testing.T) {
 
 	if _, err := rt.ApplyRootContext(context.Background()); err == nil {
 		t.Fatal("expected report flag validation error")
+	}
+}
+
+func TestApplyRootContextInjectsPlayServiceForEveryCommandPackage(t *testing.T) {
+	want := &playclient.Service{}
+	calls := 0
+	rt := NewDetached().WithPlayServiceFactory(func(context.Context) (*playclient.Service, error) {
+		calls++
+		return want, nil
+	})
+	ctx, err := rt.ApplyRootContext(context.Background())
+	if err != nil {
+		t.Fatalf("ApplyRootContext: %v", err)
+	}
+	got, err := playclient.NewService(ctx)
+	if err != nil {
+		t.Fatalf("playclient.NewService: %v", err)
+	}
+	if got != want || calls != 1 {
+		t.Fatalf("injected service = %p calls=%d, want %p calls=1", got, calls, want)
+	}
+}
+
+func TestApplyRootContextInjectsEveryOfficialServiceFamily(t *testing.T) {
+	wantReporting := &reportingclient.Service{}
+	wantGames := &gamesclient.Service{}
+	wantCustomApps := &customappsclient.Service{}
+	wantGCS := &gcsclient.Service{}
+	wantChecks := &checksclient.Service{}
+	wantIntegrity := &integrityclient.Service{}
+	rt := NewDetached().
+		WithReportingServiceFactory(func(context.Context) (*reportingclient.Service, error) { return wantReporting, nil }).
+		WithGamesServiceFactory(func(context.Context) (*gamesclient.Service, error) { return wantGames, nil }).
+		WithCustomAppsServiceFactory(func(context.Context) (*customappsclient.Service, error) { return wantCustomApps, nil }).
+		WithGCSServiceFactory(func(context.Context) (*gcsclient.Service, error) { return wantGCS, nil }).
+		WithChecksServiceFactory(func(context.Context) (*checksclient.Service, error) { return wantChecks, nil }).
+		WithIntegrityServiceFactory(func(context.Context) (*integrityclient.Service, error) { return wantIntegrity, nil })
+	ctx, err := rt.ApplyRootContext(context.Background())
+	if err != nil {
+		t.Fatalf("ApplyRootContext: %v", err)
+	}
+	assertSameService(t, "reporting", wantReporting, func() (any, error) { return reportingclient.NewService(ctx) })
+	assertSameService(t, "games", wantGames, func() (any, error) { return gamesclient.NewService(ctx) })
+	assertSameService(t, "custom apps", wantCustomApps, func() (any, error) { return customappsclient.NewService(ctx) })
+	assertSameService(t, "gcs", wantGCS, func() (any, error) { return gcsclient.NewService(ctx) })
+	assertSameService(t, "checks", wantChecks, func() (any, error) { return checksclient.NewService(ctx) })
+	assertSameService(t, "integrity", wantIntegrity, func() (any, error) { return integrityclient.NewService(ctx) })
+}
+
+func assertSameService(t *testing.T, name string, want any, factory func() (any, error)) {
+	t.Helper()
+	got, err := factory()
+	if err != nil {
+		t.Fatalf("%s service: %v", name, err)
+	}
+	if got != want {
+		t.Fatalf("%s service = %p, want %p", name, got, want)
 	}
 }

@@ -3,10 +3,216 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestExecute_RetryEventuallySucceedsWithFreshAttemptOutput(t *testing.T) {
+	counter := filepath.Join(t.TempDir(), "attempts")
+	command := fmt.Sprintf(
+		`count=$(cat %q 2>/dev/null || echo 0); count=$((count+1)); echo "$count" > %q; if [ "$count" -lt 3 ]; then echo "stale-$count"; exit 1; fi; echo fresh`,
+		counter,
+		counter,
+	)
+	w := &Workflow{
+		Name: "retry",
+		Steps: []Step{{
+			Name:  "eventual",
+			Run:   command,
+			Retry: &RetryPolicy{MaxAttempts: 3, Delay: "1ms"},
+		}},
+	}
+	var diagnostics bytes.Buffer
+
+	result, err := Execute(context.Background(), w, nil, ExecuteOptions{
+		StatePath: filepath.Join(t.TempDir(), "state.json"),
+		Stderr:    &diagnostics,
+	})
+	if err != nil {
+		t.Fatalf("retry workflow failed: %v", err)
+	}
+	step := result.Steps[0]
+	if got := strings.TrimSpace(step.Stdout); got != "fresh" {
+		t.Fatalf("final stdout = %q, want only successful-attempt output", got)
+	}
+	if len(step.Attempts) != 3 {
+		t.Fatalf("attempts = %#v, want 3", step.Attempts)
+	}
+	if step.Attempts[0].Status != "error" || step.Attempts[1].Status != "error" || step.Attempts[2].Status != "ok" {
+		t.Fatalf("unexpected attempt statuses: %#v", step.Attempts)
+	}
+	if !strings.Contains(diagnostics.String(), "attempt 2/3") {
+		t.Fatalf("retry diagnostics missing attempt count: %s", diagnostics.String())
+	}
+}
+
+func TestExecute_TimeoutHasStableStructuredFailure(t *testing.T) {
+	timeout := "25ms"
+	w := &Workflow{
+		Name: "timeout",
+		Steps: []Step{{
+			Name:    "slow-release",
+			Run:     "sleep 5",
+			Timeout: &timeout,
+		}},
+	}
+	started := time.Now()
+
+	result, err := Execute(context.Background(), w, nil, ExecuteOptions{
+		StatePath: filepath.Join(t.TempDir(), "state.json"),
+	})
+	if err == nil {
+		t.Fatal("expected timeout failure")
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("timeout took %s, process tree was not terminated", elapsed)
+	}
+	step := result.Steps[0]
+	if step.FailureReason != "timeout" || len(step.Attempts) != 1 {
+		t.Fatalf("unexpected timeout result: %#v", step)
+	}
+	if step.Attempts[0].Status != "timeout" || step.Attempts[0].Error != "step timed out after 25ms" {
+		t.Fatalf("unexpected timeout attempt: %#v", step.Attempts[0])
+	}
+}
+
+func TestExecute_TimeoutWithoutRetryCannotResumeAmbiguousMutation(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	marker := filepath.Join(dir, "attempts")
+	timeout := "25ms"
+	command := fmt.Sprintf(`echo attempt >> %q; sleep 5`, marker)
+	w := &Workflow{
+		Name:  "ambiguous",
+		Steps: []Step{{Name: "publish", Run: command, Timeout: &timeout}},
+	}
+
+	if _, err := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath}); err == nil {
+		t.Fatal("expected first run to time out")
+	}
+	_, err := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath, Resume: true})
+	if err == nil || !strings.Contains(err.Error(), "cannot be resumed safely") {
+		t.Fatalf("expected ambiguity-safe resume rejection, got %v", err)
+	}
+	data, readErr := os.ReadFile(marker)
+	if readErr != nil {
+		t.Fatalf("read marker: %v", readErr)
+	}
+	if attempts := strings.Count(string(data), "attempt"); attempts != 1 {
+		t.Fatalf("resume re-executed ambiguous command %d times", attempts)
+	}
+}
+
+func TestExecute_RetryExhaustionCanResumeWithAttemptHistory(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	counter := filepath.Join(dir, "attempts")
+	command := fmt.Sprintf(
+		`count=$(cat %q 2>/dev/null || echo 0); count=$((count+1)); echo "$count" > %q; if [ "$count" -lt 3 ]; then exit 1; fi; echo recovered`,
+		counter,
+		counter,
+	)
+	w := &Workflow{
+		Name: "resume-retry",
+		Steps: []Step{{
+			Name:  "eventual",
+			Run:   command,
+			Retry: &RetryPolicy{MaxAttempts: 2, Delay: "1ms"},
+		}},
+	}
+	if _, err := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath}); err == nil {
+		t.Fatal("expected first invocation to exhaust retries")
+	}
+
+	result, err := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath, Resume: true})
+	if err != nil {
+		t.Fatalf("resume failed: %v", err)
+	}
+	step := result.Steps[0]
+	if got := strings.TrimSpace(step.Stdout); got != "recovered" {
+		t.Fatalf("stdout = %q", got)
+	}
+	if len(step.Attempts) != 3 {
+		t.Fatalf("attempt history = %#v, want 3 attempts", step.Attempts)
+	}
+	if step.Attempts[0].Invocation != 1 || step.Attempts[1].Invocation != 1 || step.Attempts[2].Invocation != 2 {
+		t.Fatalf("attempt invocations = %#v", step.Attempts)
+	}
+}
+
+func TestExecute_OutputExtractionFailureIsTerminalEvenWithRetry(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	marker := filepath.Join(dir, "attempts")
+	w := &Workflow{
+		Name: "output-terminal",
+		Steps: []Step{{
+			Name:    "publish",
+			Run:     fmt.Sprintf(`echo attempt >> %q; echo not-json`, marker),
+			Retry:   &RetryPolicy{MaxAttempts: 3, Delay: "1ms"},
+			Outputs: map[string]string{"id": "$.id"},
+		}},
+	}
+
+	result, err := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath})
+	if err == nil {
+		t.Fatal("expected output extraction failure")
+	}
+	step := result.Steps[0]
+	if step.FailureReason != "output_error" || len(step.Attempts) != 1 || step.Attempts[0].FailureReason != "output_error" {
+		t.Fatalf("unexpected terminal output failure: %#v", step)
+	}
+	if _, resumeErr := Execute(context.Background(), w, nil, ExecuteOptions{StatePath: statePath, Resume: true}); resumeErr == nil {
+		t.Fatal("expected output-error resume rejection")
+	}
+	data, readErr := os.ReadFile(marker)
+	if readErr != nil {
+		t.Fatalf("read marker: %v", readErr)
+	}
+	if attempts := strings.Count(string(data), "attempt"); attempts != 1 {
+		t.Fatalf("terminal output error executed command %d times", attempts)
+	}
+}
+
+func TestExecute_StatePersistenceFailureIsReturned(t *testing.T) {
+	dir := t.TempDir()
+	parentFile := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(parentFile, []byte("occupied"), 0o600); err != nil {
+		t.Fatalf("write parent file: %v", err)
+	}
+	w := &Workflow{Name: "persist", Steps: []Step{{Name: "done", Run: "true"}}}
+
+	result, err := Execute(context.Background(), w, nil, ExecuteOptions{
+		StatePath: filepath.Join(parentFile, "state.json"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "persist workflow state") {
+		t.Fatalf("expected state persistence error, got %v", err)
+	}
+	if result == nil || result.Success {
+		t.Fatalf("persistence failure must make the run unsuccessful: %#v", result)
+	}
+}
+
+func TestExecute_ResumeRequiresExistingMatchingState(t *testing.T) {
+	dir := t.TempDir()
+	marker := filepath.Join(dir, "marker")
+	w := &Workflow{Name: "resume", Steps: []Step{{Name: "publish", Run: fmt.Sprintf("touch %q", marker)}}}
+
+	_, err := Execute(context.Background(), w, nil, ExecuteOptions{
+		Resume:    true,
+		StatePath: filepath.Join(dir, "missing-state.json"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "no saved workflow state") {
+		t.Fatalf("expected missing resume-state error, got %v", err)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("resume without state executed a command: %v", statErr)
+	}
+}
 
 func TestExecute_SimpleEchoStep(t *testing.T) {
 	w := &Workflow{
@@ -478,5 +684,35 @@ func TestExecuteDefinition_ResumeUsesNestedPaths(t *testing.T) {
 	}
 	if !skipped["root.child.first"] || !skipped["root.final"] {
 		t.Fatalf("expected nested resume skips, got %#v", skipped)
+	}
+}
+
+func TestExecuteDefinition_ResumeRejectsChangedDefinitionBeforeExecution(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "workflow-state.json")
+	marker := filepath.Join(dir, "marker")
+	def := &Definition{Workflows: map[string]Workflow{
+		"release": {Steps: []Step{{Name: "publish", Run: fmt.Sprintf("echo original > %q", marker)}}},
+	}}
+	if _, err := ExecuteDefinition(context.Background(), def, "release", nil, ExecuteOptions{StatePath: statePath}); err != nil {
+		t.Fatalf("first run failed: %v", err)
+	}
+
+	changed := &Definition{Workflows: map[string]Workflow{
+		"release": {Steps: []Step{{Name: "publish", Run: fmt.Sprintf("echo changed > %q", marker)}}},
+	}}
+	_, err := ExecuteDefinition(context.Background(), changed, "release", nil, ExecuteOptions{
+		Resume:    true,
+		StatePath: statePath,
+	})
+	if err == nil || !strings.Contains(err.Error(), "definition changed") {
+		t.Fatalf("expected definition fingerprint error, got %v", err)
+	}
+	data, readErr := os.ReadFile(marker)
+	if readErr != nil {
+		t.Fatalf("read marker: %v", readErr)
+	}
+	if got := strings.TrimSpace(string(data)); got != "original" {
+		t.Fatalf("marker changed during rejected resume: %q", got)
 	}
 }

@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -121,5 +122,32 @@ func TestSaveState_AtomicWrite(t *testing.T) {
 	tmpPath := path + ".tmp"
 	if _, err := os.Stat(tmpPath); !os.IsNotExist(err) {
 		t.Error("temp file should not exist after successful save")
+	}
+}
+
+func TestSaveState_RefusesSymlinkedDestination(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, "sentinel.json")
+	if err := os.WriteFile(sentinel, []byte("original"), 0o600); err != nil {
+		t.Fatalf("write sentinel: %v", err)
+	}
+	statePath := filepath.Join(dir, "state.json")
+	if err := os.Symlink(sentinel, statePath); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	err := SaveState(statePath, &ExecutionResult{Workflow: "test", Success: true})
+	if err == nil {
+		t.Fatal("SaveState unexpectedly accepted a symlinked destination")
+	}
+	got, readErr := os.ReadFile(sentinel)
+	if readErr != nil {
+		t.Fatalf("read sentinel: %v", readErr)
+	}
+	if string(got) != "original" {
+		t.Fatalf("sentinel content = %q, want original", got)
+	}
+	if _, lstatErr := os.Lstat(statePath); lstatErr != nil && !errors.Is(lstatErr, os.ErrNotExist) {
+		t.Fatalf("lstat state path: %v", lstatErr)
 	}
 }

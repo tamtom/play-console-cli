@@ -13,11 +13,14 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
-// RootCommand is set by the caller to provide the root command tree.
-var RootCommand *ffcli.Command
-
 // GenerateCommand returns the docs generate subcommand.
 func GenerateCommand() *ffcli.Command {
+	return GenerateCommandWithRoot(nil)
+}
+
+// GenerateCommandWithRoot returns the generator backed by a lazy root command
+// provider. The complete tree is built only when documentation is requested.
+func GenerateCommandWithRoot(root func() *ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("docs generate", flag.ExitOnError)
 	outputFile := fs.String("output-file", "GPLAY.md", "Output file path (use - for stdout)")
 
@@ -28,7 +31,11 @@ func GenerateCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if RootCommand == nil {
+			if root == nil {
+				return fmt.Errorf("docs generate: root command not set")
+			}
+			rootCommand := root()
+			if rootCommand == nil {
 				return fmt.Errorf("docs generate: root command not set")
 			}
 
@@ -44,7 +51,7 @@ func GenerateCommand() *ffcli.Command {
 				w = f
 			}
 
-			generateMarkdown(w, RootCommand, "")
+			generateMarkdown(w, rootCommand, "")
 
 			if *outputFile != "-" {
 				fmt.Fprintf(os.Stderr, "Generated %s\n", *outputFile)

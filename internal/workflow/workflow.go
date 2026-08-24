@@ -32,6 +32,13 @@ type Workflow struct {
 	OnError     []Step            `json:"on_error,omitempty"`
 }
 
+// RetryPolicy is an explicit assertion that a run step is safe to repeat.
+// MaxAttempts includes the initial execution.
+type RetryPolicy struct {
+	MaxAttempts int    `json:"max_attempts"`
+	Delay       string `json:"delay"`
+}
+
 // Step is one executable action in a workflow.
 // Bare JSON strings unmarshal to Step{Run: "..."}.
 //
@@ -47,6 +54,8 @@ type Step struct {
 	Condition  string            `json:"condition,omitempty"`
 	With       map[string]string `json:"with,omitempty"`
 	Outputs    map[string]string `json:"outputs,omitempty"`
+	Retry      *RetryPolicy      `json:"retry,omitempty"`
+	Timeout    *string           `json:"timeout,omitempty"`
 }
 
 // Param declares a workflow parameter.
@@ -95,6 +104,15 @@ func (s *Step) UnmarshalJSON(data []byte) error {
 	}
 	if err := dec.Decode(&struct{}{}); err != io.EOF {
 		return fmt.Errorf("step must be a single JSON value: trailing data")
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return fmt.Errorf("step must be an object: %w", err)
+	}
+	for _, field := range []string{"retry", "timeout"} {
+		if rawValue, present := fields[field]; present && bytes.Equal(bytes.TrimSpace(rawValue), []byte("null")) {
+			return fmt.Errorf("%s must not be null; omit it or provide an explicit policy", field)
+		}
 	}
 	if strings.TrimSpace(alias.Run) == "" && alias.Command != "" {
 		alias.Run = alias.Command

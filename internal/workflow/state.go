@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // readFile reads a file and returns its contents.
@@ -24,15 +25,7 @@ func SaveState(path string, result *ExecutionResult) error {
 		return fmt.Errorf("marshal workflow state: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("create workflow state directory: %w", err)
-	}
-
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
-		return fmt.Errorf("write workflow state: %w", err)
-	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err := rootfs.AtomicWriteFile(path, data, 0o600, 0o700); err != nil {
 		return fmt.Errorf("persist workflow state: %w", err)
 	}
 	return nil
@@ -41,7 +34,7 @@ func SaveState(path string, result *ExecutionResult) error {
 // LoadState reads a previously saved execution result from disk.
 // Returns nil, nil if the file does not exist.
 func LoadState(path string) (*ExecutionResult, error) {
-	data, err := os.ReadFile(path)
+	data, err := rootfs.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil

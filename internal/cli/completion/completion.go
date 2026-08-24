@@ -12,6 +12,12 @@ import (
 )
 
 func CompletionCommand() *ffcli.Command {
+	return CompletionCommandWithCatalog(nil)
+}
+
+// CompletionCommandWithCatalog generates scripts from the same lazy command
+// catalog used by root help, search, and docs.
+func CompletionCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("completion", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "completion",
@@ -41,10 +47,10 @@ PowerShell:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
-			BashCommand(),
-			ZshCommand(),
-			FishCommand(),
-			PowerShellCommand(),
+			bashCommandWithCatalog(commands),
+			zshCommandWithCatalog(commands),
+			fishCommandWithCatalog(commands),
+			powerShellCommandWithCatalog(commands),
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -57,6 +63,10 @@ PowerShell:
 }
 
 func BashCommand() *ffcli.Command {
+	return bashCommandWithCatalog(nil)
+}
+
+func bashCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("completion bash", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "bash",
@@ -65,6 +75,10 @@ func BashCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			if commands != nil {
+				fmt.Fprint(os.Stdout, renderBash(commands()))
+				return nil
+			}
 			fmt.Fprint(os.Stdout, bashCompletion)
 			return nil
 		},
@@ -72,6 +86,10 @@ func BashCommand() *ffcli.Command {
 }
 
 func ZshCommand() *ffcli.Command {
+	return zshCommandWithCatalog(nil)
+}
+
+func zshCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("completion zsh", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "zsh",
@@ -80,6 +98,10 @@ func ZshCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			if commands != nil {
+				fmt.Fprint(os.Stdout, renderZsh(commands()))
+				return nil
+			}
 			fmt.Fprint(os.Stdout, zshCompletion)
 			return nil
 		},
@@ -87,6 +109,10 @@ func ZshCommand() *ffcli.Command {
 }
 
 func FishCommand() *ffcli.Command {
+	return fishCommandWithCatalog(nil)
+}
+
+func fishCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("completion fish", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "fish",
@@ -95,6 +121,10 @@ func FishCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			if commands != nil {
+				fmt.Fprint(os.Stdout, renderFish(commands()))
+				return nil
+			}
 			fmt.Fprint(os.Stdout, fishCompletion)
 			return nil
 		},
@@ -102,6 +132,10 @@ func FishCommand() *ffcli.Command {
 }
 
 func PowerShellCommand() *ffcli.Command {
+	return powerShellCommandWithCatalog(nil)
+}
+
+func powerShellCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 	fs := flag.NewFlagSet("completion powershell", flag.ExitOnError)
 	return &ffcli.Command{
 		Name:       "powershell",
@@ -110,6 +144,10 @@ func PowerShellCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			if commands != nil {
+				fmt.Fprint(os.Stdout, renderPowerShell(commands()))
+				return nil
+			}
 			fmt.Fprint(os.Stdout, powershellCompletion)
 			return nil
 		},

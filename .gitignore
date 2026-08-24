@@ -26,6 +26,7 @@ vendor/
 
 # Credentials (NEVER commit these)
 *.json
+!internal/apischema/schema-index.json
 !docs/api/google-play-api-manifest.json
 !docs/api/discovery.json
 !go.mod

@@ -49,6 +49,34 @@ gplay reports stats list --developer <id> --package com.example.app --type insta
 gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type installs --dir ./reports
 ```
 
+## Weekly and daily insights
+
+`gplay insights` compares official report files locally. It does not resolve
+credentials, contact Google, or mutate an account. Google documents the CSV
+fields and monthly Cloud Storage layout in [Download and export monthly
+reports](https://support.google.com/googleplay/android-developer/answer/6135870).
+
+Supply one breakdown file per report type so dimension totals are not counted
+twice. UTF-8 and Google Play's UTF-16 exports are supported. A missing source,
+date window, or metric column is returned as `unavailable` rather than inferred.
+
+```bash
+# Monday through Sunday compared with the preceding week
+gplay insights weekly \
+  --package com.example.app \
+  --week 2026-08-17 \
+  --installs-file ./reports/installs_com.example.app_202608_country.csv \
+  --crashes-file ./reports/crashes_com.example.app_202608_device.csv \
+  --store-performance-file ./reports/store_performance_com.example.app_202608_country.csv
+
+# One UTC report date compared with the preceding date
+gplay insights daily \
+  --package com.example.app \
+  --date 2026-08-24 \
+  --crashes-file ./reports/crashes_com.example.app_202608_device.csv \
+  --output table
+```
+
 ## Team & permissions
 
 ```bash

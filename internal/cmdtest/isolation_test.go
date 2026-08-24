@@ -18,3 +18,19 @@ func TestIsolation_NoUpdateSet(t *testing.T) {
 		t.Fatalf("GPLAY_NO_UPDATE not set: got %q", got)
 	}
 }
+
+func TestIsolation_RealCredentialsAndIntegrationGatesAreScrubbed(t *testing.T) {
+	for _, key := range []string{
+		"GOOGLE_APPLICATION_CREDENTIALS",
+		"GPLAY_ANDROID_DEVELOPER_ID_API_KEY",
+		"GPLAY_INTEGRATION_TEST",
+		"GPLAY_MUTATING_INTEGRATION_TEST",
+		"GPLAY_OAUTH_TOKEN_PATH",
+		"GPLAY_SERVICE_ACCOUNT",
+		"GPLAY_SERVICE_ACCOUNT_JSON",
+	} {
+		if value := os.Getenv(key); value != "" {
+			t.Errorf("%s leaked into black-box tests", key)
+		}
+	}
+}

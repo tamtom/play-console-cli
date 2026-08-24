@@ -3,8 +3,8 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,24 +26,42 @@ type ExecuteOptions struct {
 
 // ExecutionResult is the structured output of a workflow execution.
 type ExecutionResult struct {
-	Workflow    string            `json:"workflow"`
-	Steps       []StepResult      `json:"steps"`
-	Success     bool              `json:"success"`
-	ElapsedTime time.Duration     `json:"elapsed_time"`
-	Outputs     map[string]string `json:"outputs,omitempty"`
+	Workflow              string            `json:"workflow"`
+	DefinitionFingerprint string            `json:"definition_fingerprint"`
+	Steps                 []StepResult      `json:"steps"`
+	Success               bool              `json:"success"`
+	ResumeBlockedReason   string            `json:"resume_blocked_reason,omitempty"`
+	ElapsedTime           time.Duration     `json:"elapsed_time"`
+	Outputs               map[string]string `json:"outputs,omitempty"`
 }
 
 // StepResult records one executed step.
 type StepResult struct {
-	Path     string            `json:"path,omitempty"`
-	Workflow string            `json:"workflow,omitempty"`
-	Name     string            `json:"name"`
-	Command  string            `json:"command"`
-	Stdout   string            `json:"stdout"`
-	Stderr   string            `json:"stderr"`
-	ExitCode int               `json:"exit_code"`
-	Skipped  bool              `json:"skipped"`
-	Outputs  map[string]string `json:"outputs,omitempty"`
+	Path           string            `json:"path,omitempty"`
+	Workflow       string            `json:"workflow,omitempty"`
+	Name           string            `json:"name"`
+	Command        string            `json:"command"`
+	Status         string            `json:"status,omitempty"`
+	FailureReason  string            `json:"failure_reason,omitempty"`
+	Stdout         string            `json:"stdout"`
+	Stderr         string            `json:"stderr"`
+	ExitCode       int               `json:"exit_code"`
+	Skipped        bool              `json:"skipped"`
+	RetryEnabled   bool              `json:"retry_enabled,omitempty"`
+	TimeoutEnabled bool              `json:"timeout_enabled,omitempty"`
+	Attempts       []AttemptResult   `json:"attempts,omitempty"`
+	Outputs        map[string]string `json:"outputs,omitempty"`
+}
+
+// AttemptResult records one bounded execution attempt for a configured step.
+type AttemptResult struct {
+	Invocation    int    `json:"invocation"`
+	Attempt       int    `json:"attempt"`
+	Status        string `json:"status"`
+	ExitCode      int    `json:"exit_code"`
+	DurationMS    int64  `json:"duration_ms"`
+	FailureReason string `json:"failure_reason,omitempty"`
+	Error         string `json:"error,omitempty"`
 }
 
 // Execute runs a single workflow using the legacy API.
@@ -80,24 +98,49 @@ func ExecuteDefinition(ctx context.Context, def *Definition, workflowName string
 		return nil, fmt.Errorf("workflow %q not found", workflowName)
 	}
 	root.Name = workflowName
+	fingerprint, err := definitionFingerprint(def)
+	if err != nil {
+		return nil, err
+	}
 
 	start := time.Now()
 	result := &ExecutionResult{
-		Workflow: workflowName,
-		Steps:    make([]StepResult, 0),
-		Success:  true,
+		Workflow:              workflowName,
+		DefinitionFingerprint: fingerprint,
+		Steps:                 make([]StepResult, 0),
+		Success:               true,
 	}
 
 	completed := map[string]bool{}
+	previous := map[string]StepResult{}
 	if opts.Resume {
 		state, err := LoadState(opts.StatePath)
-		if err == nil && state != nil && state.Workflow == workflowName {
+		if err != nil {
+			return nil, fmt.Errorf("load workflow resume state: %w", err)
+		}
+		if state == nil {
+			return nil, fmt.Errorf("no saved workflow state exists at %s", opts.StatePath)
+		}
+		if state.Workflow != workflowName {
+			return nil, fmt.Errorf("saved workflow state is for %q, not %q", state.Workflow, workflowName)
+		}
+		if state.Workflow == workflowName {
+			if state.DefinitionFingerprint == "" {
+				return nil, fmt.Errorf("workflow resume state has no definition fingerprint; start a new run")
+			}
+			if state.DefinitionFingerprint != fingerprint {
+				return nil, fmt.Errorf("workflow definition changed since the saved run; start a new run")
+			}
+			if state.ResumeBlockedReason != "" {
+				return nil, fmt.Errorf("workflow cannot be resumed safely: %s", state.ResumeBlockedReason)
+			}
 			for _, step := range state.Steps {
+				key := step.Path
+				if key == "" {
+					key = step.Name
+				}
+				previous[key] = step
 				if step.ExitCode == 0 && !step.Skipped {
-					key := step.Path
-					if key == "" {
-						key = step.Name
-					}
 					completed[key] = true
 				}
 			}
@@ -110,22 +153,58 @@ func ExecuteDefinition(ctx context.Context, def *Definition, workflowName string
 		opts:      opts,
 		result:    result,
 		completed: completed,
+		previous:  previous,
 	}
 
 	_, mainErr := runner.executeWorkflow(root, params, workflowName)
 	result.ElapsedTime = time.Since(start)
 	result.Outputs = collectOutputs(result.Steps)
+	if mainErr != nil {
+		result.Success = false
+		result.ResumeBlockedReason = resumeBlockedReason(result.Steps)
+	}
 
 	if !opts.DryRun {
-		_ = SaveState(opts.StatePath, result)
+		if saveErr := SaveState(opts.StatePath, result); saveErr != nil {
+			result.Success = false
+			if mainErr != nil {
+				return result, fmt.Errorf("%w; persist workflow state: %w", mainErr, saveErr)
+			}
+			return result, fmt.Errorf("persist workflow state: %w", saveErr)
+		}
 	}
 
 	if mainErr != nil {
-		result.Success = false
 		return result, mainErr
 	}
 
 	return result, nil
+}
+
+func resumeBlockedReason(steps []StepResult) string {
+	for index := len(steps) - 1; index >= 0; index-- {
+		step := steps[index]
+		if step.Status != "error" || step.Skipped {
+			continue
+		}
+		if step.FailureReason == "output_error" {
+			return fmt.Sprintf("step %s completed its command but output extraction failed; inspect remote side effects", step.Path)
+		}
+		if !step.RetryEnabled {
+			return fmt.Sprintf("step %s failed without an explicit retry policy; inspect remote side effects", step.Path)
+		}
+		return ""
+	}
+	return ""
+}
+
+func definitionFingerprint(def *Definition) (string, error) {
+	data, err := json.Marshal(def)
+	if err != nil {
+		return "", fmt.Errorf("marshal workflow definition: %w", err)
+	}
+	sum := sha256.Sum256(data)
+	return fmt.Sprintf("sha256:%x", sum[:]), nil
 }
 
 type executor struct {
@@ -134,6 +213,7 @@ type executor struct {
 	opts      ExecuteOptions
 	result    *ExecutionResult
 	completed map[string]bool
+	previous  map[string]StepResult
 }
 
 func (e *executor) executeWorkflow(workflow Workflow, incomingVars map[string]string, pathPrefix string) (map[string]string, error) {
@@ -258,28 +338,116 @@ func (e *executor) executeStep(currentWorkflow string, step Step, vars map[strin
 		return nil
 	}
 
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd := exec.CommandContext(e.ctx, "sh", "-c", command)
-	cmd.Env = buildEnvSlice(vars)
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-
-	runErr := cmd.Run()
-	if runErr != nil {
+	policy, err := retryPolicyForStep(step)
+	if err != nil {
+		result.Status = "error"
+		result.FailureReason = "invalid_policy"
 		result.ExitCode = 1
-		var exitErr *exec.ExitError
-		if errors.As(runErr, &exitErr) {
-			result.ExitCode = exitErr.ExitCode()
+		result.Stderr = err.Error()
+		e.result.Steps = append(e.result.Steps, result)
+		return fmt.Errorf("step %q failed: %w", result.Name, err)
+	}
+	result.RetryEnabled = step.Retry != nil
+	result.TimeoutEnabled = step.Timeout != nil
+	recordAttempts := policy.configured
+	if recordAttempts {
+		if persisted, ok := e.previous[path]; ok && persisted.Status != "ok" {
+			result.Attempts = append(result.Attempts, persisted.Attempts...)
 		}
 	}
-	result.Stdout = stdoutBuf.String()
-	result.Stderr = stderrBuf.String()
+	invocation := nextAttemptInvocation(result.Attempts)
+
+	var runErr error
+	for attempt := 1; attempt <= policy.maxAttempts; attempt++ {
+		if recordAttempts {
+			fmt.Fprintf(e.opts.Stderr, "[workflow] step %s: attempt %d/%d\n", path, attempt, policy.maxAttempts)
+		}
+
+		var stdoutBuf, stderrBuf bytes.Buffer
+		attemptCtx := e.ctx
+		cancel := func() {}
+		if policy.timeout > 0 {
+			attemptCtx, cancel = context.WithTimeout(e.ctx, policy.timeout)
+		}
+		cmd := exec.CommandContext(attemptCtx, "sh", "-c", command)
+		cmd.Env = buildEnvSlice(vars)
+		cmd.Stdout = &stdoutBuf
+		cmd.Stderr = &stderrBuf
+		configureProcessTree(cmd)
+
+		attemptStart := time.Now()
+		runErr = cmd.Run()
+		durationMS := time.Since(attemptStart).Milliseconds()
+		attemptContextErr := attemptCtx.Err()
+		cancel()
+		result.Stdout = stdoutBuf.String()
+		result.Stderr = stderrBuf.String()
+		result.ExitCode = commandExitCode(runErr)
+
+		if runErr == nil {
+			result.Status = "ok"
+			if recordAttempts {
+				result.Attempts = append(result.Attempts, AttemptResult{
+					Invocation: invocation,
+					Attempt:    attempt,
+					Status:     "ok",
+					ExitCode:   0,
+					DurationMS: durationMS,
+				})
+			}
+			break
+		}
+
+		failureReason, errorText := classifyAttemptFailure(e.ctx, attemptContextErr, runErr, policy.timeout)
+		result.Status = "error"
+		result.FailureReason = failureReason
+		if recordAttempts {
+			result.Attempts = append(result.Attempts, AttemptResult{
+				Invocation:    invocation,
+				Attempt:       attempt,
+				Status:        attemptStatus(failureReason),
+				ExitCode:      result.ExitCode,
+				DurationMS:    durationMS,
+				FailureReason: failureReason,
+				Error:         errorText,
+			})
+		}
+		if failureReason == "canceled" || attempt == policy.maxAttempts {
+			break
+		}
+
+		fmt.Fprintf(
+			e.opts.Stderr,
+			"[workflow] step %s: attempt %d/%d failed (%s); retrying in %s\n",
+			path,
+			attempt,
+			policy.maxAttempts,
+			failureReason,
+			policy.delay,
+		)
+		if waitErr := waitForRetry(e.ctx, policy.delay); waitErr != nil {
+			runErr = waitErr
+			result.Status = "error"
+			result.FailureReason = "canceled"
+			result.Stderr = "step canceled during retry delay: " + waitErr.Error()
+			break
+		}
+	}
 
 	if runErr == nil && len(step.Outputs) > 0 {
 		outputs, extractErr := extractStepOutputs(result.Stdout, step.Outputs)
 		if extractErr != nil {
 			result.ExitCode = 1
+			result.Status = "error"
+			result.FailureReason = "output_error"
 			result.Stderr = strings.TrimSpace(strings.TrimSpace(result.Stderr) + "\n" + extractErr.Error())
+			if len(result.Attempts) > 0 {
+				last := &result.Attempts[len(result.Attempts)-1]
+				last.Status = "error"
+				last.ExitCode = 1
+				last.FailureReason = "output_error"
+				last.Error = extractErr.Error()
+			}
 			runErr = extractErr
 		} else {
 			result.Outputs = outputs

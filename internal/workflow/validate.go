@@ -28,6 +28,11 @@ const (
 	ErrInvalidOutputExpr           ValidationCode = "invalid_output_expr"
 	ErrDuplicateParamName          ValidationCode = "duplicate_param_name"
 	ErrEmptyParamName              ValidationCode = "empty_param_name"
+	ErrStepRetryOnWorkflow         ValidationCode = "step_retry_on_workflow"
+	ErrInvalidRetryMaxAttempts     ValidationCode = "invalid_retry_max_attempts"
+	ErrInvalidRetryDelay           ValidationCode = "invalid_retry_delay"
+	ErrStepTimeoutOnWorkflow       ValidationCode = "step_timeout_on_workflow"
+	ErrInvalidStepTimeout          ValidationCode = "invalid_step_timeout"
 )
 
 // ValidationError describes one structured workflow validation failure.
@@ -137,6 +142,51 @@ func Validate(def *Definition) []*ValidationError {
 				})
 			}
 
+			if step.Retry != nil {
+				switch {
+				case hasWorkflow:
+					errs = append(errs, &ValidationError{
+						Code:     ErrStepRetryOnWorkflow,
+						Workflow: name,
+						Step:     stepNumber,
+						Message:  fmt.Sprintf("workflow %q step %d declares retry on a workflow reference; retry is only valid for run steps", name, stepNumber),
+					})
+				case step.Retry.MaxAttempts < minRetryAttempts || step.Retry.MaxAttempts > maxRetryAttempts:
+					errs = append(errs, &ValidationError{
+						Code:     ErrInvalidRetryMaxAttempts,
+						Workflow: name,
+						Step:     stepNumber,
+						Message:  fmt.Sprintf("workflow %q step %d retry.max_attempts must be between %d and %d and includes the initial attempt", name, stepNumber, minRetryAttempts, maxRetryAttempts),
+					})
+				}
+				if _, err := parseRetryDelay(step.Retry.Delay); err != nil {
+					errs = append(errs, &ValidationError{
+						Code:     ErrInvalidRetryDelay,
+						Workflow: name,
+						Step:     stepNumber,
+						Message:  fmt.Sprintf("workflow %q step %d retry.delay %v", name, stepNumber, err),
+					})
+				}
+			}
+
+			if step.Timeout != nil {
+				if hasWorkflow {
+					errs = append(errs, &ValidationError{
+						Code:     ErrStepTimeoutOnWorkflow,
+						Workflow: name,
+						Step:     stepNumber,
+						Message:  fmt.Sprintf("workflow %q step %d declares timeout on a workflow reference; timeout is only valid for run steps", name, stepNumber),
+					})
+				} else if _, err := parsePolicyDuration(*step.Timeout); err != nil {
+					errs = append(errs, &ValidationError{
+						Code:     ErrInvalidStepTimeout,
+						Workflow: name,
+						Step:     stepNumber,
+						Message:  fmt.Sprintf("workflow %q step %d timeout %v", name, stepNumber, err),
+					})
+				}
+			}
+
 			if len(step.Outputs) > 0 {
 				if hasWorkflow {
 					errs = append(errs, &ValidationError{
@@ -221,12 +271,64 @@ func Validate(def *Definition) []*ValidationError {
 			}
 			paramSeen[paramName] = true
 		}
+
+		for _, hook := range []struct {
+			name  string
+			steps []Step
+		}{
+			{name: "before_all", steps: workflow.BeforeAll},
+			{name: "after_all", steps: workflow.AfterAll},
+			{name: "on_error", steps: workflow.OnError},
+		} {
+			for index, step := range hook.steps {
+				errs = append(errs, validateHookPolicies(name, hook.name, index+1, step)...)
+			}
+		}
 	}
 
 	if cycleErr := detectCycles(def); cycleErr != nil {
 		errs = append(errs, cycleErr)
 	}
 
+	return errs
+}
+
+func validateHookPolicies(workflowName, hookName string, stepNumber int, step Step) []*ValidationError {
+	var errs []*ValidationError
+	hasWorkflow := strings.TrimSpace(step.Workflow) != ""
+	if step.Retry != nil {
+		switch {
+		case hasWorkflow:
+			errs = append(errs, &ValidationError{
+				Code: ErrStepRetryOnWorkflow, Workflow: workflowName, Step: stepNumber,
+				Message: fmt.Sprintf("workflow %q %s step %d declares retry on a workflow reference; retry is only valid for run steps", workflowName, hookName, stepNumber),
+			})
+		case step.Retry.MaxAttempts < minRetryAttempts || step.Retry.MaxAttempts > maxRetryAttempts:
+			errs = append(errs, &ValidationError{
+				Code: ErrInvalidRetryMaxAttempts, Workflow: workflowName, Step: stepNumber,
+				Message: fmt.Sprintf("workflow %q %s step %d retry.max_attempts must be between %d and %d and includes the initial attempt", workflowName, hookName, stepNumber, minRetryAttempts, maxRetryAttempts),
+			})
+		}
+		if _, err := parseRetryDelay(step.Retry.Delay); err != nil {
+			errs = append(errs, &ValidationError{
+				Code: ErrInvalidRetryDelay, Workflow: workflowName, Step: stepNumber,
+				Message: fmt.Sprintf("workflow %q %s step %d retry.delay %v", workflowName, hookName, stepNumber, err),
+			})
+		}
+	}
+	if step.Timeout != nil {
+		if hasWorkflow {
+			errs = append(errs, &ValidationError{
+				Code: ErrStepTimeoutOnWorkflow, Workflow: workflowName, Step: stepNumber,
+				Message: fmt.Sprintf("workflow %q %s step %d declares timeout on a workflow reference; timeout is only valid for run steps", workflowName, hookName, stepNumber),
+			})
+		} else if _, err := parsePolicyDuration(*step.Timeout); err != nil {
+			errs = append(errs, &ValidationError{
+				Code: ErrInvalidStepTimeout, Workflow: workflowName, Step: stepNumber,
+				Message: fmt.Sprintf("workflow %q %s step %d timeout %v", workflowName, hookName, stepNumber, err),
+			})
+		}
+	}
 	return errs
 }
 
