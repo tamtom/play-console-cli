@@ -81,7 +81,7 @@ func LocalesCommand() *ffcli.Command {
 				Total:   len(locales),
 			}
 
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

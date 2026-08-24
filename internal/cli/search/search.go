@@ -108,7 +108,7 @@ Examples:
 			}
 
 			response := Commands(commands(), strings.Join(args, " "), *limit)
-			return shared.PrintOutput(response, outputFlags.Format(), outputFlags.IsPretty())
+			return shared.PrintOutputContext(ctx, response, outputFlags.Format(), outputFlags.IsPretty())
 		},
 	}
 }

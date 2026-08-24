@@ -75,7 +75,7 @@ func leaderboardsListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list leaderboard configurations", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*gamesconfiguration.LeaderboardConfiguration
 			err = call.Pages(ctx, func(resp *gamesconfiguration.LeaderboardConfigurationListResponse) error {
@@ -85,7 +85,7 @@ func leaderboardsListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list leaderboard configurations", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -120,7 +120,7 @@ func leaderboardsGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get leaderboard configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -167,7 +167,7 @@ func leaderboardsCreateCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("create leaderboard configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -210,7 +210,7 @@ func leaderboardsUpdateCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("update leaderboard configuration", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -243,7 +243,7 @@ func leaderboardsDeleteCommand() *ffcli.Command {
 			if err := service.Configuration.LeaderboardConfigurations.Delete(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("delete leaderboard configuration", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "deleted", "leaderboardId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "deleted", "leaderboardId": *id}, "json", false)
 		},
 	}
 }

@@ -101,7 +101,7 @@ operations.get when --wait is true and prints progress to stderr.`,
 				return shared.WrapGoogleAPIError("upload app binary to Checks", err)
 			}
 			if shared.IsDryRun(ctx) || !*wait {
-				return shared.PrintOutput(op, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, op, *outputFlag, *pretty)
 			}
 
 			report, err := pollOperation(ctx, service, op, *waitTimeout)
@@ -118,12 +118,12 @@ operations.get when --wait is true and prints progress to stderr.`,
 				report = filtered
 			}
 			if reportExceedsThreshold(report, *severityThreshold) {
-				if printErr := shared.PrintOutput(report, *outputFlag, *pretty); printErr != nil {
+				if printErr := shared.PrintOutputContext(ctx, report, *outputFlag, *pretty); printErr != nil {
 					return printErr
 				}
 				return errThresholdExceeded
 			}
-			return shared.PrintOutput(report, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, report, *outputFlag, *pretty)
 		},
 	}
 }
@@ -151,7 +151,7 @@ func pollOperation(ctx context.Context, service *checksclient.Service, op *check
 		if time.Now().After(deadline) {
 			return nil, fmt.Errorf("timed out waiting for Checks analysis after %s", timeout)
 		}
-		fmt.Fprintf(os.Stderr, "Analyzing... (operation: %s)\n", op.Name)
+		fmt.Fprintf(shared.Stderr(ctx), "Analyzing... (operation: %s)\n", op.Name)
 		sleep := delay
 		if remaining := time.Until(deadline); sleep > remaining {
 			sleep = remaining

@@ -147,7 +147,7 @@ func run(ctx context.Context, opts statusOptions) error {
 		if err != nil {
 			return err
 		}
-		if err := shared.PrintOutput(report, "json", opts.pretty); err != nil {
+		if err := shared.PrintOutputContext(ctx, report, "json", opts.pretty); err != nil {
 			return err
 		}
 		if !opts.watch {

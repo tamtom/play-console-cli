@@ -12,6 +12,25 @@ The latest official GitHub release is still [ASC 4.9.0](https://github.com/rorka
 
 No Google account, credentials, Play Console session, or production resource was accessed during this refresh. The only live Google input was the public Android Publisher discovery document.
 
+## Implementation status (2026-08-24)
+
+The policy-safe roadmap in this note is implemented on the parity branch as one
+mergeable delivery. This includes test/account isolation, the lazy command
+catalog and local search, embedded schema inspection and drift checks, injected
+runtime/IO/clock/filesystem/audit seams, rooted symlink-safe writes, workflow
+resilience, local insights, the current official API coverage refresh, and the
+remaining ASC-inspired work:
+
+- deterministic metadata/image plan, apply, receipt, reconciliation, and resume;
+- a pinned per-tree-verified transactional `gplay install-skills` command;
+- canonical offline submission readiness plus strict app-content inventory;
+- direct-exec Gradle, signing, and screenshot helpers; and
+- a truthful store-listing experiment boundary with official-API-only winner application.
+
+No implementation uses private Play Console RPCs, cookies, authenticated
+browser automation, or automated legal acceptance. Console-only lifecycle and
+results remain explicit manual handoffs.
+
 ## Immediate safety correction
 
 The first task is not a new feature. It is to close two testing paths that conflict with the owner's explicit requirement that personal or production accounts must never be used for testing.

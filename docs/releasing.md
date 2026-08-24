@@ -72,6 +72,31 @@ gplay details get --package com.example.app --edit <id>
 gplay details update --package com.example.app --edit <id> --contact-email dev@example.com
 ```
 
+### Resumable metadata and image transaction
+
+For a one-shot sync that can recover safely from interruption, use the sealed
+plan/apply/receipt workflow. Plans include local content hashes, remote
+preconditions, an edit expiry, normalized effects, and a canonical SHA-256 plan
+ID. Apply rejects a modified plan, changed local input, or stale remote state.
+
+```bash
+# Review a deterministic plan first
+gplay sync plan --package com.example.app --edit <id> \
+  --dir ./metadata --plan-file .gplay/sync/plan.json
+
+# Apply that exact plan and persist a resumable receipt
+gplay sync apply --plan-file .gplay/sync/plan.json \
+  --receipt-file .gplay/sync/receipt.json
+
+# Or plan, apply, persist, and resume in one command
+gplay sync run --package com.example.app --edit <id> \
+  --dir ./metadata --state-dir .gplay/sync
+```
+
+All remote effects use documented Android Publisher `edits.listings` and
+`edits.images` methods. Global `--dry-run` performs no mutation and writes no
+receipt.
+
 ## Fastlane interop
 
 ```bash
@@ -118,6 +143,43 @@ gplay preflight --list-scanners
 # Bundle size analysis (offline)
 gplay bundles analyze --file app.aab --top-files 20
 gplay bundles compare --base old.aab --candidate new.aab --threshold 2M
+```
+
+The canonical readiness command can run entirely offline and combine the nine
+artifact scanners with listing, screenshot, release-note, and app-content
+inventory checks. It never claims to have read Console-only state.
+
+```bash
+gplay validate --offline --package com.example.app --bundle app.aab \
+  --listings-dir ./metadata --app-content @app-content.json --strict
+
+gplay validate app-content --package com.example.app \
+  --json @app-content.json --strict
+```
+
+The app-content inventory covers privacy/support contacts, ads, reviewer
+access, target audience, content rating, Data Safety, category/tags, initial
+countries, policy declarations, and sensitive-permission declarations.
+
+## Optional local Android helpers
+
+These helpers execute project-owned or Android SDK tools directly without a
+shell and never send data to Google.
+
+```bash
+# One invocation: unit tests, lint, then release AAB
+gplay android build --project . --variant release
+
+# Verify a built artifact locally
+gplay android signing verify --file app-release.aab
+
+# Inspect a keystore without placing the password in process arguments
+GPLAY_KEYSTORE_PASSWORD='...' gplay android signing inspect \
+  --keystore upload.jks --alias upload --password-env GPLAY_KEYSTORE_PASSWORD
+
+# Capture the visible screen into the metadata sync layout
+gplay android screenshots capture --serial emulator-5554 --locale en-US \
+  --type phoneScreenshots --name home --output-dir ./metadata
 ```
 
 ### What preflight scans

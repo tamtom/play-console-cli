@@ -3,7 +3,8 @@ package shared
 import (
 	"encoding/xml"
 	"fmt"
-	"os"
+
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // JUnitTestSuites is the top-level XML element.
@@ -48,7 +49,7 @@ func WriteJUnitReport(suites *JUnitTestSuites, filePath string) error {
 
 	content := xml.Header + string(data) + "\n"
 
-	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
+	if err := rootfs.AtomicWriteFile(filePath, []byte(content), 0o644, 0o755); err != nil {
 		return fmt.Errorf("write JUnit report: %w", err)
 	}
 

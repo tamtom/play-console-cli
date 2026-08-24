@@ -5,7 +5,22 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/tamtom/play-console-cli/internal/audit"
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
+
+type recordingAuditSink struct {
+	entries []audit.Entry
+}
+
+func (s *recordingAuditSink) Enabled() bool { return true }
+func (s *recordingAuditSink) Write(entry audit.Entry) error {
+	s.entries = append(s.entries, entry)
+	return nil
+}
 
 func TestRun_VersionFlag(t *testing.T) {
 	code := Run([]string{"--version"}, "1.0.0")
@@ -36,6 +51,39 @@ func TestRun_VersionFlagOutput(t *testing.T) {
 	}
 	if !bytes.Contains([]byte(output), []byte("1.0.0")) {
 		t.Errorf("expected output to contain '1.0.0', got %q", output)
+	}
+}
+
+func TestRunWithRuntimeInjectsIOClockAndAudit(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	sink := &recordingAuditSink{}
+	wantTime := time.Date(2042, time.March, 4, 5, 6, 7, 0, time.UTC)
+	code := RunWithRuntime([]string{"version"}, "1.2.3", func(rt *cliruntime.Runtime) {
+		rt.WithIO(&stdout, &stderr).
+			WithClock(shared.ClockFunc(func() time.Time { return wantTime })).
+			WithAuditSink(sink)
+	})
+	if code != ExitSuccess {
+		t.Fatalf("exit code = %d", code)
+	}
+	if strings.TrimSpace(stdout.String()) != "1.2.3" || stderr.Len() != 0 {
+		t.Fatalf("injected output = %q, %q", stdout.String(), stderr.String())
+	}
+	if len(sink.entries) != 1 || sink.entries[0].Command != "gplay version" || !sink.entries[0].Timestamp.Equal(wantTime) {
+		t.Fatalf("audit entries = %#v", sink.entries)
+	}
+}
+
+func TestRunWithRuntimeRoutesUsageErrorsToInjectedStderr(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := RunWithRuntime([]string{"workflow", "validate"}, "1.2.3", func(rt *cliruntime.Runtime) {
+		rt.WithIO(&stdout, &stderr).WithAuditSink(nil)
+	})
+	if code != ExitUsage {
+		t.Fatalf("exit code = %d, want %d", code, ExitUsage)
+	}
+	if !strings.Contains(stderr.String(), "workflow name or file path is required") {
+		t.Fatalf("stderr = %q", stderr.String())
 	}
 }
 

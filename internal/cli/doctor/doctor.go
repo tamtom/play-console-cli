@@ -6,6 +6,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
@@ -36,13 +37,13 @@ Examples:
 			}
 			report := Run(ctx, DefaultEnv())
 			if *outputFlag == "text" {
-				printTextReport(report)
+				printTextReport(shared.Stdout(ctx), report)
 				if report.Failures > 0 {
 					return shared.NewReportedError(fmt.Errorf("doctor: %d failure(s), %d warning(s)", report.Failures, report.Warnings))
 				}
 				return nil
 			}
-			if err := shared.PrintOutput(report, *outputFlag, *pretty); err != nil {
+			if err := shared.PrintOutputContext(ctx, report, *outputFlag, *pretty); err != nil {
 				return err
 			}
 			if report.Failures > 0 {
@@ -53,20 +54,20 @@ Examples:
 	}
 }
 
-func printTextReport(r Report) {
-	fmt.Println("gplay doctor")
-	fmt.Println("============")
+func printTextReport(out io.Writer, r Report) {
+	fmt.Fprintln(out, "gplay doctor")
+	fmt.Fprintln(out, "============")
 	for _, c := range r.Checks {
-		fmt.Printf("  [%s] %s", symbol(c.Severity), c.Name)
+		fmt.Fprintf(out, "  [%s] %s", symbol(c.Severity), c.Name)
 		if c.Detail != "" {
-			fmt.Printf(" — %s", c.Detail)
+			fmt.Fprintf(out, " — %s", c.Detail)
 		}
-		fmt.Println()
+		fmt.Fprintln(out)
 		if c.Hint != "" && (c.Severity == SeverityWarn || c.Severity == SeverityFail) {
-			fmt.Printf("         hint: %s\n", c.Hint)
+			fmt.Fprintf(out, "         hint: %s\n", c.Hint)
 		}
 	}
-	fmt.Printf("\nSummary: %d ok / %d warn / %d fail / %d skip\n",
+	fmt.Fprintf(out, "\nSummary: %d ok / %d warn / %d fail / %d skip\n",
 		r.Passed, r.Warnings, r.Failures, r.Skipped)
 }
 

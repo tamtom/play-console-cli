@@ -99,7 +99,7 @@ Examples:
 				"dryRun":  *dryRun,
 				"status":  "pushed",
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -118,10 +118,10 @@ func executePush(ctx context.Context, api *androidpublisher.Service, packageName
 
 	if dryRun {
 		for _, l := range listings {
-			fmt.Fprintf(os.Stderr, "[DRY RUN] Would update %s: title=%q, short_description=%q, full_description=%q\n",
+			fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Would update %s: title=%q, short_description=%q, full_description=%q\n",
 				l.locale, l.title, truncate(l.shortDescription, 40), truncate(l.fullDescription, 40))
 		}
-		fmt.Fprintf(os.Stderr, "[DRY RUN] Would push %d locales (no changes made)\n", len(listings))
+		fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Would push %d locales (no changes made)\n", len(listings))
 		return nil
 	}
 
@@ -151,7 +151,7 @@ func executePush(ctx context.Context, api *androidpublisher.Service, packageName
 		return fmt.Errorf("failed to commit edit: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Pushed %d locales\n", len(listings))
+	fmt.Fprintf(shared.Stderr(ctx), "Pushed %d locales\n", len(listings))
 	return nil
 }
 

@@ -71,7 +71,7 @@ func AppsListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list Checks apps", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*checksapi.GoogleChecksAccountV1alphaApp
 			err = call.Pages(ctx, func(resp *checksapi.GoogleChecksAccountV1alphaListAppsResponse) error {
@@ -81,7 +81,7 @@ func AppsListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks apps", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -124,7 +124,7 @@ func AppsGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get Checks app", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

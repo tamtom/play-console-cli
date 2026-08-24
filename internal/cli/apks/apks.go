@@ -83,7 +83,7 @@ func UploadCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload APK", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -125,7 +125,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -196,7 +196,7 @@ JSON format:
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to add externally hosted APK", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

@@ -142,3 +142,108 @@ func TestRootAtomicWriteFromStreamsContents(t *testing.T) {
 		t.Fatalf("escape error = %v, want ErrEscapesRoot", err)
 	}
 }
+
+func TestRootOpenReadStreamsRegularFileAndRejectsSymlink(t *testing.T) {
+	rootDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(rootDir, "asset.png"), []byte("image"), 0o644); err != nil {
+		t.Fatalf("write asset: %v", err)
+	}
+	root, err := Open(rootDir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = root.Close() }()
+
+	file, err := root.OpenRead("asset.png")
+	if err != nil {
+		t.Fatalf("OpenRead regular file: %v", err)
+	}
+	data, err := io.ReadAll(file)
+	_ = file.Close()
+	if err != nil || string(data) != "image" {
+		t.Fatalf("read regular file = %q, %v", data, err)
+	}
+
+	outside := filepath.Join(t.TempDir(), "outside.png")
+	if err := os.WriteFile(outside, []byte("outside"), 0o644); err != nil {
+		t.Fatalf("write outside: %v", err)
+	}
+	if err := os.Symlink(outside, filepath.Join(rootDir, "linked.png")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := root.OpenRead("linked.png"); !errors.Is(err, ErrSymlink) {
+		t.Fatalf("OpenRead symlink error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestRootReadDirListsRootedDirectoryAndRejectsSymlink(t *testing.T) {
+	rootDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(rootDir, "images"), 0o755); err != nil {
+		t.Fatalf("mkdir images: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(rootDir, "images", "01.png"), []byte("image"), 0o644); err != nil {
+		t.Fatalf("write image: %v", err)
+	}
+	root, err := Open(rootDir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = root.Close() }()
+	entries, err := root.ReadDir("images")
+	if err != nil || len(entries) != 1 || entries[0].Name() != "01.png" {
+		t.Fatalf("ReadDir = %#v, %v", entries, err)
+	}
+
+	if err := os.Symlink(filepath.Join(rootDir, "images"), filepath.Join(rootDir, "linked")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := root.ReadDir("linked"); !errors.Is(err, ErrSymlink) {
+		t.Fatalf("ReadDir symlink error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestRootAppendWritesRecordsAndRejectsSymlink(t *testing.T) {
+	rootDir := t.TempDir()
+	root, err := Open(rootDir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = root.Close() }()
+	if err := root.Append("logs/audit.log", []byte("one\n"), 0o600); err != nil {
+		t.Fatalf("first Append: %v", err)
+	}
+	if err := root.Append("logs/audit.log", []byte("two\n"), 0o600); err != nil {
+		t.Fatalf("second Append: %v", err)
+	}
+	data, err := root.ReadFile("logs/audit.log")
+	if err != nil || string(data) != "one\ntwo\n" {
+		t.Fatalf("appended data = %q, %v", data, err)
+	}
+
+	outside := filepath.Join(t.TempDir(), "outside.log")
+	if err := os.WriteFile(outside, []byte("outside"), 0o600); err != nil {
+		t.Fatalf("write outside: %v", err)
+	}
+	if err := os.Symlink(outside, filepath.Join(rootDir, "linked.log")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if err := root.Append("linked.log", []byte("unsafe"), 0o600); !errors.Is(err, ErrSymlink) {
+		t.Fatalf("Append symlink error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestRootCheckWritableLeavesNoProbeFile(t *testing.T) {
+	rootDir := t.TempDir()
+	root, err := Open(rootDir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = root.Close() }()
+	if err := root.CheckWritable(); err != nil {
+		t.Fatalf("CheckWritable: %v", err)
+	}
+	entries, err := os.ReadDir(rootDir)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("probe leftovers = %#v, %v", entries, err)
+	}
+}

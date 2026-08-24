@@ -85,7 +85,7 @@ Only the supplied JSON is sent. Example: {"cliVersion":"1.0.0","localScanPath":"
 			if err != nil {
 				return shared.WrapGoogleAPIError("generate Checks repository scan", err)
 			}
-			return shared.PrintOutput(resp, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
 		},
 	}
 }
@@ -114,7 +114,7 @@ func RepoScanGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get Checks repository scan", err)
 			}
-			return shared.PrintOutput(resp, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
 		},
 	}
 }
@@ -150,7 +150,7 @@ func RepoScanListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list Checks repository scans", err)
 				}
-				return shared.PrintOutput(resp, *f.output, *f.pretty)
+				return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
 			}
 			var scans []*checksapi.GoogleChecksRepoScanV1alphaRepoScan
 			err = call.Pages(ctx, func(resp *checksapi.GoogleChecksRepoScanV1alphaListRepoScansResponse) error {
@@ -160,7 +160,7 @@ func RepoScanListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks repository scans", err)
 			}
-			return shared.PrintOutput(scans, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, scans, *f.output, *f.pretty)
 		},
 	}
 }
@@ -189,7 +189,7 @@ func RepoOperationGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get Checks repository operation", err)
 			}
-			return shared.PrintOutput(resp, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
 		},
 	}
 }

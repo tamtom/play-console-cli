@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -67,17 +66,17 @@ Example:
 			}
 
 			// Step 1: Create edit
-			fmt.Fprintf(os.Stderr, "Creating edit...\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Creating edit...\n")
 			editCtx, editCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			edit, err := service.API.Edits.Insert(pkg, &androidpublisher.AppEdit{}).Context(editCtx).Do()
 			editCancel()
 			if err != nil {
 				return fmt.Errorf("failed to create edit: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "Edit created: %s\n", edit.Id)
+			fmt.Fprintf(shared.Stderr(ctx), "Edit created: %s\n", edit.Id)
 
 			// Step 2: Get source track
-			fmt.Fprintf(os.Stderr, "Getting source track: %s\n", *fromTrack)
+			fmt.Fprintf(shared.Stderr(ctx), "Getting source track: %s\n", *fromTrack)
 			getCtx, getCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			sourceTrack, err := service.API.Edits.Tracks.Get(pkg, edit.Id, *fromTrack).Context(getCtx).Do()
 			getCancel()
@@ -97,10 +96,10 @@ Example:
 				return fmt.Errorf("no active release found in %s track", *fromTrack)
 			}
 
-			fmt.Fprintf(os.Stderr, "Found release with version codes: %v\n", sourceRelease.VersionCodes)
+			fmt.Fprintf(shared.Stderr(ctx), "Found release with version codes: %v\n", sourceRelease.VersionCodes)
 
 			// Step 3: Configure destination track
-			fmt.Fprintf(os.Stderr, "Configuring destination track: %s\n", *toTrack)
+			fmt.Fprintf(shared.Stderr(ctx), "Configuring destination track: %s\n", *toTrack)
 
 			newRelease := &androidpublisher.TrackRelease{
 				Status:       *status,
@@ -139,20 +138,20 @@ Example:
 			if err != nil {
 				return fmt.Errorf("failed to update destination track: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "Destination track configured\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Destination track configured\n")
 
 			// Step 4: Validate
-			fmt.Fprintf(os.Stderr, "Validating edit...\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Validating edit...\n")
 			validateCtx, validateCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			_, err = service.API.Edits.Validate(pkg, edit.Id).Context(validateCtx).Do()
 			validateCancel()
 			if err != nil {
 				return fmt.Errorf("validation failed: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "Edit validated\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Edit validated\n")
 
 			// Step 5: Commit
-			fmt.Fprintf(os.Stderr, "Committing edit...\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Committing edit...\n")
 			commitCtx, commitCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 			commitCall := service.API.Edits.Commit(pkg, edit.Id).Context(commitCtx)
 			if *changesNotSent {
@@ -163,7 +162,7 @@ Example:
 			if err != nil {
 				return fmt.Errorf("commit failed: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "Edit committed successfully\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Edit committed successfully\n")
 
 			// Output result
 			result := map[string]interface{}{
@@ -178,7 +177,7 @@ Example:
 				result["rolloutFraction"] = newRelease.UserFraction
 			}
 
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

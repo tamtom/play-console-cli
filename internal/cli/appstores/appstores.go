@@ -99,7 +99,7 @@ func CreateAppCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(map[string]any{"created": true, "appStorePackageName": *c.storePackage, "packageName": *pkg}, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"created": true, "appStorePackageName": *c.storePackage, "packageName": *pkg}, *c.output, *c.pretty)
 		},
 	}
 }
@@ -141,7 +141,7 @@ JSON example: {"packageName":"app.example","activeApks":{},"activeLocalizedStore
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(map[string]any{"updated": true, "appStorePackageName": *c.storePackage, "packageName": req.PackageName}, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"updated": true, "appStorePackageName": *c.storePackage, "packageName": req.PackageName}, *c.output, *c.pretty)
 		},
 	}
 }
@@ -179,7 +179,7 @@ func PublishStatusCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(map[string]any{"updated": true, "packageName": *pkg, "publishState": stateValue}, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"updated": true, "packageName": *pkg, "publishState": stateValue}, *c.output, *c.pretty)
 		},
 	}
 }
@@ -242,7 +242,7 @@ func uploadCommand(kind uploadKind) *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 		},
 	}
 }
@@ -295,7 +295,7 @@ func RecentAppViewCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 		},
 	}
 }
@@ -338,7 +338,7 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 				if err != nil {
 					return err
 				}
-				return shared.PrintOutput(result, *c.output, *c.pretty)
+				return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 			}
 			var events []*androidpublisher.RecentUpdateEvent
 			err = call.Pages(ctx, func(page *androidpublisher.ListRecentUpdateEventsResponse) error {
@@ -348,7 +348,7 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(events, *c.output, *c.pretty)
+			return shared.PrintOutputContext(ctx, events, *c.output, *c.pretty)
 		},
 	}
 }

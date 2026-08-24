@@ -51,7 +51,7 @@ func ListCommand(rt *cliruntime.Runtime) *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list accessible apps", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 
 			var apps []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1App
@@ -71,7 +71,7 @@ func ListCommand(rt *cliruntime.Runtime) *ffcli.Command {
 				}
 				pageToken = resp.NextPageToken
 			}
-			return shared.PrintOutput(apps, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, apps, *outputFlag, *pretty)
 		},
 	}
 }

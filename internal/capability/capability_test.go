@@ -60,4 +60,7 @@ func TestCatalogIncludesNewOfficialAPIFamiliesAndSigningBoundary(t *testing.T) {
 	if byID["app.standard_signing_enrollment"].Status != StatusManual {
 		t.Errorf("standard signing must remain manual")
 	}
+	if experiment := byID["app.store_listing_experiments"]; experiment.Status != StatusManual || experiment.Command != "gplay experiments" {
+		t.Errorf("store listing experiment boundary = %#v", experiment)
+	}
 }

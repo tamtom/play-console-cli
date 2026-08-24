@@ -107,7 +107,7 @@ reference to an expansion file from another APK version.`,
 			if err != nil {
 				return shared.WrapGoogleAPIError("update expansion file", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -157,7 +157,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -219,7 +219,7 @@ func UploadCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload expansion file", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -281,7 +281,7 @@ without re-uploading it.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

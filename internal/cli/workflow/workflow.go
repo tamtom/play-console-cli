@@ -155,18 +155,18 @@ Examples:
 			result, err := wf.ExecuteDefinition(ctx, def, selectedName, paramMap, wf.ExecuteOptions{
 				DryRun: *dryRun,
 				Resume: *resume,
-				Stdout: os.Stderr,
-				Stderr: os.Stderr,
+				Stdout: shared.Stderr(ctx),
+				Stderr: shared.Stderr(ctx),
 			})
 			if err != nil {
 				if result != nil {
-					_ = printJSON(os.Stdout, result, *pretty)
+					_ = printJSON(shared.Stdout(ctx), result, *pretty)
 					return shared.NewReportedError(err)
 				}
 				return fmt.Errorf("workflow run: %w", err)
 			}
 
-			return printJSON(os.Stdout, result, *pretty)
+			return printJSON(shared.Stdout(ctx), result, *pretty)
 		},
 	}
 }
@@ -186,7 +186,7 @@ Examples:
   gplay workflow validate ./release.json`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
-		Exec: func(_ context.Context, args []string) error {
+		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return shared.UsageError("workflow name or file path is required")
 			}
@@ -210,7 +210,7 @@ Examples:
 				Errors: errs,
 			}
 
-			if printErr := printJSON(os.Stdout, result, *pretty); printErr != nil {
+			if printErr := printJSON(shared.Stdout(ctx), result, *pretty); printErr != nil {
 				return printErr
 			}
 			if !result.Valid {
@@ -237,7 +237,7 @@ Examples:
   gplay workflow list --dir ./workflows`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
-		Exec: func(_ context.Context, args []string) error {
+		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
 				return shared.UsageErrorf("unexpected argument(s): %s", strings.Join(args, " "))
 			}
@@ -245,7 +245,7 @@ Examples:
 			entries, err := os.ReadDir(*dir)
 			if err != nil {
 				if os.IsNotExist(err) {
-					return printJSON(os.Stdout, []any{}, *pretty)
+					return printJSON(shared.Stdout(ctx), []any{}, *pretty)
 				}
 				return fmt.Errorf("workflow list: %w", err)
 			}
@@ -267,7 +267,7 @@ Examples:
 				filePath := filepath.Join(*dir, entry.Name())
 				def, err := wf.LoadDefinition(filePath)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "warning: skipping %s: %v\n", entry.Name(), err)
+					fmt.Fprintf(shared.Stderr(ctx), "warning: skipping %s: %v\n", entry.Name(), err)
 					continue
 				}
 
@@ -290,7 +290,7 @@ Examples:
 				return workflows[i].Name < workflows[j].Name
 			})
 
-			return printJSON(os.Stdout, workflows, *pretty)
+			return printJSON(shared.Stdout(ctx), workflows, *pretty)
 		},
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
+	"github.com/tamtom/play-console-cli/internal/cli/androidtools"
 	"github.com/tamtom/play-console-cli/internal/cli/apks"
 	"github.com/tamtom/play-console-cli/internal/cli/apps"
 	"github.com/tamtom/play-console-cli/internal/cli/appsigning"
@@ -29,6 +30,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/doctor"
 	"github.com/tamtom/play-console-cli/internal/cli/edits"
 	"github.com/tamtom/play-console-cli/internal/cli/expansion"
+	"github.com/tamtom/play-console-cli/internal/cli/experiments"
 	"github.com/tamtom/play-console-cli/internal/cli/externaltx"
 	"github.com/tamtom/play-console-cli/internal/cli/games"
 	"github.com/tamtom/play-console-cli/internal/cli/generatedapks"
@@ -37,6 +39,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/cli/images"
 	"github.com/tamtom/play-console-cli/internal/cli/initcmd"
 	"github.com/tamtom/play-console-cli/internal/cli/insights"
+	"github.com/tamtom/play-console-cli/internal/cli/installskills"
 	"github.com/tamtom/play-console-cli/internal/cli/integrity"
 	"github.com/tamtom/play-console-cli/internal/cli/internalsharing"
 	"github.com/tamtom/play-console-cli/internal/cli/listings"
@@ -89,7 +92,7 @@ func VersionCommand(version string) *ffcli.Command {
 		ShortHelp:  "Print version information and exit.",
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			fmt.Println(version)
+			fmt.Fprintln(shared.Stdout(ctx), version)
 			return nil
 		},
 	}
@@ -120,6 +123,7 @@ func NewCatalog(version string, rt *cliruntime.Runtime) *Catalog {
 	catalog.specs = []CommandSpec{
 		commandSpec("auth", "Manage Google Play authentication.", auth.AuthCommand),
 		commandSpec("setup", "Set up Google Play authentication end-to-end.", auth.SetupCommand),
+		commandSpecWith("android", "Run optional local Android build, signing, and screenshot helpers.", "local", nil, androidtools.Command),
 		commandSpec("apps", "List and manage apps accessible by the service account.", func() *ffcli.Command { return apps.AppsCommand(rt) }),
 		commandSpecWith("app-signing", "Manage enterprise self-hosted Cloud KMS Play App Signing.", "android-publisher-api", []string{"app.enterprise_kms_signing"}, appsigning.Command),
 		commandSpecWith("app-stores", "Operate official APIs for registered third-party Android app stores.", "android-publisher-api", []string{"app.third_party_store"}, appstores.Command),
@@ -127,6 +131,7 @@ func NewCatalog(version string, rt *cliruntime.Runtime) *Catalog {
 		commandSpec("search", "Search commands, examples, flags, capabilities, and canonical intents.", func() *ffcli.Command {
 			return searchcmd.Command(catalog.All)
 		}),
+		commandSpecWith("install-skills", "Install the pinned, verified gplay agent-skill pack.", "local", nil, installskills.Command),
 		commandSpecWith("schema", "Inspect embedded official Google Play API endpoint and type schemas.", "local", nil, schema.Command),
 		commandSpecWith("bootstrap", "Plan policy-safe initial app setup.", "local", []string{"app.create", "app.first_artifact_upload", "app.legal_consents", "app.standard_signing_enrollment"}, bootstrap.Command),
 		commandSpec("audit", "Query and manage the local command audit log.", auditcmd.AuditCommand),
@@ -155,6 +160,7 @@ func NewCatalog(version string, rt *cliruntime.Runtime) *Catalog {
 		commandSpec("promote", "Promote a release from one track to another.", promote.PromoteCommand),
 		commandSpec("rollout", "Manage staged rollouts.", rollout.RolloutCommand),
 		commandSpec("sync", "Sync metadata between local directory and Play Store.", sync.SyncCommand),
+		commandSpecWith("experiments", "Inspect listing-experiment API support and apply a manually selected winner.", "mixed", []string{"app.store_listing_experiments"}, experiments.Command),
 		commandSpec("validate", "Canonical Google Play release-readiness report.", validate.ValidateCommand),
 		commandSpecWith("verification", "Check official Android developer package-registration status.", "android-developer-id-status-api", []string{"app.developer_id_status"}, verification.Command),
 		commandSpec("status", "Show a deterministic release-health snapshot.", status.StatusCommand),

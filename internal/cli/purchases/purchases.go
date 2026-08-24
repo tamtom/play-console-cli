@@ -112,7 +112,7 @@ The response includes:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -172,7 +172,7 @@ automatically refunded. Use this for server-side acknowledgement.`,
 				"acknowledged": true,
 				"productId":    *productID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -226,7 +226,7 @@ After consumption, the product can be purchased again.`,
 				"consumed":  true,
 				"productId": *productID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -300,7 +300,7 @@ The v2 API returns enhanced purchase information including:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -384,7 +384,7 @@ refunded. Use this when server-side acknowledgement is required.`,
 				"acknowledged":   true,
 				"subscriptionId": *subscriptionID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -453,7 +453,7 @@ func SubscriptionsV2GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -517,7 +517,7 @@ JSON format:
 				"canceled": true,
 				"token":    *token,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -575,7 +575,7 @@ JSON format:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -639,7 +639,7 @@ JSON format:
 				"revoked": true,
 				"token":   *token,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -686,7 +686,7 @@ The response includes:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -744,7 +744,7 @@ billing period, then will not renew.`,
 				"canceled":       true,
 				"subscriptionId": *subscriptionID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -812,7 +812,7 @@ The new expiry time must be:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -878,7 +878,7 @@ For control over the refund mode, use "gplay purchases subscriptionsv2 revoke".`
 				"revoked":        true,
 				"subscriptionId": *subscriptionID,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -972,7 +972,7 @@ The --type flag filters by voided source:
 					return err
 				}
 				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
+					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.VoidedPurchases...)
 				if resp.TokenPagination == nil || resp.TokenPagination.NextPageToken == "" {
@@ -981,7 +981,7 @@ The --type flag filters by voided source:
 				pageToken = resp.TokenPagination.NextPageToken
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }

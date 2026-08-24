@@ -3,6 +3,7 @@ package cmdtest_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -108,6 +109,10 @@ func runCommand(t *testing.T, args ...string) (stdout, stderr string, err error)
 
 	stdout, stderr = captureOutput(t, func() {
 		err = root.Run(context.Background())
+		var usageErr *shared.CommandUsageError
+		if errors.As(err, &usageErr) {
+			fmt.Fprintln(os.Stderr, usageErr.Error())
+		}
 	})
 	return stdout, stderr, err
 }

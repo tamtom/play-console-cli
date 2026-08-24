@@ -83,7 +83,7 @@ func ReportsListCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list Checks reports", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*checksapi.GoogleChecksReportV1alphaReport
 			err = call.Pages(ctx, func(resp *checksapi.GoogleChecksReportV1alphaListReportsResponse) error {
@@ -93,7 +93,7 @@ func ReportsListCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks reports", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -145,7 +145,7 @@ func ReportsGetCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("get Checks report", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

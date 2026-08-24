@@ -110,7 +110,7 @@ Each request must contain exactly one of:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -189,7 +189,7 @@ any offers associated with the purchase option. Requires --confirm.`,
 			result := map[string]interface{}{
 				"deleted": true,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

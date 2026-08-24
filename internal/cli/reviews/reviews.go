@@ -89,7 +89,7 @@ Examples:
 				if err != nil {
 					return err
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 
 			var all []*androidpublisher.Review
@@ -109,7 +109,7 @@ Examples:
 				}
 				index += int64(len(resp.Reviews))
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -148,7 +148,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -196,7 +196,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

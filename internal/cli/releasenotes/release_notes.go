@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -80,11 +79,11 @@ func runGenerate(ctx context.Context, opts generateOpts) error {
 	sinceRef := strings.TrimSpace(opts.sinceRef)
 
 	if sinceTag != "" && sinceRef != "" {
-		fmt.Fprintln(os.Stderr, "Error: --since-tag and --since-ref are mutually exclusive")
+		fmt.Fprintln(shared.Stderr(ctx), "Error: --since-tag and --since-ref are mutually exclusive")
 		return flag.ErrHelp
 	}
 	if sinceTag == "" && sinceRef == "" {
-		fmt.Fprintln(os.Stderr, "Error: one of --since-tag or --since-ref is required")
+		fmt.Fprintln(shared.Stderr(ctx), "Error: one of --since-tag or --since-ref is required")
 		return flag.ErrHelp
 	}
 
@@ -108,5 +107,5 @@ func runGenerate(ctx context.Context, opts generateOpts) error {
 		Commits:      commits,
 	}
 
-	return shared.PrintOutput(result, opts.outputFlag, false)
+	return shared.PrintOutputContext(ctx, result, opts.outputFlag, false)
 }

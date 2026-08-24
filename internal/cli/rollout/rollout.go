@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -157,7 +156,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	}
 
 	// Step 1: Create edit
-	fmt.Fprintf(os.Stderr, "Creating edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Creating edit...\n")
 	editCtx, editCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	edit, err := service.API.Edits.Insert(pkg, &androidpublisher.AppEdit{}).Context(editCtx).Do()
 	editCancel()
@@ -166,7 +165,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	}
 
 	// Step 2: Get current track
-	fmt.Fprintf(os.Stderr, "Getting current track state...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Getting current track state...\n")
 	getCtx, getCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	currentTrack, err := service.API.Edits.Tracks.Get(pkg, edit.Id, track).Context(getCtx).Do()
 	getCancel()
@@ -187,7 +186,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	}
 
 	// Step 3: Update release status
-	fmt.Fprintf(os.Stderr, "Updating rollout status to: %s\n", status)
+	fmt.Fprintf(shared.Stderr(ctx), "Updating rollout status to: %s\n", status)
 
 	targetRelease.Status = status
 	if rolloutFraction > 0 && rolloutFraction < 1 {
@@ -210,7 +209,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	}
 
 	// Step 4: Validate
-	fmt.Fprintf(os.Stderr, "Validating edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Validating edit...\n")
 	validateCtx, validateCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	_, err = service.API.Edits.Validate(pkg, edit.Id).Context(validateCtx).Do()
 	validateCancel()
@@ -219,7 +218,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	}
 
 	// Step 5: Commit
-	fmt.Fprintf(os.Stderr, "Committing edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Committing edit...\n")
 	commitCtx, commitCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	commitCall := service.API.Edits.Commit(pkg, edit.Id).Context(commitCtx)
 	if changesNotSent {
@@ -230,7 +229,7 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 	if err != nil {
 		return fmt.Errorf("commit failed: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Rollout updated successfully\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Rollout updated successfully\n")
 
 	// Output result
 	result := map[string]interface{}{
@@ -244,5 +243,5 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 		result["rolloutFraction"] = targetRelease.UserFraction
 	}
 
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }

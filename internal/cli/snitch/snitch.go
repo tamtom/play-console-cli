@@ -19,6 +19,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 const (
@@ -124,7 +125,7 @@ Examples:
 				Actual:       strings.TrimSpace(*actual),
 				Labels:       append([]string(nil), labels...),
 				Severity:     sev,
-				Timestamp:    time.Now().UTC(),
+				Timestamp:    shared.Now(ctx).UTC(),
 				GplayVersion: version,
 				OS:           fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 				GoVersion:    runtime.Version(),
@@ -138,7 +139,7 @@ Examples:
 					if strings.Contains(err.Error(), "flag") {
 						return err
 					}
-					fmt.Fprintf(os.Stderr, "Warning: %v; continuing without preflight label validation.\n", err)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: %v; continuing without preflight label validation.\n", err)
 					entry.Labels = dedupeLabels(entry.Labels)
 				} else {
 					entry.Labels = validatedLabels
@@ -146,7 +147,7 @@ Examples:
 			}
 
 			if *local && !*dryRun {
-				return writeLocalLog(entry)
+				return writeLocalLog(entry, shared.Stderr(ctx))
 			}
 
 			var duplicates []GitHubIssue
@@ -154,16 +155,16 @@ Examples:
 				var err error
 				duplicates, err = searchIssues(ctx, token, issueTitle(entry))
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: duplicate search failed: %v\n", err)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: duplicate search failed: %v\n", err)
 				}
 			} else {
-				fmt.Fprintln(os.Stderr, "Note: skipping duplicate search because GITHUB_TOKEN or GH_TOKEN is not set.")
+				fmt.Fprintln(shared.Stderr(ctx), "Note: skipping duplicate search because GITHUB_TOKEN or GH_TOKEN is not set.")
 			}
 
-			printPotentialDuplicates(duplicates)
+			printPotentialDuplicates(shared.Stderr(ctx), duplicates)
 
 			if *dryRun || !*confirm {
-				printPreview(entry, *dryRun)
+				printPreview(shared.Stderr(ctx), entry, *dryRun)
 				return nil
 			}
 
@@ -177,17 +178,17 @@ Examples:
 			}
 			if labels := issueLabels(entry); len(labels) > 0 {
 				if err := addIssueLabels(ctx, token, issue.Number, labels); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: issue created, but labels could not be applied: %v\n", err)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: issue created, but labels could not be applied: %v\n", err)
 				}
 			}
 
-			fmt.Fprintf(os.Stderr, "Issue created: #%d %s\n", issue.Number, issue.HTMLURL)
+			fmt.Fprintf(shared.Stderr(ctx), "Issue created: #%d %s\n", issue.Number, issue.HTMLURL)
 			result := map[string]any{
 				"number":   issue.Number,
 				"html_url": issue.HTMLURL,
 				"title":    issue.Title,
 			}
-			return json.NewEncoder(os.Stdout).Encode(result)
+			return json.NewEncoder(shared.Stdout(ctx)).Encode(result)
 		},
 	}
 }
@@ -223,7 +224,7 @@ Examples:
 
 			entries, err := readLocalLog(path)
 			if os.IsNotExist(err) {
-				fmt.Fprintln(os.Stderr, "No local snitch entries found.")
+				fmt.Fprintln(shared.Stderr(ctx), "No local snitch entries found.")
 				return nil
 			}
 			if err != nil {
@@ -231,11 +232,11 @@ Examples:
 			}
 
 			if len(entries) == 0 {
-				fmt.Fprintln(os.Stderr, "No local snitch entries found.")
+				fmt.Fprintln(shared.Stderr(ctx), "No local snitch entries found.")
 				return nil
 			}
 
-			fmt.Fprint(os.Stdout, formatLocalEntries(entries))
+			fmt.Fprint(shared.Stdout(ctx), formatLocalEntries(entries))
 			return nil
 		},
 	}
@@ -334,29 +335,29 @@ func issueLabels(e LogEntry) []string {
 	return dedupeLabels(labels)
 }
 
-func printPotentialDuplicates(duplicates []GitHubIssue) {
+func printPotentialDuplicates(out io.Writer, duplicates []GitHubIssue) {
 	if len(duplicates) == 0 {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "Potentially related issues (%d):\n", len(duplicates))
+	fmt.Fprintf(out, "Potentially related issues (%d):\n", len(duplicates))
 	for _, dup := range duplicates {
-		fmt.Fprintf(os.Stderr, "  #%d %s\n       %s\n", dup.Number, dup.Title, dup.HTMLURL)
+		fmt.Fprintf(out, "  #%d %s\n       %s\n", dup.Number, dup.Title, dup.HTMLURL)
 	}
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(out)
 }
 
-func printPreview(entry LogEntry, dryRun bool) {
+func printPreview(out io.Writer, entry LogEntry, dryRun bool) {
 	if dryRun {
-		fmt.Fprintln(os.Stderr, "--- Dry run: would create issue ---")
+		fmt.Fprintln(out, "--- Dry run: would create issue ---")
 	} else {
-		fmt.Fprintln(os.Stderr, "--- Preview only: rerun with --confirm to create issue ---")
+		fmt.Fprintln(out, "--- Preview only: rerun with --confirm to create issue ---")
 	}
-	fmt.Fprintf(os.Stderr, "Title: %s\n", issueTitle(entry))
+	fmt.Fprintf(out, "Title: %s\n", issueTitle(entry))
 	if labels := issueLabels(entry); len(labels) > 0 {
-		fmt.Fprintf(os.Stderr, "Labels: %s\n", strings.Join(labels, ", "))
+		fmt.Fprintf(out, "Labels: %s\n", strings.Join(labels, ", "))
 	}
-	fmt.Fprintf(os.Stderr, "Body:\n%s\n", issueBody(entry))
+	fmt.Fprintf(out, "Body:\n%s\n", issueBody(entry))
 }
 
 func dedupeLabels(labels []string) []string {
@@ -670,11 +671,13 @@ func readGitHubAPIError(resp *http.Response) error {
 	return fmt.Errorf("GitHub returned %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 }
 
-func writeLocalLog(entry LogEntry) error {
+func writeLocalLog(entry LogEntry, stderr io.Writer) error {
 	dir := ".gplay"
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	root, err := rootfs.OpenOrCreate(dir, 0o700)
+	if err != nil {
 		return fmt.Errorf("snitch: failed to create %s: %w", dir, err)
 	}
+	defer func() { _ = root.Close() }()
 
 	path := filepath.Join(dir, "snitch.log")
 
@@ -682,21 +685,10 @@ func writeLocalLog(entry LogEntry) error {
 	if err != nil {
 		return fmt.Errorf("snitch: failed to marshal entry: %w", err)
 	}
-
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		return fmt.Errorf("snitch: failed to open %s: %w", path, err)
-	}
-	defer f.Close()
-
-	if err := f.Chmod(0o600); err != nil {
-		return fmt.Errorf("snitch: failed to set secure permissions on %s: %w", path, err)
-	}
-
-	if _, err := f.Write(append(data, '\n')); err != nil {
+	if err := root.Append("snitch.log", append(data, '\n'), 0o600); err != nil {
 		return fmt.Errorf("snitch: failed to write entry: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Friction logged to %s\n", path)
+	fmt.Fprintf(stderr, "Friction logged to %s\n", path)
 	return nil
 }

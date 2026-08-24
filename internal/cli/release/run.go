@@ -44,21 +44,21 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		return nil, fmt.Errorf("--package is required")
 	}
 
-	fmt.Fprintf(os.Stderr, "Creating edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Creating edit...\n")
 	editCtx, editCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	edit, err := service.API.Edits.Insert(pkg, &androidpublisher.AppEdit{}).Context(editCtx).Do()
 	editCancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create edit: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Edit created: %s\n", edit.Id)
+	fmt.Fprintf(shared.Stderr(ctx), "Edit created: %s\n", edit.Id)
 
 	var versionCode int64
 	uploadCtx, uploadCancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 	defer uploadCancel()
 
 	if strings.TrimSpace(opts.BundlePath) != "" {
-		fmt.Fprintf(os.Stderr, "Uploading bundle: %s\n", opts.BundlePath)
+		fmt.Fprintf(shared.Stderr(ctx), "Uploading bundle: %s\n", opts.BundlePath)
 		file, err := os.Open(opts.BundlePath)
 		if err != nil {
 			return nil, shared.WrapActionable(err, "failed to open bundle", "Check that the file exists and is readable.")
@@ -72,9 +72,9 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 			return nil, shared.WrapGoogleAPIError("failed to upload bundle", err)
 		}
 		versionCode = bundle.VersionCode
-		fmt.Fprintf(os.Stderr, "Bundle uploaded: version code %d\n", versionCode)
+		fmt.Fprintf(shared.Stderr(ctx), "Bundle uploaded: version code %d\n", versionCode)
 	} else {
-		fmt.Fprintf(os.Stderr, "Uploading APK: %s\n", opts.APKPath)
+		fmt.Fprintf(shared.Stderr(ctx), "Uploading APK: %s\n", opts.APKPath)
 		file, err := os.Open(opts.APKPath)
 		if err != nil {
 			return nil, shared.WrapActionable(err, "failed to open APK", "Check that the file exists and is readable.")
@@ -88,10 +88,10 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 			return nil, shared.WrapGoogleAPIError("failed to upload APK", err)
 		}
 		versionCode = int64(apk.VersionCode)
-		fmt.Fprintf(os.Stderr, "APK uploaded: version code %d\n", versionCode)
+		fmt.Fprintf(shared.Stderr(ctx), "APK uploaded: version code %d\n", versionCode)
 	}
 
-	fmt.Fprintf(os.Stderr, "Configuring track: %s\n", opts.Track)
+	fmt.Fprintf(shared.Stderr(ctx), "Configuring track: %s\n", opts.Track)
 	release := &androidpublisher.TrackRelease{
 		Status:       opts.Status,
 		VersionCodes: []int64{versionCode},
@@ -129,18 +129,18 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to update track: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Track configured\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Track configured\n")
 
-	fmt.Fprintf(os.Stderr, "Validating edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Validating edit...\n")
 	validateCtx, validateCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	_, err = service.API.Edits.Validate(pkg, edit.Id).Context(validateCtx).Do()
 	validateCancel()
 	if err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Edit validated\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Edit validated\n")
 
-	fmt.Fprintf(os.Stderr, "Committing edit...\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Committing edit...\n")
 	commitCtx, commitCancel := shared.ContextWithTimeout(ctx, service.Cfg)
 	commitCall := service.API.Edits.Commit(pkg, edit.Id).Context(commitCtx)
 	if opts.ChangesNotSent {
@@ -151,10 +151,10 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 	if err != nil {
 		return nil, fmt.Errorf("commit failed: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Edit committed successfully\n")
+	fmt.Fprintf(shared.Stderr(ctx), "Edit committed successfully\n")
 
 	if opts.Wait {
-		fmt.Fprintf(os.Stderr, "Waiting for processing to complete (poll interval: %v)...\n", opts.PollInterval)
+		fmt.Fprintf(shared.Stderr(ctx), "Waiting for processing to complete (poll interval: %v)...\n", opts.PollInterval)
 		for {
 			select {
 			case <-ctx.Done():
@@ -164,25 +164,25 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 				checkEdit, err := service.API.Edits.Insert(pkg, &androidpublisher.AppEdit{}).Context(checkCtx).Do()
 				if err != nil {
 					checkCancel()
-					fmt.Fprintf(os.Stderr, "Warning: failed to check status: %v\n", err)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to check status: %v\n", err)
 					continue
 				}
 				trackStatus, err := service.API.Edits.Tracks.Get(pkg, checkEdit.Id, opts.Track).Context(checkCtx).Do()
 				_ = service.API.Edits.Delete(pkg, checkEdit.Id).Context(checkCtx).Do()
 				checkCancel()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to get track status: %v\n", err)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to get track status: %v\n", err)
 					continue
 				}
 				for _, current := range trackStatus.Releases {
 					for _, vc := range current.VersionCodes {
 						if vc == versionCode {
-							fmt.Fprintf(os.Stderr, "Release is live with status: %s\n", current.Status)
+							fmt.Fprintf(shared.Stderr(ctx), "Release is live with status: %s\n", current.Status)
 							goto done
 						}
 					}
 				}
-				fmt.Fprintf(os.Stderr, ".")
+				fmt.Fprintf(shared.Stderr(ctx), ".")
 			}
 		}
 	}

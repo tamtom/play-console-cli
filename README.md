@@ -144,8 +144,14 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 Every command is discoverable via `--help`, outputs token-efficient JSON, and never blocks on a prompt — so agents can drive the whole Play workflow. Install the ready-made skills:
 
 ```bash
-npx skills add tamtom/gplay-cli-skills
+# Inspect the immutable, checksum-verified install plan (no network or writes)
+gplay install-skills --preview
+
+# Install the reviewed skill pack without npm/npx or executing repository code
+gplay install-skills
 ```
+
+The installer pins one reviewed Git commit and verifies every skill tree before an atomic install. Existing skills are never replaced unless `--force` is explicit.
 
 Then ask your agent things like *"release this AAB to internal"*, *"create monthly + yearly subscriptions with a 7-day trial and convert prices for all regions"*, or *"summarize this week's crash clusters"*. Full guide: **[docs/ai-agents.md](docs/ai-agents.md)**
 

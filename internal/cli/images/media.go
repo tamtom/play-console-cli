@@ -242,7 +242,7 @@ func runMediaPlan(ctx context.Context, packageName, editID, dir, locale, outputF
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(plan, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, plan, outputFlag, pretty)
 }
 
 func runMediaPull(ctx context.Context, packageName, editID, dir, locale, outputFlag string, pretty bool) error {
@@ -262,7 +262,7 @@ func runMediaPull(ctx context.Context, packageName, editID, dir, locale, outputF
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }
 
 func runMediaSync(ctx context.Context, packageName, editID, dir, locale, outputFlag string, pretty bool) error {
@@ -282,7 +282,7 @@ func runMediaSync(ctx context.Context, packageName, editID, dir, locale, outputF
 	if err != nil {
 		return err
 	}
-	return shared.PrintOutput(result, outputFlag, pretty)
+	return shared.PrintOutputContext(ctx, result, outputFlag, pretty)
 }
 
 type mediaBackendAdapter struct {
@@ -504,9 +504,6 @@ func pullMedia(ctx context.Context, backend mediaBackend, packageName, editID, r
 				if shared.IsDryRun(ctx) {
 					result.Files = append(result.Files, targetPath)
 					continue
-				}
-				if err := os.MkdirAll(targetDir, 0o755); err != nil {
-					return nil, err
 				}
 				if err := downloadRemote(ctx, remote.URL, targetPath); err != nil {
 					return nil, err

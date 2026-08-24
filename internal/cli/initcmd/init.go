@@ -2,6 +2,7 @@ package initcmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
-	"github.com/tamtom/play-console-cli/internal/output"
+	"github.com/tamtom/play-console-cli/internal/rootfs"
 )
 
 // InitCommand returns the init command.
@@ -29,24 +30,26 @@ func InitCommand() *ffcli.Command {
 		Exec: func(ctx context.Context, args []string) error {
 			configDir := ".gplay"
 			configPath := filepath.Join(configDir, "config.yaml")
+			configRoot, err := rootfs.OpenOrCreate(configDir, 0o700)
+			if err != nil {
+				return fmt.Errorf("creating config directory: %w", err)
+			}
+			defer func() { _ = configRoot.Close() }()
 
 			// Check if config already exists
 			if !*force {
-				if _, err := os.Stat(configPath); err == nil {
+				if _, err := configRoot.ReadFile("config.yaml"); err == nil {
 					return fmt.Errorf("config already exists at %s (use --force to overwrite)", configPath)
+				} else if !errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("inspect existing config: %w", err)
 				}
 			}
 
 			// Validate service account path if provided
 			if *serviceAccount != "" {
 				if _, err := os.Stat(*serviceAccount); os.IsNotExist(err) {
-					fmt.Fprintf(os.Stderr, "Warning: service account file not found at %s\n", *serviceAccount)
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: service account file not found at %s\n", *serviceAccount)
 				}
-			}
-
-			// Create directory
-			if err := os.MkdirAll(configDir, 0o700); err != nil {
-				return fmt.Errorf("creating config directory: %w", err)
 			}
 
 			// Generate config content
@@ -56,7 +59,7 @@ func InitCommand() *ffcli.Command {
 			}
 			content := generateConfig(pkg, *serviceAccount, *timeout)
 
-			if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
+			if err := configRoot.AtomicWrite("config.yaml", []byte(content), 0o600); err != nil {
 				return fmt.Errorf("writing config: %w", err)
 			}
 
@@ -70,13 +73,13 @@ func InitCommand() *ffcli.Command {
 				Package:    pkg,
 			}
 
-			if err := output.PrintJSON(result); err != nil {
+			if err := shared.PrintOutputContext(ctx, result, "json", false); err != nil {
 				return err
 			}
 
-			fmt.Fprintln(os.Stderr, "\nNext steps:")
-			fmt.Fprintln(os.Stderr, "  gplay auth login --service-account /path/to/key.json --local")
-			fmt.Fprintln(os.Stderr, "  gplay auth doctor")
+			fmt.Fprintln(shared.Stderr(ctx), "\nNext steps:")
+			fmt.Fprintln(shared.Stderr(ctx), "  gplay auth login --service-account /path/to/key.json --local")
+			fmt.Fprintln(shared.Stderr(ctx), "  gplay auth doctor")
 
 			return nil
 		},

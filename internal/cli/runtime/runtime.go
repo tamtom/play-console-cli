@@ -3,7 +3,9 @@ package runtime
 import (
 	"context"
 	"flag"
+	"io"
 
+	"github.com/tamtom/play-console-cli/internal/audit"
 	"github.com/tamtom/play-console-cli/internal/checksclient"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/customappsclient"
@@ -26,12 +28,28 @@ type Runtime struct {
 	newGCSService        gcsclient.ServiceFactory
 	newChecksService     checksclient.ServiceFactory
 	newIntegrityService  integrityclient.ServiceFactory
+	clock                shared.Clock
+	stdout               io.Writer
+	stderr               io.Writer
+	auditSink            AuditSink
+	filesystem           shared.Filesystem
 }
+
+// AuditSink receives completed command audit entries.
+type AuditSink interface {
+	Enabled() bool
+	Write(audit.Entry) error
+}
+
+type productionAuditSink struct{}
+
+func (productionAuditSink) Enabled() bool                 { return audit.Enabled() }
+func (productionAuditSink) Write(entry audit.Entry) error { return audit.Write(entry) }
 
 // NewDetached constructs a runtime for command packages that do not need root
 // flag binding but still want shared client factories.
 func NewDetached() *Runtime {
-	return &Runtime{}
+	return &Runtime{auditSink: productionAuditSink{}}
 }
 
 // WithPlayServiceFactory returns rt configured with a context-scoped Android
@@ -78,6 +96,42 @@ func (rt *Runtime) WithIntegrityServiceFactory(factory integrityclient.ServiceFa
 	return rt
 }
 
+// WithClock returns rt configured with a command-scoped time source.
+func (rt *Runtime) WithClock(clock shared.Clock) *Runtime {
+	rt = Ensure(rt)
+	rt.clock = clock
+	return rt
+}
+
+// WithIO returns rt configured with command-scoped output streams.
+func (rt *Runtime) WithIO(stdout, stderr io.Writer) *Runtime {
+	rt = Ensure(rt)
+	rt.stdout = stdout
+	rt.stderr = stderr
+	return rt
+}
+
+// WithAuditSink returns rt configured with a command audit destination.
+func (rt *Runtime) WithAuditSink(sink AuditSink) *Runtime {
+	rt = Ensure(rt)
+	rt.auditSink = sink
+	return rt
+}
+
+// WithFilesystem returns rt configured with a command-scoped durable file
+// boundary.
+func (rt *Runtime) WithFilesystem(filesystem shared.Filesystem) *Runtime {
+	rt = Ensure(rt)
+	rt.filesystem = filesystem
+	return rt
+}
+
+// AuditSink returns the configured audit destination.
+func (rt *Runtime) AuditSink() AuditSink {
+	rt = Ensure(rt)
+	return rt.auditSink
+}
+
 // NewRoot constructs a runtime and binds root-level flags to the provided
 // FlagSet.
 func NewRoot(fs *flag.FlagSet) *Runtime {
@@ -99,6 +153,15 @@ func Ensure(rt *Runtime) *Runtime {
 // ApplyRootContext applies root flag side effects and returns the derived
 // execution context.
 func (rt *Runtime) ApplyRootContext(ctx context.Context) (context.Context, error) {
+	if rt != nil && rt.clock != nil {
+		ctx = shared.ContextWithClock(ctx, rt.clock)
+	}
+	if rt != nil && (rt.stdout != nil || rt.stderr != nil) {
+		ctx = shared.ContextWithIO(ctx, rt.stdout, rt.stderr)
+	}
+	if rt != nil && rt.filesystem != nil {
+		ctx = shared.ContextWithFilesystem(ctx, rt.filesystem)
+	}
 	if rt != nil && rt.newPlayService != nil {
 		ctx = playclient.ContextWithServiceFactory(ctx, rt.newPlayService)
 	}

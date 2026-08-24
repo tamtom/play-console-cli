@@ -100,7 +100,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -167,7 +167,7 @@ Examples:
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload image", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -238,7 +238,7 @@ func DeleteCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(nil, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, nil, *outputFlag, *pretty)
 		},
 	}
 }
@@ -290,7 +290,7 @@ func DeleteAllCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

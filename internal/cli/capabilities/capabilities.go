@@ -61,7 +61,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(items, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, items, *outputFlag, *pretty)
 		},
 	}
 }

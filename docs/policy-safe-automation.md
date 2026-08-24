@@ -35,3 +35,25 @@ production Play Console account is required or permitted for these tests.
 
 Any separately enabled integration test for an existing official API must use a
 dedicated test resource and explicit opt-in. It is not part of bootstrap testing.
+
+## Store-listing experiments
+
+Google's reviewed public Android Publisher discovery document currently has no
+store-listing experiment lifecycle or results resource. `gplay experiments
+support` reports that boundary offline from the checked-in schema. Creating an
+experiment, reading its measurements, and choosing a winner therefore remain a
+manual Play Console workflow.
+
+After a person chooses the winner, `gplay experiments apply-winner` can apply
+that winner's local listing text and images through the documented
+`edits.listings` and `edits.images` APIs. It requires the winner name twice and
+uses the sealed, resumable sync transaction. It never reads or infers results,
+uses browser credentials, or calls a private Console interface.
+
+## Local-only helpers
+
+`gplay android build`, `gplay android signing`, `gplay android screenshots`,
+`gplay validate --offline`, and `gplay install-skills` operate locally. They do
+not authenticate to Google. The skills installer is pinned to a reviewed Git
+commit, verifies every skill tree, executes no repository code, and installs
+transactionally.

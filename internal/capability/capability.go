@@ -123,6 +123,16 @@ var catalog = []Capability{
 		Stability:   "stable",
 	},
 	{
+		ID:         "app.store_listing_experiments",
+		Intent:     "Create, monitor, and apply store-listing experiments",
+		Command:    "gplay experiments",
+		Status:     StatusManual,
+		Provider:   "mixed",
+		Stability:  "stable",
+		Notes:      "The public Android Publisher discovery document has no experiment lifecycle or results resource. Applying a manually selected winner uses official edits.listings and edits.images through the resumable sync engine.",
+		NextAction: "Run gplay experiments support, manage the experiment in Play Console, then apply the human-selected winner with gplay experiments apply-winner.",
+	},
+	{
 		ID:          "app.reviews",
 		Intent:      "Read and reply to reviews",
 		Command:     "gplay reviews",

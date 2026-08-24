@@ -10,6 +10,7 @@ import (
 	"google.golang.org/api/androidpublisher/v3"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	preflightpkg "github.com/tamtom/play-console-cli/internal/preflight"
 	"github.com/tamtom/play-console-cli/internal/validation"
 )
 
@@ -96,6 +97,66 @@ func TestBuildReadinessReport_RemoteFailureAddsBlocking(t *testing.T) {
 	})
 
 	assertCheckState(t, report, "remote-play-state-unavailable", validation.ReadinessBlocking)
+}
+
+func TestBuildReadinessReportOfflineNeverFetchesRemoteState(t *testing.T) {
+	original := fetchRemoteReadinessStateFn
+	fetchRemoteReadinessStateFn = func(context.Context, string, string) (*remoteReadinessState, error) {
+		t.Fatal("offline readiness attempted a remote API call")
+		return nil, nil
+	}
+	t.Cleanup(func() { fetchRemoteReadinessStateFn = original })
+
+	contentPath := filepath.Join(t.TempDir(), "app-content.json")
+	writeTextFile(t, contentPath, `{
+  "privacyPolicyUrl": "https://example.com/privacy",
+  "supportEmail": "support@example.com",
+  "ads": "no",
+  "appAccess": "all-accessible",
+  "targetAudience": ["18+"],
+  "contentRatingStatus": "complete",
+  "dataSafetyStatus": "complete",
+  "category": "APPLICATION",
+  "initialCountries": ["US"]
+}`)
+	report := buildReadinessReport(context.Background(), readinessOptions{
+		Offline:        true,
+		AppContent:     "@" + contentPath,
+		ReleaseNotes:   "Bug fixes and stability improvements.",
+		PackageName:    "com.example.app",
+		Track:          "production",
+		ListingsDir:    "",
+		ScreenshotsDir: "",
+	})
+	assertCheckState(t, report, "remote-checks-skipped", validation.ReadinessInfo)
+	assertCheckState(t, report, "app-content-inventory-loaded", validation.ReadinessInfo)
+}
+
+func TestOfflineReadinessDerivesAndVerifiesArtifactPackage(t *testing.T) {
+	apkPath := filepath.Join(t.TempDir(), "app.apk")
+	writeTextFile(t, apkPath, "fixture")
+	original := scanArtifactPreflightFn
+	scanArtifactPreflightFn = func(path string, opts preflightpkg.Options) (*preflightpkg.Report, error) {
+		if path != apkPath {
+			t.Fatalf("scan path = %q", path)
+		}
+		return &preflightpkg.Report{
+			Path: path, Format: "apk", Package: "dev.example.real", VersionCode: 42,
+			VersionName: "1.0", MinSdk: 23, TargetSdk: 35, Checks: []string{"manifest", "policy"},
+		}, nil
+	}
+	t.Cleanup(func() { scanArtifactPreflightFn = original })
+
+	derived := buildReadinessReport(context.Background(), readinessOptions{Offline: true, APKPath: apkPath})
+	if derived.PackageName != "dev.example.real" {
+		t.Fatalf("derived package = %q", derived.PackageName)
+	}
+	assertCheckState(t, derived, "artifact-preflight-complete", validation.ReadinessInfo)
+
+	mismatch := buildReadinessReport(context.Background(), readinessOptions{
+		Offline: true, APKPath: apkPath, PackageName: "dev.example.wrong",
+	})
+	assertCheckState(t, mismatch, "artifact-package-mismatch", validation.ReadinessBlocking)
 }
 
 func TestValidateCommand_RootRequiresPackageWhenFlagsProvided(t *testing.T) {

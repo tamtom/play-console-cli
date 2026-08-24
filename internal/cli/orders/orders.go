@@ -125,7 +125,7 @@ Example:
 			if err := service.API.Orders.Reviewrefund(pkg, *orderID, &req).Context(ctx).Do(); err != nil {
 				return err
 			}
-			return shared.PrintOutput(map[string]any{
+			return shared.PrintOutputContext(ctx, map[string]any{
 				"reviewed":         true,
 				"orderId":          *orderID,
 				"refundPreference": req.RefundPreference,
@@ -170,7 +170,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -215,7 +215,7 @@ func BatchGetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp.Orders, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp.Orders, *outputFlag, *pretty)
 		},
 	}
 }
@@ -296,7 +296,7 @@ Options:
 				"orderId":  *orderID,
 				"revoked":  *revoke,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

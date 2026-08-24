@@ -94,7 +94,7 @@ func ListCommand() *ffcli.Command {
 					return err
 				}
 				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
+					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.OneTimeProductOffers...)
 				if resp.NextPageToken == "" {
@@ -102,7 +102,7 @@ func ListCommand() *ffcli.Command {
 				}
 				pageToken = resp.NextPageToken
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -152,7 +152,7 @@ func ActivateCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -202,7 +202,7 @@ func DeactivateCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -252,7 +252,7 @@ func CancelCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -328,7 +328,7 @@ different offers.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -405,7 +405,7 @@ to update.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -495,7 +495,7 @@ Each request must contain exactly one of:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -579,7 +579,7 @@ to different offers. Requires --confirm.`,
 			result := map[string]interface{}{
 				"deleted": true,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -118,6 +119,65 @@ func (r *Root) ReadFile(name string) ([]byte, error) {
 	return r.root.ReadFile(clean)
 }
 
+// OpenRead opens a regular file for streaming reads without accepting
+// symlinked path components. The caller owns the returned file.
+func (r *Root) OpenRead(name string) (*os.File, error) {
+	clean, err := normalize(name)
+	if err != nil {
+		return nil, err
+	}
+	if clean == "." {
+		return nil, fmt.Errorf("%w: source must name a file", ErrEscapesRoot)
+	}
+	if err := r.rejectSymlinks(clean, false); err != nil {
+		return nil, err
+	}
+	file, err := r.root.Open(clean)
+	if err != nil {
+		return nil, fmt.Errorf("open rooted file %q: %w", name, err)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, fmt.Errorf("inspect rooted file %q: %w", name, err)
+	}
+	if !info.Mode().IsRegular() {
+		_ = file.Close()
+		return nil, fmt.Errorf("rooted source %q is not a regular file", name)
+	}
+	return file, nil
+}
+
+// ReadDir lists a directory beneath the root in lexical order without
+// accepting symlinked path components.
+func (r *Root) ReadDir(name string) ([]fs.DirEntry, error) {
+	clean, err := normalize(name)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.rejectSymlinks(clean, false); err != nil {
+		return nil, err
+	}
+	directory, err := r.root.Open(clean)
+	if err != nil {
+		return nil, fmt.Errorf("open rooted directory %q: %w", name, err)
+	}
+	defer func() { _ = directory.Close() }()
+	info, err := directory.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("inspect rooted directory %q: %w", name, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("rooted path %q is not a directory", name)
+	}
+	entries, err := directory.ReadDir(-1)
+	if err != nil {
+		return nil, fmt.Errorf("read rooted directory %q: %w", name, err)
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
+	return entries, nil
+}
+
 // MkdirAll creates a directory tree without accepting existing symlinked
 // components.
 func (r *Root) MkdirAll(name string, mode os.FileMode) error {
@@ -210,6 +270,89 @@ func (r *Root) AtomicWriteFrom(name string, source io.Reader, mode os.FileMode) 
 		return written, fmt.Errorf("sync rooted destination directory: %w", err)
 	}
 	return written, nil
+}
+
+// Append adds one record to a rooted regular file, creating it when needed.
+// Existing symlinks and symlinked parent components are rejected.
+func (r *Root) Append(name string, data []byte, mode os.FileMode) error {
+	clean, err := normalize(name)
+	if err != nil {
+		return err
+	}
+	if clean == "." {
+		return fmt.Errorf("%w: destination must name a file", ErrEscapesRoot)
+	}
+	if mode&^os.FileMode(0o777) != 0 {
+		return fmt.Errorf("invalid file mode %o", mode)
+	}
+	parent := filepath.Dir(clean)
+	if err := r.MkdirAll(parent, 0o755); err != nil {
+		return err
+	}
+	if err := r.rejectSymlinks(clean, true); err != nil {
+		return err
+	}
+	file, err := r.root.OpenFile(clean, os.O_WRONLY|os.O_APPEND|os.O_CREATE, mode)
+	if err != nil {
+		return fmt.Errorf("open rooted append destination %q: %w", name, err)
+	}
+	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("inspect rooted append destination %q: %w", name, err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("rooted append destination %q is not a regular file", name)
+	}
+	if err := file.Chmod(mode); err != nil {
+		return fmt.Errorf("set rooted append destination mode: %w", err)
+	}
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("append rooted destination %q: %w", name, err)
+	}
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("sync rooted append destination %q: %w", name, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close rooted append destination %q: %w", name, err)
+	}
+	if err := syncDirectory(r.root, parent); err != nil {
+		return fmt.Errorf("sync rooted append directory: %w", err)
+	}
+	return nil
+}
+
+// CheckWritable verifies that the root can durably create and remove a file.
+func (r *Root) CheckWritable() error {
+	name, err := r.createTempName(".")
+	if err != nil {
+		return err
+	}
+	file, err := r.root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create rooted write probe: %w", err)
+	}
+	remove := true
+	defer func() {
+		_ = file.Close()
+		if remove {
+			_ = r.root.Remove(name)
+		}
+	}()
+	if _, err := file.Write([]byte{0}); err != nil {
+		return fmt.Errorf("write rooted probe: %w", err)
+	}
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("sync rooted probe: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close rooted probe: %w", err)
+	}
+	if err := r.root.Remove(name); err != nil {
+		return fmt.Errorf("remove rooted probe: %w", err)
+	}
+	remove = false
+	return syncDirectory(r.root, ".")
 }
 
 func (r *Root) createTempName(parent string) (string, error) {

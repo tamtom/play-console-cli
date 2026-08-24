@@ -83,7 +83,7 @@ func UploadCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("failed to upload bundle", err)
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -125,7 +125,7 @@ func ListCommand() *ffcli.Command {
 				return err
 			}
 
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

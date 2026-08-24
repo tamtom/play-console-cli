@@ -88,7 +88,7 @@ func MetricSetGetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, result, *f.output, *f.pretty)
 		},
 	}
 }
@@ -128,7 +128,7 @@ JSON example: {"metrics":["distinctUsers"],"timelineSpec":{"aggregationPeriod":"
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, result, *f.output, *f.pretty)
 		},
 	}
 }
@@ -159,7 +159,7 @@ func ReleaseFiltersCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

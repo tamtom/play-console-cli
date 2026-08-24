@@ -70,7 +70,7 @@ func StatusCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("check Android developer package registration", err)
 			}
-			return shared.PrintOutput(response, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, response, *outputFlag, *pretty)
 		},
 	}
 }

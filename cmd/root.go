@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -57,7 +56,7 @@ func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []
 			for _, sub := range root.Subcommands {
 				names = append(names, sub.Name)
 			}
-			fmt.Fprintln(os.Stderr, shared.FormatUnknownCommand(args[0], names))
+			fmt.Fprintln(shared.Stderr(ctx), shared.FormatUnknownCommand(args[0], names))
 			return flag.ErrHelp
 		},
 	}

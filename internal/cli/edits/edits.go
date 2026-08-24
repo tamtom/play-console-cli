@@ -81,7 +81,7 @@ Only one active edit per app is allowed at a time.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -123,7 +123,7 @@ Use this to check whether an edit ID is still valid before making changes.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -166,7 +166,7 @@ required fields are present and values are within allowed ranges.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -219,7 +219,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -265,7 +265,7 @@ Requires --confirm to prevent accidental deletion.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(nil, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, nil, *outputFlag, *pretty)
 		},
 	}
 }

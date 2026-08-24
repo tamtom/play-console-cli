@@ -69,6 +69,9 @@ Directory structure (FastLane format):
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Subcommands: []*ffcli.Command{
+			PlanCommand(),
+			ApplyCommand(),
+			RunCommand(),
 			ExportListingsCommand(),
 			ImportListingsCommand(),
 			ExportImagesCommand(),
@@ -144,14 +147,14 @@ func ExportListingsCommand() *ffcli.Command {
 				return err
 			}
 			for _, listing := range listingsResp.Listings {
-				fmt.Fprintf(os.Stderr, "Exported: %s\n", listing.Language)
+				fmt.Fprintf(shared.Stderr(ctx), "Exported: %s\n", listing.Language)
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "Note: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "Note: Used temporary edit (deleted automatically)\n")
 			}
 
-			fmt.Fprintf(os.Stderr, "Exported %d listings to %s\n", len(listingsResp.Listings), *outputDir)
+			fmt.Fprintf(shared.Stderr(ctx), "Exported %d listings to %s\n", len(listingsResp.Listings), *outputDir)
 			return nil
 		},
 	}
@@ -278,21 +281,21 @@ func ImportListingsCommand() *ffcli.Command {
 				}
 
 				if *dryRun {
-					fmt.Fprintf(os.Stderr, "Would import: %s (title: %q)\n", locale, truncate(listing.Title, 30))
+					fmt.Fprintf(shared.Stderr(ctx), "Would import: %s (title: %q)\n", locale, truncate(listing.Title, 30))
 				} else {
 					_, err := service.API.Edits.Listings.Update(pkg, *editID, locale, listing).Context(ctx).Do()
 					if err != nil {
 						return fmt.Errorf("failed to update listing for %s: %w", locale, err)
 					}
-					fmt.Fprintf(os.Stderr, "Imported: %s\n", locale)
+					fmt.Fprintf(shared.Stderr(ctx), "Imported: %s\n", locale)
 				}
 				imported++
 			}
 
 			if *dryRun {
-				fmt.Fprintf(os.Stderr, "Dry run: would import %d listings\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Dry run: would import %d listings\n", imported)
 			} else {
-				fmt.Fprintf(os.Stderr, "Imported %d listings\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Imported %d listings\n", imported)
 			}
 			return nil
 		},
@@ -412,16 +415,16 @@ func ExportImagesCommand() *ffcli.Command {
 					}
 
 					exported += len(images.Images)
-					fmt.Fprintf(os.Stderr, "Exported metadata for %d %s images in %s\n", len(images.Images), imageType, loc)
+					fmt.Fprintf(shared.Stderr(ctx), "Exported metadata for %d %s images in %s\n", len(images.Images), imageType, loc)
 				}
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "Note: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "Note: Used temporary edit (deleted automatically)\n")
 			}
 
-			fmt.Fprintf(os.Stderr, "Exported metadata for %d images to %s\n", exported, *outputDir)
-			fmt.Fprintf(os.Stderr, "Note: Image files must be downloaded manually from the Play Console\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Exported metadata for %d images to %s\n", exported, *outputDir)
+			fmt.Fprintf(shared.Stderr(ctx), "Note: Image files must be downloaded manually from the Play Console\n")
 			return nil
 		},
 	}
@@ -516,13 +519,13 @@ func ImportImagesCommand() *ffcli.Command {
 
 						filePath := filepath.Join(screenshotDir, file.Name())
 						if *dryRun {
-							fmt.Fprintf(os.Stderr, "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
+							fmt.Fprintf(shared.Stderr(ctx), "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
 						} else {
 							if err := uploadImage(ctx, service, pkg, *editID, loc, imageType, filePath); err != nil {
-								fmt.Fprintf(os.Stderr, "Warning: failed to upload %s: %v\n", filePath, err)
+								fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to upload %s: %v\n", filePath, err)
 								continue
 							}
-							fmt.Fprintf(os.Stderr, "Uploaded: %s -> %s/%s\n", file.Name(), loc, imageType)
+							fmt.Fprintf(shared.Stderr(ctx), "Uploaded: %s -> %s/%s\n", file.Name(), loc, imageType)
 						}
 						imported++
 					}
@@ -536,22 +539,22 @@ func ImportImagesCommand() *ffcli.Command {
 					}
 
 					if *dryRun {
-						fmt.Fprintf(os.Stderr, "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
+						fmt.Fprintf(shared.Stderr(ctx), "Would upload: %s -> %s/%s\n", filePath, loc, imageType)
 					} else {
 						if err := uploadImage(ctx, service, pkg, *editID, loc, imageType, filePath); err != nil {
-							fmt.Fprintf(os.Stderr, "Warning: failed to upload %s: %v\n", filePath, err)
+							fmt.Fprintf(shared.Stderr(ctx), "Warning: failed to upload %s: %v\n", filePath, err)
 							continue
 						}
-						fmt.Fprintf(os.Stderr, "Uploaded: %s -> %s/%s\n", fileName, loc, imageType)
+						fmt.Fprintf(shared.Stderr(ctx), "Uploaded: %s -> %s/%s\n", fileName, loc, imageType)
 					}
 					imported++
 				}
 			}
 
 			if *dryRun {
-				fmt.Fprintf(os.Stderr, "Dry run: would upload %d images\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Dry run: would upload %d images\n", imported)
 			} else {
-				fmt.Fprintf(os.Stderr, "Uploaded %d images\n", imported)
+				fmt.Fprintf(shared.Stderr(ctx), "Uploaded %d images\n", imported)
 			}
 			return nil
 		},
@@ -662,7 +665,7 @@ func DiffListingsCommand() *ffcli.Command {
 			// Check for locales only in remote
 			for locale := range remoteListings {
 				if _, ok := localListings[locale]; !ok {
-					fmt.Printf("- %s (only in remote)\n", locale)
+					fmt.Fprintf(shared.Stdout(ctx), "- %s (only in remote)\n", locale)
 					hasDiff = true
 				}
 			}
@@ -670,7 +673,7 @@ func DiffListingsCommand() *ffcli.Command {
 			// Check for locales only in local
 			for locale := range localListings {
 				if _, ok := remoteListings[locale]; !ok {
-					fmt.Printf("+ %s (only in local)\n", locale)
+					fmt.Fprintf(shared.Stdout(ctx), "+ %s (only in local)\n", locale)
 					hasDiff = true
 				}
 			}
@@ -697,17 +700,17 @@ func DiffListingsCommand() *ffcli.Command {
 				}
 
 				if len(diffs) > 0 {
-					fmt.Printf("~ %s: %s\n", locale, strings.Join(diffs, ", "))
+					fmt.Fprintf(shared.Stdout(ctx), "~ %s: %s\n", locale, strings.Join(diffs, ", "))
 					hasDiff = true
 				}
 			}
 
 			if !hasDiff {
-				fmt.Println("No differences found")
+				fmt.Fprintln(shared.Stdout(ctx), "No differences found")
 			}
 
 			if tempEdit {
-				fmt.Fprintf(os.Stderr, "\nNote: Used temporary edit (deleted automatically)\n")
+				fmt.Fprintf(shared.Stderr(ctx), "\nNote: Used temporary edit (deleted automatically)\n")
 			}
 
 			return nil

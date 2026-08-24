@@ -124,7 +124,7 @@ Examples:
 					return err
 				}
 				response := TypeResponse{Query: query, API: strings.TrimSpace(*api), Count: len(items), Results: items}
-				return shared.PrintOutput(response, outputFlags.Format(), outputFlags.IsPretty())
+				return shared.PrintOutputContext(ctx, response, outputFlags.Format(), outputFlags.IsPretty())
 			}
 
 			query := strings.TrimSpace(strings.Join(args, " "))
@@ -145,7 +145,7 @@ Examples:
 				Count:   len(items),
 				Results: items,
 			}
-			return shared.PrintOutput(response, outputFlags.Format(), outputFlags.IsPretty())
+			return shared.PrintOutputContext(ctx, response, outputFlags.Format(), outputFlags.IsPretty())
 		},
 	}
 }

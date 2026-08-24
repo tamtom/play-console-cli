@@ -64,7 +64,7 @@ func playersHideCommand() *ffcli.Command {
 			if err := service.Management.Players.Hide(resolved, *playerID).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("hide player", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "hidden", "applicationId": resolved, "playerId": *playerID}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "hidden", "applicationId": resolved, "playerId": *playerID}, "json", false)
 		},
 	}
 }
@@ -101,7 +101,7 @@ func playersUnhideCommand() *ffcli.Command {
 			if err := service.Management.Players.Unhide(resolved, *playerID).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("unhide player", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "unhidden", "applicationId": resolved, "playerId": *playerID}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "unhidden", "applicationId": resolved, "playerId": *playerID}, "json", false)
 		},
 	}
 }
@@ -147,7 +147,7 @@ func playersListHiddenCommand() *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("list hidden players", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*gamesmanagement.HiddenPlayer
 			err = call.Pages(ctx, func(resp *gamesmanagement.HiddenPlayerList) error {
@@ -157,7 +157,7 @@ func playersListHiddenCommand() *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("list hidden players", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }

@@ -13,6 +13,13 @@
 - [auth status](#auth-status)
 - [auth doctor](#auth-doctor)
 - [setup](#setup)
+- [android](#android)
+- [android build](#android-build)
+- [android signing](#android-signing)
+- [android signing verify](#android-signing-verify)
+- [android signing inspect](#android-signing-inspect)
+- [android screenshots](#android-screenshots)
+- [android screenshots capture](#android-screenshots-capture)
 - [apps](#apps)
 - [apps list](#apps-list)
 - [app-signing](#app-signing)
@@ -29,6 +36,7 @@
 - [app-stores recent-update-events](#app-stores-recent-update-events)
 - [capabilities](#capabilities)
 - [search](#search)
+- [install-skills](#install-skills)
 - [schema](#schema)
 - [bootstrap](#bootstrap)
 - [bootstrap plan](#bootstrap-plan)
@@ -147,16 +155,23 @@
 - [rollout update](#rollout-update)
 - [rollout complete](#rollout-complete)
 - [sync](#sync)
+- [sync plan](#sync-plan)
+- [sync apply](#sync-apply)
+- [sync run](#sync-run)
 - [sync export-listings](#sync-export-listings)
 - [sync import-listings](#sync-import-listings)
 - [sync export-images](#sync-export-images)
 - [sync import-images](#sync-import-images)
 - [sync diff-listings](#sync-diff-listings)
+- [experiments](#experiments)
+- [experiments support](#experiments-support)
+- [experiments apply-winner](#experiments-apply-winner)
 - [validate](#validate)
 - [validate bundle](#validate-bundle)
 - [validate listing](#validate-listing)
 - [validate screenshots](#validate-screenshots)
 - [validate submission](#validate-submission)
+- [validate app-content](#validate-app-content)
 - [verification](#verification)
 - [verification status](#verification-status)
 - [status](#status)
@@ -566,6 +581,138 @@ Example:
 
 ---
 
+## gplay android
+
+Run optional local Android build, signing, and screenshot helpers.
+
+```
+gplay android <build|signing|screenshots> [flags]
+```
+
+Run local Android toolchain helpers without contacting Google Play.
+
+Gradle wrappers, Android SDK tools, JDK signing tools, and adb are invoked
+directly without a shell. Normal gplay API commands never depend on these
+tools.
+
+---
+
+## gplay android build
+
+Test, lint, and build an Android release with the project Gradle wrapper.
+
+```
+gplay android build [--project <dir>] [--variant release] [flags]
+```
+
+Run the project-owned Gradle wrapper directly, without a shell.
+
+By default one invocation runs release unit tests, release lint, and produces
+an Android App Bundle. Signing values are inherited from the environment and
+are never accepted as CLI flags, logged, or copied into process arguments.
+
+Global --dry-run validates the wrapper and prints the exact plan without
+executing Gradle.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--artifact-type` | Release artifact: aab or apk | `aab` |
+| `--clean` | Run the module clean task first | `false` |
+| `--module` | Android application module path | `app` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--project` | Android project directory | `.` |
+| `--skip-lint` | Skip release lint | `false` |
+| `--skip-tests` | Skip release unit tests | `false` |
+| `--variant` | Build variant name | `release` |
+
+---
+
+## gplay android signing
+
+Verify release signatures and inspect upload certificates locally.
+
+```
+gplay android signing <verify|inspect> [flags]
+```
+
+---
+
+## gplay android signing verify
+
+Verify an APK/AAB signature with apksigner or jarsigner.
+
+```
+gplay android signing verify --file <app.aab|app.apk>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--file` | AAB or APK to verify | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay android signing inspect
+
+Inspect an upload certificate without exposing its password in argv.
+
+```
+gplay android signing inspect --keystore <path> --alias <name> [--password-env KEYSTORE_PASSWORD]
+```
+
+The password is read by keytool directly from the named environment variable. It is never accepted as a flag or printed.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--alias` | Key alias | `` |
+| `--keystore` | Upload-key keystore path | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--password-env` | Environment variable containing the keystore password | `KEYSTORE_PASSWORD` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay android screenshots
+
+Capture validated Play listing screenshots from Android devices.
+
+```
+gplay android screenshots capture [flags]
+```
+
+---
+
+## gplay android screenshots capture
+
+Capture the current screen through adb exec-out and validate the PNG.
+
+```
+gplay android screenshots capture --serial <id> --locale <tag> --type <type> --name <name>
+```
+
+Capture the currently visible device screen directly over adb; no temporary
+file is created on the device. The locale is an output label only—the command
+does not mutate device locale or app state.
+
+The default metadata layout writes <dir>/<locale>/images/<type>/<name>.png for
+gplay sync. --layout release writes <dir>/<locale>/<type>/<name>.png for
+--screenshots-dir release workflows.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--layout` | Directory layout: metadata or release | `metadata` |
+| `--locale` | Locale label used in the output path | `en-US` |
+| `--name` | Screenshot filename without .png | `screenshot` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--output-dir` | Root output directory | `./metadata` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--serial` | adb device/emulator serial | `` |
+| `--type` | Play screenshot type | `phoneScreenshots` |
+
+---
+
 ## gplay apps
 
 List and manage apps accessible by the service account.
@@ -887,6 +1034,30 @@ Examples:
 | `--limit` | Maximum number of results | `10` |
 | `--output` | Output format: json, table, markdown | `json` |
 | `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay install-skills
+
+Install the pinned, verified gplay agent-skill pack.
+
+```
+gplay install-skills [--preview] [--force] [--dest <path>]
+```
+
+Install the pinned gplay agent-skill pack without executing package installers.
+
+The immutable reviewed commit is 10301b24639e4f768d009b2edda9315cb2149712. Every Git tree hash is verified. Existing skills are preserved unless --force is explicit, and forced replacements roll back as a unit.
+
+--preview and global --dry-run perform no network request and no filesystem write.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dest` | Skill destination (default: ~/.agents/skills) | `` |
+| `--force` | Replace existing gplay skills with rollback protection | `false` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--preview` | Show the verified plan without downloading or writing | `false` |
 
 ---
 
@@ -3430,6 +3601,61 @@ Directory structure (FastLane format):
 
 ---
 
+## gplay sync plan
+
+Create a deterministic listings and images synchronization plan.
+
+```
+gplay sync plan --package <name> --edit <id> --dir <path> --plan-file <path>
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Fastlane-compatible metadata directory | `./metadata` |
+| `--edit` | Edit ID | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--plan-file` | Path for the generated plan JSON | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay sync apply
+
+Apply or safely resume a synchronization plan.
+
+```
+gplay sync apply --plan-file <path> [--receipt-file <path>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json, table, markdown | `json` |
+| `--plan-file` | Path to a synchronization plan JSON | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--receipt-file` | Path for the execution receipt (defaults beside the plan) | `` |
+
+---
+
+## gplay sync run
+
+Plan, apply, and persist a resumable receipt in one command.
+
+```
+gplay sync run --package <name> --edit <id> --dir <path> [--state-dir <path>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir` | Fastlane-compatible metadata directory | `./metadata` |
+| `--edit` | Edit ID | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--state-dir` | Directory for plans and receipts | `.gplay/sync` |
+
+---
+
 ## gplay sync export-listings
 
 Export store listings to local directory.
@@ -3517,6 +3743,61 @@ gplay sync diff-listings --package <name> --dir <path> [--edit <id>]
 
 ---
 
+## gplay experiments
+
+Inspect experiment API support and apply a manually selected winner.
+
+```
+gplay experiments <support|apply-winner> [flags]
+```
+
+Experiment lifecycle and results remain manual until Google publishes an official API. Applying a selected winner uses only Android Publisher edits.listings and edits.images.
+
+---
+
+## gplay experiments support
+
+Report official API support for store-listing experiments.
+
+```
+gplay experiments support
+```
+
+Reads the embedded reviewed Google discovery index only. It never authenticates or contacts Google.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--output` | Output format: json, table, markdown | `json` |
+| `--pretty` | Pretty-print JSON output | `false` |
+
+---
+
+## gplay experiments apply-winner
+
+Apply a manually selected winner through official listing/image APIs.
+
+```
+gplay experiments apply-winner --package <name> --edit <id> --winner <name> --confirm-winner <name> --dir <path>
+```
+
+A human must first review experiment results and select the winner in Play
+Console. This command cannot read or infer experiment results. It requires the
+winner name twice, then delegates to the official, resumable sync transaction
+with remote preconditions, a content-addressed plan, and an atomic receipt.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--confirm-winner` | Repeat the exact winner name to authorize application | `` |
+| `--dir` | Winner metadata/images directory | `` |
+| `--edit` | Existing Android Publisher edit ID | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Package name (applicationId) | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--state-dir` | Directory for official sync plans and receipts | `.gplay/experiments` |
+| `--winner` | Human-selected experiment winner name | `` |
+
+---
+
 ## gplay validate
 
 Canonical Google Play release-readiness report.
@@ -3543,9 +3824,11 @@ Legacy local-only validators remain available as subcommands:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--apk` | Path to .apk file to validate | `` |
+| `--app-content` | Offline app-content inventory JSON or @file | `` |
 | `--bundle` | Path to .aab bundle file to validate | `` |
 | `--dir` | Metadata directory to validate (legacy combined layout) | `` |
 | `--listings-dir` | Directory containing listing metadata | `` |
+| `--offline` | Skip authentication and every remote Play check | `false` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -3648,14 +3931,44 @@ This command remains for compatibility, but new docs and workflows should use:
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--app-content` | Offline app-content inventory JSON or @file | `` |
 | `--dir` | Directory containing listing metadata | `./metadata` |
 | `--format` | Metadata format: fastlane (default), json | `fastlane` |
+| `--offline` | Skip authentication and every remote Play check | `false` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Application package name | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--release-notes` | Release notes input: plain text, JSON array, or @file | `` |
 | `--strict` | Treat warnings as failures | `false` |
 | `--track` | Target track to validate | `production` |
+
+---
+
+## gplay validate app-content
+
+Validate a local inventory of Play Console app-content declarations.
+
+```
+gplay validate app-content --json @app-content.json [flags]
+```
+
+Validate privacy/contact, ads, reviewer access, target audience,
+content rating, Data Safety, category, launch countries, policy declarations,
+and sensitive-permission declarations from a local JSON inventory.
+
+This command is fully offline. It does not authenticate, contact Google, or
+claim that Console-only state has been read.
+
+Example JSON:
+  {"privacyPolicyUrl":"https://example.com/privacy","supportEmail":"support@example.com","ads":"no","appAccess":"all-accessible","targetAudience":["18+"],"contentRatingStatus":"complete","dataSafetyStatus":"complete"}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | App-content inventory JSON or @file | `` |
+| `--output` | Output format: json, table, markdown | `json` |
+| `--package` | Optional package name for the report | `` |
+| `--pretty` | Pretty-print JSON output | `false` |
+| `--strict` | Treat warnings as failures | `false` |
 
 ---
 

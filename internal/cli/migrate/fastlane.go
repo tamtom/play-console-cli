@@ -118,7 +118,7 @@ Fastlane directory structure:
 				return err
 			}
 
-			return shared.PrintOutput(summary, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, summary, *outputFlag, *pretty)
 		},
 	}
 }

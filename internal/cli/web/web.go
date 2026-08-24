@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"sort"
@@ -48,7 +47,7 @@ func WebCommand() *ffcli.Command {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}
@@ -96,7 +95,7 @@ Examples:
 			}
 
 			url := buildPlayConsoleURL(pkg, sec)
-			fmt.Fprintf(os.Stderr, "Opening %s\n", url)
+			fmt.Fprintf(shared.Stderr(ctx), "Opening %s\n", url)
 			return browserOpener(url)
 		},
 	}

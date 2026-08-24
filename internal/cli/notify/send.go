@@ -97,5 +97,5 @@ func runSend(ctx context.Context, opts sendOpts) error {
 	}
 
 	result.Format = string(pf)
-	return shared.PrintOutput(result, opts.outputFlag, opts.pretty)
+	return shared.PrintOutputContext(ctx, result, opts.outputFlag, opts.pretty)
 }

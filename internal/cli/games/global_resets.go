@@ -88,7 +88,7 @@ func globalResetAllCommand(kind globalResetKind) *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset all "+string(kind)+" for all players", err)
 			}
-			return shared.PrintOutput(map[string]any{"status": "reset-all-for-all-players", "resource": kind, "applicationId": *f.applicationID}, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"status": "reset-all-for-all-players", "resource": kind, "applicationId": *f.applicationID}, *f.output, *f.pretty)
 		},
 	}
 }
@@ -128,7 +128,7 @@ func globalResetMultipleCommand(kind globalResetKind) *ffcli.Command {
 			if err != nil {
 				return shared.WrapGoogleAPIError("reset multiple "+string(kind)+" for all players", err)
 			}
-			return shared.PrintOutput(map[string]any{"status": "reset-multiple-for-all-players", "resource": kind, "ids": idList, "applicationId": *f.applicationID}, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, map[string]any{"status": "reset-multiple-for-all-players", "resource": kind, "ids": idList, "applicationId": *f.applicationID}, *f.output, *f.pretty)
 		},
 	}
 }

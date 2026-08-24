@@ -122,7 +122,7 @@ Existing-app JSON example: {"enrollExistingApp":{"cloudKmsKey":{"cryptoKeyVersio
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(response, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, response, *f.output, *f.pretty)
 		},
 	}
 }
@@ -176,7 +176,7 @@ JSON example: {"keyRotationReason":"ROUTINE_KEY_UPGRADE","rotatedCloudKmsKey":{"
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(response, *f.output, *f.pretty)
+			return shared.PrintOutputContext(ctx, response, *f.output, *f.pretty)
 		},
 	}
 }

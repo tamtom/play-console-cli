@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
@@ -54,7 +53,7 @@ PowerShell:
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
-				fmt.Fprint(os.Stderr, completionSetupInstructions)
+				fmt.Fprint(shared.Stderr(ctx), completionSetupInstructions)
 				return flag.ErrHelp
 			}
 			return flag.ErrHelp
@@ -76,10 +75,10 @@ func bashCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if commands != nil {
-				fmt.Fprint(os.Stdout, renderBash(commands()))
+				fmt.Fprint(shared.Stdout(ctx), renderBash(commands()))
 				return nil
 			}
-			fmt.Fprint(os.Stdout, bashCompletion)
+			fmt.Fprint(shared.Stdout(ctx), bashCompletion)
 			return nil
 		},
 	}
@@ -99,10 +98,10 @@ func zshCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if commands != nil {
-				fmt.Fprint(os.Stdout, renderZsh(commands()))
+				fmt.Fprint(shared.Stdout(ctx), renderZsh(commands()))
 				return nil
 			}
-			fmt.Fprint(os.Stdout, zshCompletion)
+			fmt.Fprint(shared.Stdout(ctx), zshCompletion)
 			return nil
 		},
 	}
@@ -122,10 +121,10 @@ func fishCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if commands != nil {
-				fmt.Fprint(os.Stdout, renderFish(commands()))
+				fmt.Fprint(shared.Stdout(ctx), renderFish(commands()))
 				return nil
 			}
-			fmt.Fprint(os.Stdout, fishCompletion)
+			fmt.Fprint(shared.Stdout(ctx), fishCompletion)
 			return nil
 		},
 	}
@@ -145,10 +144,10 @@ func powerShellCommandWithCatalog(commands func() []*ffcli.Command) *ffcli.Comma
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			if commands != nil {
-				fmt.Fprint(os.Stdout, renderPowerShell(commands()))
+				fmt.Fprint(shared.Stdout(ctx), renderPowerShell(commands()))
 				return nil
 			}
-			fmt.Fprint(os.Stdout, powershellCompletion)
+			fmt.Fprint(shared.Stdout(ctx), powershellCompletion)
 			return nil
 		},
 	}

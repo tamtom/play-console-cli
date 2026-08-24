@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -88,7 +87,7 @@ Examples:
 				"dir":     dirValue,
 				"status":  "pulled",
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -156,7 +155,7 @@ func executePull(ctx context.Context, api *androidpublisher.Service, packageName
 	}
 
 	sort.Strings(pulledLocales)
-	fmt.Fprintf(os.Stderr, "Pulled %d locales to %s\n", len(pulledLocales), dir)
+	fmt.Fprintf(shared.Stderr(ctx), "Pulled %d locales to %s\n", len(pulledLocales), dir)
 	return nil
 }
 

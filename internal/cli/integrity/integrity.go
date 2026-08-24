@@ -60,13 +60,13 @@ func DecodeCommand(pc bool) *ffcli.Command {
 				if err != nil {
 					return shared.WrapGoogleAPIError("decode PC integrity token", err)
 				}
-				return shared.PrintOutput(response, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, response, *outputFlag, *pretty)
 			}
 			response, err := service.API.V1.DecodeIntegrityToken(pkg, &playintegrity.DecodeIntegrityTokenRequest{IntegrityToken: token}).Context(ctx).Do()
 			if err != nil {
 				return shared.WrapGoogleAPIError("decode integrity token", err)
 			}
-			return shared.PrintOutput(response, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, response, *outputFlag, *pretty)
 		},
 	}
 }
@@ -143,7 +143,7 @@ The token-bearing request must be read from a file. JSON example: {"integrityTok
 			if err != nil {
 				return shared.WrapGoogleAPIError("write Device Recall state", err)
 			}
-			return shared.PrintOutput(response, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, response, *outputFlag, *pretty)
 		},
 	}
 }

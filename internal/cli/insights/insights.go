@@ -89,7 +89,7 @@ Example:
 			if err != nil {
 				return fmt.Errorf("build daily insights: %w", err)
 			}
-			return shared.PrintOutput(report, outputFlags.Format(), outputFlags.IsPretty())
+			return shared.PrintOutputContext(ctx, report, outputFlags.Format(), outputFlags.IsPretty())
 		},
 	}
 }
@@ -148,7 +148,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("build weekly insights: %w", err)
 			}
-			return shared.PrintOutput(report, outputFlags.Format(), outputFlags.IsPretty())
+			return shared.PrintOutputContext(ctx, report, outputFlags.Format(), outputFlags.IsPretty())
 		},
 	}
 }

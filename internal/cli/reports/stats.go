@@ -144,7 +144,7 @@ func StatsListCommand() *ffcli.Command {
 				"bucket":  bucket,
 				"reports": reports,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -242,7 +242,7 @@ func StatsDownloadCommand() *ffcli.Command {
 				"dir":     *dir,
 				"files":   downloaded,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }

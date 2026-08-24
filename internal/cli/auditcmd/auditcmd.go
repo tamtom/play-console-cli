@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -38,7 +37,7 @@ Disable with GPLAY_AUDIT=0. Override the path with GPLAY_AUDIT_LOG.`,
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}
@@ -82,7 +81,7 @@ func listCommand() *ffcli.Command {
 				Count:   len(entries),
 				Entries: entries,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -116,7 +115,7 @@ func searchCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(struct {
+			return shared.PrintOutputContext(ctx, struct {
 				Count   int           `json:"count"`
 				Entries []audit.Entry `json:"entries"`
 			}{Count: len(entries), Entries: entries}, *outputFlag, *pretty)
@@ -142,7 +141,7 @@ func clearCommand() *ffcli.Command {
 				return err
 			}
 			path, _ := audit.Path()
-			return shared.PrintOutput(struct {
+			return shared.PrintOutputContext(ctx, struct {
 				Cleared bool   `json:"cleared"`
 				Path    string `json:"path"`
 			}{Cleared: true, Path: path}, "json", false)
@@ -161,7 +160,7 @@ func pathCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(path)
+			fmt.Fprintln(shared.Stdout(ctx), path)
 			return nil
 		},
 	}

@@ -7,7 +7,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
@@ -53,7 +52,7 @@ game; a normal Play Console grant is not sufficient.`,
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}

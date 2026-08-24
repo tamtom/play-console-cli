@@ -26,8 +26,17 @@ Full reference: https://github.com/tamtom/play-console-cli/blob/main/GPLAY.md
 Pre-built workflow skills compatible with any agent that supports the [Agent Skills](https://github.com/anthropics/agent-skills) format:
 
 ```bash
-npx skills add tamtom/gplay-cli-skills
+# Offline preview: no network request and no filesystem write
+gplay install-skills --preview
+
+# Pinned Git commit + per-skill tree verification + atomic install
+gplay install-skills
 ```
+
+`gplay install-skills` does not invoke npm, npx, a package manager, hooks, or
+code from the source repository. It preserves existing skills by default;
+`--force` replaces the entire reviewed set transactionally and rolls back on
+failure. Use `--dest` for a non-default agent-skill directory.
 
 | Skill | Description |
 |-------|-------------|

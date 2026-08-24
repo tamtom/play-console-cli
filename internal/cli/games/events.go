@@ -57,7 +57,7 @@ func eventsResetCommand() *ffcli.Command {
 			if err := service.Management.Events.Reset(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("reset event progress", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "reset", "eventId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "reset", "eventId": *id}, "json", false)
 		},
 	}
 }
@@ -86,7 +86,7 @@ func eventsResetAllCommand() *ffcli.Command {
 			if err := service.Management.Events.ResetAll().Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("reset all event progress", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "reset-all"}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "reset-all"}, "json", false)
 		},
 	}
 }
@@ -119,7 +119,7 @@ func eventsResetForAllCommand() *ffcli.Command {
 			if err := service.Management.Events.ResetForAllPlayers(*id).Context(ctx).Do(); err != nil {
 				return shared.WrapGoogleAPIError("reset event for all players", err)
 			}
-			return shared.PrintOutput(map[string]string{"status": "reset", "eventId": *id}, "json", false)
+			return shared.PrintOutputContext(ctx, map[string]string{"status": "reset", "eventId": *id}, "json", false)
 		},
 	}
 }

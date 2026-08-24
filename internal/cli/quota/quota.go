@@ -9,7 +9,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -46,7 +45,7 @@ func QuotaCommand() *ffcli.Command {
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
-			fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", args[0])
+			fmt.Fprintf(shared.Stderr(ctx), "Unknown subcommand: %s\n", args[0])
 			return flag.ErrHelp
 		},
 	}
@@ -89,7 +88,7 @@ Disable audit with GPLAY_AUDIT=0.`,
 				return fmt.Errorf("read audit log: %w", err)
 			}
 			status := Compute(entries, now, *top)
-			return shared.PrintOutput(status, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, status, *outputFlag, *pretty)
 		},
 	}
 }

@@ -77,7 +77,7 @@ Examples:
 				if err != nil {
 					return shared.WrapGoogleAPIError("search error issues", err)
 				}
-				return shared.PrintOutput(resp, *outputFlag, *pretty)
+				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 
 			var all []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1ErrorIssue
@@ -97,7 +97,7 @@ Examples:
 			if err != nil {
 				return shared.WrapGoogleAPIError("search error issues (paginate)", err)
 			}
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }

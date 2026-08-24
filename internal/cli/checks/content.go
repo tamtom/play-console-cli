@@ -99,12 +99,12 @@ func ClassifyCommand(name string, usageOverride ...string) *ffcli.Command {
 				return shared.WrapGoogleAPIError("classify content with Checks", err)
 			}
 			if *severityThreshold && classificationViolates(resp) {
-				if printErr := shared.PrintOutput(resp, *outputFlag, *pretty); printErr != nil {
+				if printErr := shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty); printErr != nil {
 					return printErr
 				}
 				return errThresholdExceeded
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }

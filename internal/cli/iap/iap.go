@@ -114,7 +114,7 @@ JSON format:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -161,7 +161,7 @@ func ListCommand() *ffcli.Command {
 					return err
 				}
 				if !*paginate {
-					return shared.PrintOutput(resp, *outputFlag, *pretty)
+					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.Inappproduct...)
 				if resp.TokenPagination == nil || resp.TokenPagination.NextPageToken == "" {
@@ -170,7 +170,7 @@ func ListCommand() *ffcli.Command {
 				pageToken = resp.TokenPagination.NextPageToken
 			}
 
-			return shared.PrintOutput(all, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)
 		},
 	}
 }
@@ -211,7 +211,7 @@ func GetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -289,7 +289,7 @@ purchaseType can be:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -373,7 +373,7 @@ Use --allow-missing to create the product if it doesn't exist.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -423,7 +423,7 @@ func DeleteCommand() *ffcli.Command {
 				"deleted": true,
 				"sku":     *sku,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
@@ -469,7 +469,7 @@ func BatchGetCommand() *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -570,7 +570,7 @@ products that don't exist yet.`,
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutput(resp, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 		},
 	}
 }
@@ -637,7 +637,7 @@ func BatchDeleteCommand() *ffcli.Command {
 				"deleted": true,
 				"skus":    skuList,
 			}
-			return shared.PrintOutput(result, *outputFlag, *pretty)
+			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
 		},
 	}
 }
