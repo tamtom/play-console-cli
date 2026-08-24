@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/api/androidpublisher/v3"
@@ -50,7 +51,24 @@ func NewService(ctx context.Context) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	if base := sandboxBaseURL(); base != "" {
+		api.BasePath = base
+	}
 	return &Service{API: api, Cfg: cfg}, nil
+}
+
+// sandboxBaseURL returns the GPLAY_API_BASE_URL override, normalized to end
+// with a slash. The override points the client at a local sandbox server for
+// hermetic black-box tests. It is not a supported production setting.
+func sandboxBaseURL() string {
+	base := strings.TrimSpace(os.Getenv("GPLAY_API_BASE_URL"))
+	if base == "" {
+		return ""
+	}
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	return base
 }
 
 // NewAuthenticatedClient returns an HTTP client authenticated with the
