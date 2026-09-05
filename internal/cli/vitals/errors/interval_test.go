@@ -3,6 +3,7 @@ package errors
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -130,11 +131,14 @@ func TestIssuesCommand_IntervalQueryParams(t *testing.T) {
 
 	cmd := IssuesCommand()
 	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "2025-01-01", "--to", "2025-01-31"})
-	_, err := captureErrorsStdout(func() error {
+	stdout, err := captureErrorsStdout(func() error {
 		return cmd.Exec(context.Background(), nil)
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
+	}
+	if !json.Valid([]byte(stdout)) {
+		t.Fatalf("expected JSON output, got %q", stdout)
 	}
 
 	want := map[string]string{
@@ -162,11 +166,14 @@ func TestIssuesCommand_NoIntervalParamsByDefault(t *testing.T) {
 
 	cmd := IssuesCommand()
 	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app"})
-	_, err := captureErrorsStdout(func() error {
+	stdout, err := captureErrorsStdout(func() error {
 		return cmd.Exec(context.Background(), nil)
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
+	}
+	if !json.Valid([]byte(stdout)) {
+		t.Fatalf("expected JSON output, got %q", stdout)
 	}
 	if strings.Contains(gotRawQuery, "interval.") {
 		t.Errorf("expected no interval params without --from/--to, got query: %s", gotRawQuery)
@@ -186,11 +193,14 @@ func TestReportsCommand_IntervalQueryParams(t *testing.T) {
 
 	cmd := ReportsCommand()
 	_ = cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--from", "2025-06-15", "--to", "2025-06-15"})
-	_, err := captureErrorsStdout(func() error {
+	stdout, err := captureErrorsStdout(func() error {
 		return cmd.Exec(context.Background(), nil)
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
+	}
+	if !json.Valid([]byte(stdout)) {
+		t.Fatalf("expected JSON output, got %q", stdout)
 	}
 
 	want := map[string]string{
