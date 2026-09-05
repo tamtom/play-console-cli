@@ -40,7 +40,7 @@ irm https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.ps1 |
 
 **Update:** `gplay update` self-updates in place. It also checks for new versions on startup (disable with `GPLAY_NO_UPDATE=1`).
 
-After your first successful edit commit or release with `gh` installed, gplay
+After your first successful metadata push, edit commit, or release with `gh` installed, gplay
 prints an optional star suggestion to stderr. It never waits for input or
 stars automatically: agents must ask you first. Set `GPLAY_NO_STAR_PROMPT=1`
 to suppress the suggestion. See [configuration](docs/configuration.md).

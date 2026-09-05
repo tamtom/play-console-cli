@@ -42,7 +42,7 @@ gplay init --package com.example.app --service-account /path/to/sa.json
 
 ## Output formats
 
-After a successful `edits commit`, `release`, or `publish track`, gplay prints
+After a successful `metadata push`, `edits commit`, `release`, or `publish track`, gplay prints
 a one-time GitHub star suggestion to stderr if `gh` is on PATH. Metadata
 updates qualify when their edit is committed. The CLI never waits for input,
 runs `gh`, or stars a repository automatically; JSON stdout is unchanged.

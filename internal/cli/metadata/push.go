@@ -99,7 +99,13 @@ Examples:
 				"dryRun":  *dryRun,
 				"status":  "pushed",
 			}
-			return shared.PrintOutputContext(ctx, result, *outputFlag, *pretty)
+			if err := shared.PrintOutputContext(ctx, result, *outputFlag, *pretty); err != nil {
+				return err
+			}
+			if !*dryRun {
+				shared.SuggestGitHubStar(ctx)
+			}
+			return nil
 		},
 	}
 }
