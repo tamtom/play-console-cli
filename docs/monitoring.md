@@ -14,9 +14,12 @@ gplay vitals performance startup --package com.example.app
 gplay vitals performance rendering --package com.example.app
 gplay vitals performance battery --package com.example.app
 
-# ANR / error tracking
+# ANR / error tracking (defaults to the last 24 hours)
 gplay vitals errors issues --package com.example.app
 gplay vitals errors reports --package com.example.app
+
+# Error tracking over a date range (UTC, inclusive)
+gplay vitals errors issues --package com.example.app --from 2025-01-01 --to 2025-01-31
 ```
 
 ## Reviews

@@ -83,7 +83,7 @@ func TestIssuesCommand_Structure(t *testing.T) {
 
 func TestIssuesCommand_Flags(t *testing.T) {
 	cmd := IssuesCommand()
-	expectedFlags := []string{"package", "filter", "order-by", "page-size", "paginate", "output", "pretty"}
+	expectedFlags := []string{"package", "filter", "order-by", "from", "to", "page-size", "paginate", "output", "pretty"}
 	for _, name := range expectedFlags {
 		f := cmd.FlagSet.Lookup(name)
 		if f == nil {
@@ -176,7 +176,7 @@ func TestReportsCommand_Structure(t *testing.T) {
 
 func TestReportsCommand_Flags(t *testing.T) {
 	cmd := ReportsCommand()
-	expectedFlags := []string{"package", "filter", "page-size", "paginate", "output", "pretty"}
+	expectedFlags := []string{"package", "filter", "from", "to", "page-size", "paginate", "output", "pretty"}
 	for _, name := range expectedFlags {
 		f := cmd.FlagSet.Lookup(name)
 		if f == nil {
