@@ -80,6 +80,32 @@ func TestStarSuggestion_ReleaseSharesOneTimeStateWithCommit(t *testing.T) {
 	}
 }
 
+func TestStarSuggestion_MetadataPushSuggestsOnceAfterRealSubmission(t *testing.T) {
+	setupStarSuggestion(t)
+	dir := t.TempDir()
+	localeDir := filepath.Join(dir, "en-US")
+	if err := os.Mkdir(localeDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(localeDir, "title.txt"), []byte("Updated title"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, attempt := range []string{"dry run", "first push", "second push"} {
+		args := []string{"metadata", "push", "--package", sandbox.Package, "--dir", dir, "--confirm"}
+		if attempt == "dry run" {
+			args = append(args, "--dry-run")
+		}
+		result := cmdtest.Run(t, args...)
+		if result.ExitCode != 0 || !json.Valid([]byte(result.Stdout)) {
+			t.Fatalf("%s failed or stdout is not JSON: %+v", attempt, result)
+		}
+		wantSuggestion := attempt == "first push"
+		if got := strings.Contains(result.Stderr, "Would you like to star"); got != wantSuggestion {
+			t.Errorf("%s suggestion = %t, want %t: %q", attempt, got, wantSuggestion, result.Stderr)
+		}
+	}
+}
+
 func TestStarSuggestion_SkippedAttemptsDoNotConsumeSuggestion(t *testing.T) {
 	for _, scenario := range []string{"no gh", "dry run", "failure", "read", "opt out"} {
 		t.Run(scenario, func(t *testing.T) {

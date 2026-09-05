@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A one-time GitHub star suggestion after a successful edit commit or release,
+- A one-time GitHub star suggestion after a successful metadata push, edit commit, or release,
   shown on stderr only when `gh` is installed. Agents must obtain an explicit
   yes before running the suggested command. The CLI never waits for input or
   stars automatically; set `GPLAY_NO_STAR_PROMPT=1` to suppress the suggestion.
