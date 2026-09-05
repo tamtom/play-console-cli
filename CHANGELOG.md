@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [0.10.0] - 2026-09-05
+
+### Added
+
+- `vitals errors issues` and `vitals errors reports` now accept inclusive UTC
+  `--from` and `--to` date filters in `YYYY-MM-DD` format. Either bound can be
+  supplied independently; invalid dates and reversed ranges fail before
+  network access. Omitting both flags retains the last-24-hours default.
+
+### Changed
+
+- Updated `google.golang.org/api` to `v0.294.0`, `golang.org/x/text` to `v0.41.0`,
+  and associated transitive dependencies.
+- Updated the API-drift workflow to `actions/setup-python` v7 and the
+  fixture-release workflow to `actions/setup-java` v6.
+
 ## [0.9.2] - 2026-08-25
 
 ### Security
