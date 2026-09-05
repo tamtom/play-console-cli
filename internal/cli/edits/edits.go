@@ -219,7 +219,11 @@ Examples:
 			if err != nil {
 				return err
 			}
-			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
+			if err := shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty); err != nil {
+				return err
+			}
+			shared.SuggestGitHubStar(ctx)
+			return nil
 		},
 	}
 }
