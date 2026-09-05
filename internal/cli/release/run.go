@@ -205,5 +205,6 @@ done:
 	_ = opts.SkipMetadata
 	_ = opts.SkipScreenshots
 
+	shared.SuggestGitHubStar(ctx)
 	return result, nil
 }
