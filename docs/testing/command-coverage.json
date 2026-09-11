@@ -521,28 +521,28 @@
   "offers update": {
     "class": "offline"
   },
-  "onetimeproducts batch-delete": {
+  "onetime-products batch-delete": {
     "class": "offline"
   },
-  "onetimeproducts batch-get": {
+  "onetime-products batch-get": {
     "class": "offline"
   },
-  "onetimeproducts batch-update": {
+  "onetime-products batch-update": {
     "class": "offline"
   },
-  "onetimeproducts create": {
+  "onetime-products create": {
     "class": "offline"
   },
-  "onetimeproducts delete": {
+  "onetime-products delete": {
     "class": "offline"
   },
-  "onetimeproducts get": {
+  "onetime-products get": {
     "class": "offline"
   },
-  "onetimeproducts list": {
-    "class": "live"
+  "onetime-products list": {
+    "class": "offline"
   },
-  "onetimeproducts patch": {
+  "onetime-products update": {
     "class": "offline"
   },
   "orders batch-get": {

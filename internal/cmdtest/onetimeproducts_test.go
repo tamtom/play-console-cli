@@ -10,7 +10,7 @@ func TestOnetimeproductsCreate_EmptyJSON_FailsWithHelpfulError(t *testing.T) {
 	root := RootCommand("test")
 	var runErr error
 	_, stderr := captureOutput(t, func() {
-		if err := root.Parse([]string{"onetimeproducts", "create", "--product-id", "test", "--json", "{}"}); err != nil {
+		if err := root.Parse([]string{"onetime-products", "create", "--product-id", "test", "--json", "{}"}); err != nil {
 			t.Fatalf("parse error: %v", err)
 		}
 		runErr = root.Run(context.Background())
@@ -31,7 +31,7 @@ func TestOnetimeproductsCreate_OnlyImmutableFields_FailsWithHelpfulError(t *test
 	root := RootCommand("test")
 	var runErr error
 	_, _ = captureOutput(t, func() {
-		if err := root.Parse([]string{"onetimeproducts", "create", "--product-id", "test", "--json", `{"packageName":"com.example","productId":"test"}`}); err != nil {
+		if err := root.Parse([]string{"onetime-products", "create", "--product-id", "test", "--json", `{"packageName":"com.example","productId":"test"}`}); err != nil {
 			t.Fatalf("parse error: %v", err)
 		}
 		runErr = root.Run(context.Background())
@@ -48,7 +48,7 @@ func TestOnetimeproductsCreate_InvalidJSON_FailsBeforeAPICall(t *testing.T) {
 	root := RootCommand("test")
 	var runErr error
 	_, _ = captureOutput(t, func() {
-		if err := root.Parse([]string{"onetimeproducts", "create", "--product-id", "test", "--json", "not json"}); err != nil {
+		if err := root.Parse([]string{"onetime-products", "create", "--product-id", "test", "--json", "not json"}); err != nil {
 			t.Fatalf("parse error: %v", err)
 		}
 		runErr = root.Run(context.Background())
@@ -61,11 +61,11 @@ func TestOnetimeproductsCreate_InvalidJSON_FailsBeforeAPICall(t *testing.T) {
 	}
 }
 
-func TestOnetimeproductsPatch_EmptyJSON_NoUpdateMask_FailsWithHelpfulError(t *testing.T) {
+func TestOnetimeproductsUpdate_EmptyJSON_NoUpdateMask_FailsWithHelpfulError(t *testing.T) {
 	root := RootCommand("test")
 	var runErr error
 	_, _ = captureOutput(t, func() {
-		if err := root.Parse([]string{"onetimeproducts", "patch", "--product-id", "test", "--json", "{}"}); err != nil {
+		if err := root.Parse([]string{"onetime-products", "update", "--product-id", "test", "--json", "{}"}); err != nil {
 			t.Fatalf("parse error: %v", err)
 		}
 		runErr = root.Run(context.Background())
@@ -73,16 +73,16 @@ func TestOnetimeproductsPatch_EmptyJSON_NoUpdateMask_FailsWithHelpfulError(t *te
 	if runErr == nil {
 		t.Fatal("expected error for empty JSON without --update-mask")
 	}
-	if !strings.Contains(runErr.Error(), "no updatable fields") {
-		t.Errorf("expected 'no updatable fields' error, got: %s", runErr.Error())
+	if !strings.Contains(runErr.Error(), "--update-mask is required") {
+		t.Errorf("expected '--update-mask is required' error, got: %s", runErr.Error())
 	}
 }
 
-func TestOnetimeproductsPatch_ExplicitUpdateMask_SkipsDeriving(t *testing.T) {
+func TestOnetimeproductsUpdate_ExplicitUpdateMask_SkipsDeriving(t *testing.T) {
 	root := RootCommand("test")
 	var runErr error
 	_, _ = captureOutput(t, func() {
-		if err := root.Parse([]string{"onetimeproducts", "patch", "--product-id", "test", "--json", "{}", "--update-mask", "listings"}); err != nil {
+		if err := root.Parse([]string{"onetime-products", "update", "--product-id", "test", "--json", "{}", "--update-mask", "listings"}); err != nil {
 			t.Fatalf("parse error: %v", err)
 		}
 		runErr = root.Run(context.Background())

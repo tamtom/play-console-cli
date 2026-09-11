@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 
@@ -64,6 +65,9 @@ func LeafCommands() []string {
 }
 
 func walk(prefix string, cmd *ffcli.Command, out *[]string) {
+	if strings.HasPrefix(cmd.ShortHelp, "DEPRECATED:") {
+		return
+	}
 	path := cmd.Name
 	if prefix != "" {
 		path = prefix + " " + cmd.Name

@@ -27,6 +27,9 @@ func main() {
 }
 
 func generateMarkdown(w io.Writer, cmd *ffcli.Command, prefix string) {
+	if strings.HasPrefix(cmd.ShortHelp, "DEPRECATED:") {
+		return
+	}
 	fullName := prefix
 	if fullName == "" {
 		fullName = cmd.Name
@@ -76,6 +79,9 @@ func generateMarkdown(w io.Writer, cmd *ffcli.Command, prefix string) {
 
 func printTOC(w io.Writer, cmd *ffcli.Command, prefix string) {
 	for _, sub := range cmd.Subcommands {
+		if strings.HasPrefix(sub.ShortHelp, "DEPRECATED:") {
+			continue
+		}
 		fullName := sub.Name
 		if prefix != "" {
 			fullName = prefix + " " + sub.Name

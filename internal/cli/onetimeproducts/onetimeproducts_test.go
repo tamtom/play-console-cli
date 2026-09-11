@@ -10,8 +10,8 @@ import (
 
 func TestOneTimeProductsCommand_Name(t *testing.T) {
 	cmd := OneTimeProductsCommand()
-	if cmd.Name != "onetimeproducts" {
-		t.Errorf("expected name %q, got %q", "onetimeproducts", cmd.Name)
+	if cmd.Name != "onetime-products" {
+		t.Errorf("expected name %q, got %q", "onetime-products", cmd.Name)
 	}
 }
 
@@ -49,6 +49,7 @@ func TestOneTimeProductsCommand_SubcommandNames(t *testing.T) {
 		"list":         false,
 		"get":          false,
 		"create":       false,
+		"update":       false,
 		"patch":        false,
 		"delete":       false,
 		"batch-get":    false,
@@ -124,7 +125,7 @@ func TestCreateCommand_Name(t *testing.T) {
 
 func TestCreateCommand_LongHelpMentionsAutoConvertExample(t *testing.T) {
 	cmd := CreateCommand()
-	if !strings.Contains(cmd.LongHelp, "onetimeproducts create --package") ||
+	if !strings.Contains(cmd.LongHelp, "onetime-products create --package") ||
 		!strings.Contains(cmd.LongHelp, "--auto-convert-regional-prices") ||
 		!strings.Contains(cmd.LongHelp, "pricing regions-version") {
 		t.Fatalf("create help should make auto-convert workflow discoverable, got:\n%s", cmd.LongHelp)
@@ -252,17 +253,17 @@ func TestCreateCommand_AutoConvertRequiresPurchaseOption(t *testing.T) {
 	}
 }
 
-// --- patch ---
+// --- update ---
 
-func TestPatchCommand_Name(t *testing.T) {
-	cmd := PatchCommand()
-	if cmd.Name != "patch" {
-		t.Errorf("expected name %q, got %q", "patch", cmd.Name)
+func TestUpdateCommand_Name(t *testing.T) {
+	cmd := UpdateCommand()
+	if cmd.Name != "update" {
+		t.Errorf("expected name %q, got %q", "update", cmd.Name)
 	}
 }
 
-func TestPatchCommand_MissingProductID(t *testing.T) {
-	cmd := PatchCommand()
+func TestUpdateCommand_MissingProductID(t *testing.T) {
+	cmd := UpdateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--json", `{}`}); err != nil {
 		t.Fatal(err)
 	}
@@ -275,8 +276,8 @@ func TestPatchCommand_MissingProductID(t *testing.T) {
 	}
 }
 
-func TestPatchCommand_MissingJson(t *testing.T) {
-	cmd := PatchCommand()
+func TestUpdateCommand_MissingJson(t *testing.T) {
+	cmd := UpdateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--product-id", "test"}); err != nil {
 		t.Fatal(err)
 	}
@@ -289,9 +290,9 @@ func TestPatchCommand_MissingJson(t *testing.T) {
 	}
 }
 
-func TestPatchCommand_HasRegionsVersionFlag(t *testing.T) {
-	cmd := PatchCommand()
-	if err := cmd.FlagSet.Parse([]string{"--regions-version", "2024001", "--product-id", "test", "--json", `{}`}); err != nil {
+func TestUpdateCommand_HasRegionsVersionFlag(t *testing.T) {
+	cmd := UpdateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--regions-version", "2024001", "--product-id", "test", "--json", `{}`, "--update-mask", "listings"}); err != nil {
 		t.Fatal(err)
 	}
 	f := cmd.FlagSet.Lookup("regions-version")
@@ -300,8 +301,8 @@ func TestPatchCommand_HasRegionsVersionFlag(t *testing.T) {
 	}
 }
 
-func TestPatchCommand_EmptyJSON_NoUpdateMask_ReturnsError(t *testing.T) {
-	cmd := PatchCommand()
+func TestUpdateCommand_RequiresExplicitUpdateMask(t *testing.T) {
+	cmd := UpdateCommand()
 	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`}); err != nil {
 		t.Fatal(err)
 	}
@@ -309,13 +310,13 @@ func TestPatchCommand_EmptyJSON_NoUpdateMask_ReturnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty JSON without --update-mask")
 	}
-	if !strings.Contains(err.Error(), "no updatable fields") {
-		t.Errorf("error should mention no updatable fields, got: %s", err.Error())
+	if !strings.Contains(err.Error(), "--update-mask is required") {
+		t.Errorf("error should mention --update-mask, got: %s", err.Error())
 	}
 }
 
-func TestPatchCommand_EmptyJSON_WithUpdateMask_SkipsDeriving(t *testing.T) {
-	cmd := PatchCommand()
+func TestUpdateCommand_EmptyJSON_WithUpdateMask_SkipsDeriving(t *testing.T) {
+	cmd := UpdateCommand()
 	// With explicit --update-mask, the derive step is skipped so the error
 	// will come from the API (service auth) not from DeriveUpdateMask.
 	if err := cmd.FlagSet.Parse([]string{"--product-id", "test", "--json", `{}`, "--update-mask", "listings"}); err != nil {
@@ -329,14 +330,9 @@ func TestPatchCommand_EmptyJSON_WithUpdateMask_SkipsDeriving(t *testing.T) {
 	}
 }
 
-func TestPatchCommand_HasAllowMissingFlag(t *testing.T) {
-	cmd := PatchCommand()
-	if err := cmd.FlagSet.Parse([]string{"--allow-missing", "--product-id", "test", "--json", `{}`}); err != nil {
-		t.Fatal(err)
-	}
-	f := cmd.FlagSet.Lookup("allow-missing")
-	if f == nil {
-		t.Fatal("expected --allow-missing flag")
+func TestUpdateCommand_DoesNotExposeAllowMissing(t *testing.T) {
+	if UpdateCommand().FlagSet.Lookup("allow-missing") != nil {
+		t.Fatal("update must not expose --allow-missing")
 	}
 }
 

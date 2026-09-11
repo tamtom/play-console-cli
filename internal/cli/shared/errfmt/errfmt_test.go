@@ -53,6 +53,21 @@ func TestClassify_GoogleAPI403(t *testing.T) {
 	}
 }
 
+func TestClassify_GoogleAPI403Migration(t *testing.T) {
+	err := &googleapi.Error{Code: 403, Message: "Please migrate to the new publishing API."}
+	c := Classify(err)
+	if c.Category != CategoryPermission {
+		t.Fatalf("category = %q", c.Category)
+	}
+	if !strings.Contains(strings.ToLower(c.Hint), "migrat") ||
+		!strings.Contains(c.Hint, "gplay onetime-products") {
+		t.Fatalf("migration hint = %q", c.Hint)
+	}
+	if strings.Contains(strings.ToLower(c.Hint), "lacks required permissions") {
+		t.Fatalf("migration error must not use permission hint: %q", c.Hint)
+	}
+}
+
 func TestClassify_GoogleAPI404(t *testing.T) {
 	err := &googleapi.Error{Code: 404, Message: "not found"}
 	c := Classify(err)
