@@ -12,9 +12,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.25.13'
+          go-version: '1.27.1'
           cache: true
-      - run: go install mvdan.cc/gofumpt@latest
+      - run: go install mvdan.cc/gofumpt@v0.12.0
       - name: Check formatting
         run: make format && git diff --exit-code
       - name: Check docs
@@ -22,7 +22,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.13.2
 
   test:
     name: Test
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.25.13'
+          go-version: '1.27.1'
           cache: true
       - name: Run tests with coverage
         run: go test -v -race -coverprofile=coverage.out ./...
@@ -51,7 +51,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.25.13'
+          go-version: '1.27.1'
           cache: true
       - run: make build
       - run: ./gplay version
