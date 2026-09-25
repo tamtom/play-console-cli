@@ -162,7 +162,7 @@ Examples:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateListing(ctx, *packageName, *editID, *locale, *title, *fullDescription, *shortDescription, *video, *outputFlag, *pretty, false)
+			return updateListing(ctx, *packageName, *editID, *locale, *title, *fullDescription, *shortDescription, *video, *outputFlag, *pretty, false, listingForceSendFields(fs, false))
 		},
 	}
 }
@@ -186,7 +186,7 @@ func PatchCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateListing(ctx, *packageName, *editID, *locale, *title, *fullDescription, *shortDescription, *video, *outputFlag, *pretty, true)
+			return updateListing(ctx, *packageName, *editID, *locale, *title, *fullDescription, *shortDescription, *video, *outputFlag, *pretty, true, listingForceSendFields(fs, true))
 		},
 	}
 }
@@ -281,7 +281,7 @@ func DeleteAllCommand() *ffcli.Command {
 	}
 }
 
-func updateListing(ctx context.Context, packageName, editID, locale, title, fullDesc, shortDesc, video, outputFlag string, pretty bool, patch bool) error {
+func updateListing(ctx context.Context, packageName, editID, locale, title, fullDesc, shortDesc, video, outputFlag string, pretty bool, patch bool, forceSendFields []string) error {
 	if err := shared.ValidateOutputFlags(outputFlag, pretty); err != nil {
 		return err
 	}
@@ -309,6 +309,7 @@ func updateListing(ctx context.Context, packageName, editID, locale, title, full
 		FullDescription:  fullDesc,
 		ShortDescription: shortDesc,
 		Video:            video,
+		ForceSendFields:  forceSendFields,
 	}
 
 	ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
@@ -325,4 +326,24 @@ func updateListing(ctx context.Context, packageName, editID, locale, title, full
 		return err
 	}
 	return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
+}
+
+func listingForceSendFields(fs *flag.FlagSet, patch bool) []string {
+	fieldNames := map[string]string{
+		"title":             "Title",
+		"full-description":  "FullDescription",
+		"short-description": "ShortDescription",
+		"video":             "Video",
+	}
+	if !patch {
+		return []string{"Title", "FullDescription", "ShortDescription", "Video"}
+	}
+
+	var fields []string
+	fs.Visit(func(f *flag.Flag) {
+		if field, ok := fieldNames[f.Name]; ok {
+			fields = append(fields, field)
+		}
+	})
+	return fields
 }

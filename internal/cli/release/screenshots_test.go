@@ -51,14 +51,13 @@ func TestParseScreenshotsDir(t *testing.T) {
 		}
 	})
 
-	t.Run("supports multiple image extensions", func(t *testing.T) {
+	t.Run("supports Play image extensions", func(t *testing.T) {
 		dir := t.TempDir()
 		phoneDir := filepath.Join(dir, "en-US", "phoneScreenshots")
 		mustT(t, os.MkdirAll(phoneDir, 0o755))
 		mustT(t, os.WriteFile(filepath.Join(phoneDir, "a.png"), []byte("img"), 0o644))
 		mustT(t, os.WriteFile(filepath.Join(phoneDir, "b.jpg"), []byte("img"), 0o644))
 		mustT(t, os.WriteFile(filepath.Join(phoneDir, "c.jpeg"), []byte("img"), 0o644))
-		mustT(t, os.WriteFile(filepath.Join(phoneDir, "d.webp"), []byte("img"), 0o644))
 		mustT(t, os.WriteFile(filepath.Join(phoneDir, "e.txt"), []byte("not an image"), 0o644))
 
 		result, err := ParseScreenshotsDir(dir)
@@ -67,8 +66,21 @@ func TestParseScreenshotsDir(t *testing.T) {
 		}
 
 		paths := result["en-US"]["phoneScreenshots"]
-		if len(paths) != 4 {
-			t.Fatalf("expected 4 images (txt excluded), got %d", len(paths))
+		if len(paths) != 3 {
+			t.Fatalf("expected 3 PNG/JPEG images (text excluded), got %d", len(paths))
+		}
+	})
+
+	t.Run("rejects WebP screenshots", func(t *testing.T) {
+		dir := t.TempDir()
+		phoneDir := filepath.Join(dir, "en-US", "phoneScreenshots")
+		mustT(t, os.MkdirAll(phoneDir, 0o755))
+		mustT(t, os.WriteFile(filepath.Join(phoneDir, "a.png"), []byte("img"), 0o644))
+		mustT(t, os.WriteFile(filepath.Join(phoneDir, "b.webp"), []byte("img"), 0o644))
+
+		_, err := ParseScreenshotsDir(dir)
+		if err == nil || !strings.Contains(err.Error(), "b.webp") || !strings.Contains(err.Error(), "PNG and JPEG") {
+			t.Fatalf("error = %v, want WebP rejection that names the file", err)
 		}
 	})
 

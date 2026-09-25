@@ -9,10 +9,14 @@ import (
 
 // ListingData holds the parsed listing metadata for a single locale.
 type ListingData struct {
-	Title            string
-	ShortDescription string
-	FullDescription  string
-	Video            string
+	Title                   string
+	TitlePresent            bool
+	ShortDescription        string
+	ShortDescriptionPresent bool
+	FullDescription         string
+	FullDescriptionPresent  bool
+	Video                   string
+	VideoPresent            bool
 }
 
 // ParseListingsDir reads a directory structured as:
@@ -52,9 +56,7 @@ func ParseListingsDir(dir string) (map[string]ListingData, error) {
 			return nil, fmt.Errorf("failed to parse locale %s: %w", locale, err)
 		}
 
-		// Only include locales that have at least one non-empty field
-		if listing.Title != "" || listing.ShortDescription != "" ||
-			listing.FullDescription != "" || listing.Video != "" {
+		if listing.hasFields() {
 			result[locale] = listing
 		}
 	}
@@ -69,40 +71,65 @@ func ParseListingsDir(dir string) (map[string]ListingData, error) {
 func parseLocaleDir(dir string) (ListingData, error) {
 	var listing ListingData
 
-	title, err := readFileIfExists(filepath.Join(dir, "title.txt"))
+	title, present, err := readFileIfExists(filepath.Join(dir, "title.txt"))
 	if err != nil {
 		return listing, err
 	}
 	listing.Title = title
+	listing.TitlePresent = present
 
-	shortDesc, err := readFileIfExists(filepath.Join(dir, "short_description.txt"))
+	shortDesc, present, err := readFileIfExists(filepath.Join(dir, "short_description.txt"))
 	if err != nil {
 		return listing, err
 	}
 	listing.ShortDescription = shortDesc
+	listing.ShortDescriptionPresent = present
 
-	fullDesc, err := readFileIfExists(filepath.Join(dir, "full_description.txt"))
+	fullDesc, present, err := readFileIfExists(filepath.Join(dir, "full_description.txt"))
 	if err != nil {
 		return listing, err
 	}
 	listing.FullDescription = fullDesc
+	listing.FullDescriptionPresent = present
 
-	video, err := readFileIfExists(filepath.Join(dir, "video.txt"))
+	video, present, err := readFileIfExists(filepath.Join(dir, "video.txt"))
 	if err != nil {
 		return listing, err
 	}
 	listing.Video = video
+	listing.VideoPresent = present
 
 	return listing, nil
 }
 
-func readFileIfExists(path string) (string, error) {
+func (l ListingData) hasFields() bool {
+	return l.TitlePresent || l.ShortDescriptionPresent || l.FullDescriptionPresent || l.VideoPresent
+}
+
+func (l ListingData) forceSendFields() []string {
+	fields := make([]string, 0, 4)
+	if l.TitlePresent {
+		fields = append(fields, "Title")
+	}
+	if l.ShortDescriptionPresent {
+		fields = append(fields, "ShortDescription")
+	}
+	if l.FullDescriptionPresent {
+		fields = append(fields, "FullDescription")
+	}
+	if l.VideoPresent {
+		fields = append(fields, "Video")
+	}
+	return fields
+}
+
+func readFileIfExists(path string) (string, bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", nil
+			return "", false, nil
 		}
-		return "", fmt.Errorf("failed to read %s: %w", filepath.Base(path), err)
+		return "", false, fmt.Errorf("failed to read %s: %w", filepath.Base(path), err)
 	}
-	return strings.TrimSpace(string(data)), nil
+	return strings.TrimSpace(string(data)), true, nil
 }

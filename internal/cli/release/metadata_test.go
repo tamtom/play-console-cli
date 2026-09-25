@@ -50,8 +50,33 @@ func TestParseListingsDir(t *testing.T) {
 		if ja.Title != "私のアプリ" {
 			t.Errorf("expected Japanese title, got %q", ja.Title)
 		}
+		if !ja.TitlePresent {
+			t.Error("expected Japanese title to be marked present")
+		}
 		if ja.ShortDescription != "" {
 			t.Errorf("expected empty short description, got %q", ja.ShortDescription)
+		}
+		if ja.ShortDescriptionPresent {
+			t.Error("missing short_description.txt must not be marked present")
+		}
+	})
+
+	t.Run("preserves explicitly empty files for clearing", func(t *testing.T) {
+		dir := t.TempDir()
+		enDir := filepath.Join(dir, "en-US")
+		must(t, os.MkdirAll(enDir, 0o755))
+		must(t, os.WriteFile(filepath.Join(enDir, "video.txt"), nil, 0o644))
+
+		result, err := ParseListingsDir(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		listing, ok := result["en-US"]
+		if !ok {
+			t.Fatal("explicitly empty video file must retain the locale")
+		}
+		if !listing.VideoPresent || listing.Video != "" {
+			t.Fatalf("listing = %#v, want present empty video", listing)
 		}
 	})
 
@@ -113,7 +138,7 @@ func TestParseListingsDir(t *testing.T) {
 		}
 	})
 
-	t.Run("skips locale dirs with all empty files", func(t *testing.T) {
+	t.Run("retains locale dirs with explicit empty files", func(t *testing.T) {
 		dir := t.TempDir()
 		enDir := filepath.Join(dir, "en-US")
 		must(t, os.MkdirAll(enDir, 0o755))
@@ -128,8 +153,11 @@ func TestParseListingsDir(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(result) != 1 {
-			t.Fatalf("expected 1 locale (fr should be skipped), got %d", len(result))
+		if len(result) != 2 {
+			t.Fatalf("expected 2 locales so fr can clear its title, got %d", len(result))
+		}
+		if !result["fr"].TitlePresent || result["fr"].Title != "" {
+			t.Fatalf("fr listing = %#v, want present empty title", result["fr"])
 		}
 	})
 }

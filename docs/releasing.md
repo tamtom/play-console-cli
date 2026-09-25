@@ -13,6 +13,8 @@ gplay release --package com.example.app --track production --bundle app.aab \
   --release-notes @notes.json --rollout 0.1
 
 # With metadata and screenshots
+# A missing listing file keeps the field on Play. An empty file clears it.
+# Screenshots already on Play (same SHA-256) are skipped. Release never deletes screenshots.
 gplay release --package com.example.app --track production --bundle app.aab \
   --listings-dir ./metadata --screenshots-dir ./screenshots
 

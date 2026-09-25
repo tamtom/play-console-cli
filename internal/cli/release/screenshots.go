@@ -78,8 +78,12 @@ func ParseScreenshotsDir(dir string) (map[string]map[string][]string, error) {
 					continue
 				}
 				ext := strings.ToLower(filepath.Ext(f.Name()))
-				if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
+				switch ext {
+				case ".png", ".jpg", ".jpeg":
 					filePaths = append(filePaths, filepath.Join(deviceDir, f.Name()))
+				case ".webp":
+					return nil, fmt.Errorf("unsupported screenshot format: %s; Play accepts PNG and JPEG only",
+						filepath.Join(deviceDir, f.Name()))
 				}
 			}
 

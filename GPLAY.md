@@ -3358,12 +3358,21 @@ gplay release --package <name> --track <track> --bundle <path> [--release-notes 
 ```
 
 The release command is a high-level workflow that combines:
-  1. Create a new edit
-  2. Upload app bundle or APK
+  1. Check the bundle or APK, the listings, and the screenshots locally
+  2. Create a new edit
   3. Update store listings (if --listings-dir is provided)
-  4. Upload screenshots (if --screenshots-dir is provided)
-  5. Configure track with release notes and rollout
-  6. Validate and commit the edit
+  4. Compare the screenshots with the images on Play (if --screenshots-dir is provided)
+  5. Upload app bundle or APK
+  6. Upload the new screenshots
+  7. Configure track with release notes and rollout
+  8. Validate and commit the edit
+
+Screenshots:
+  Release never deletes screenshots. It skips a local screenshot that has the
+  same SHA-256 as an image already on Play, so you can run the same release
+  again. If a type would have more than 8 screenshots, release stops before it
+  uploads the bundle. Use "gplay images delete" or "gplay images delete-all"
+  to remove old screenshots.
 
 This replaces the manual workflow of:
   gplay edits create
@@ -3382,14 +3391,14 @@ Example:
 | `--apk` | Path to .apk file (use --bundle or --apk, not both) | `` |
 | `--bundle` | Path to .aab bundle file | `` |
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
-| `--listings-dir` | Path to listings metadata directory (locale/title.txt, short_description.txt, etc.) | `` |
+| `--listings-dir` | Path to listings metadata directory (locale/title.txt, short_description.txt, etc.); a missing file keeps the field, an empty file clears it | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--poll-interval` | Polling interval when waiting | `10s` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--release-notes` | Release notes: plain text (en-US), JSON array, or @file path | `` |
 | `--rollout` | Staged rollout fraction (0.0-1.0, default: 1.0 for full rollout) | `1` |
-| `--screenshots-dir` | Path to screenshots directory (locale/deviceType/files) | `` |
+| `--screenshots-dir` | Path to screenshots directory (locale/deviceType/files); skips screenshots already on Play and never deletes screenshots | `` |
 | `--skip-metadata` | Skip listings metadata update even if --listings-dir is set | `false` |
 | `--skip-screenshots` | Skip screenshot uploads even if --screenshots-dir is set | `false` |
 | `--status` | Release status: draft, inProgress, halted, completed | `completed` |

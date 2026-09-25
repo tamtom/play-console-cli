@@ -1,11 +1,18 @@
 package listings
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestListingsCommand_Name(t *testing.T) {
@@ -257,6 +264,75 @@ func TestListingsPatchCommand_MissingLocale(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--locale") {
 		t.Errorf("error should mention --locale, got: %s", err.Error())
+	}
+}
+
+func TestListingsPatchCommand_ExplicitEmptyVideoIsSentToClear(t *testing.T) {
+	var requestBody map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&requestBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"language":"en-US"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	cmd := PatchCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--package", "com.example.app",
+		"--edit", "edit-1",
+		"--locale", "en-US",
+		"--video", "",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := playclient.ContextWithServiceFactory(context.Background(), func(ctx context.Context) (*playclient.Service, error) {
+		return playclient.NewServiceWithClient(ctx, server.Client(), server.URL+"/")
+	})
+	ctx = shared.ContextWithIO(ctx, &bytes.Buffer{}, &bytes.Buffer{})
+	if err := cmd.Exec(ctx, nil); err != nil {
+		t.Fatalf("patch listing: %v", err)
+	}
+
+	video, ok := requestBody["video"]
+	if !ok || video != "" {
+		t.Fatalf("request body = %#v, want explicit empty video", requestBody)
+	}
+	if _, ok := requestBody["title"]; ok {
+		t.Fatalf("request body = %#v, omitted title must not be patched", requestBody)
+	}
+}
+
+func TestListingsUpdateCommand_OmittedFieldsAreSentToClear(t *testing.T) {
+	var requestBody map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&requestBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"language":"en-US"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	cmd := UpdateCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--package", "com.example.app",
+		"--edit", "edit-1",
+		"--locale", "en-US",
+		"--title", "Example",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := playclient.ContextWithServiceFactory(context.Background(), func(ctx context.Context) (*playclient.Service, error) {
+		return playclient.NewServiceWithClient(ctx, server.Client(), server.URL+"/")
+	})
+	ctx = shared.ContextWithIO(ctx, &bytes.Buffer{}, &bytes.Buffer{})
+	if err := cmd.Exec(ctx, nil); err != nil {
+		t.Fatalf("update listing: %v", err)
+	}
+
+	for _, field := range []string{"fullDescription", "shortDescription", "video"} {
+		value, ok := requestBody[field]
+		if !ok || value != "" {
+			t.Fatalf("request body = %#v, want explicit empty %s", requestBody, field)
+		}
 	}
 }
 
