@@ -3,6 +3,7 @@ package preflight
 import (
 	"fmt"
 	"image"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -281,20 +282,58 @@ func checkScreenshotDir(locale, kind, dir string) []Finding {
 
 // checkScreenshotFile validates one screenshot's dimensions and size.
 func checkScreenshotFile(locale, path string) []Finding {
-	var out []Finding
+	file, err := os.Open(path) // #nosec G304 -- path derived from the user-supplied listings dir
+	if err != nil {
+		return []Finding{{
+			Check:    "image_unreadable",
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("[%s] %s could not be opened: %v", locale, filepath.Base(path), err),
+			Entry:    path,
+			Hint:     "Play accepts PNG and JPEG screenshots",
+		}}
+	}
+	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return []Finding{{
+			Check:    "image_unreadable",
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("[%s] %s could not be inspected: %v", locale, filepath.Base(path), err),
+			Entry:    path,
+		}}
+	}
+	return ValidateScreenshotReader(locale, path, file, info.Size())
+}
 
-	info, err := os.Stat(path)
-	if err == nil && info.Size() > maxScreenshotBytes {
+// ValidateScreenshotReader applies the canonical Play screenshot size, format,
+// dimension, and aspect-ratio checks to an already-open file. It restores the
+// reader to offset zero so callers can upload the exact descriptor validated.
+func ValidateScreenshotReader(locale, path string, reader io.ReadSeeker, size int64) []Finding {
+	var out []Finding
+	if _, err := reader.Seek(0, io.SeekStart); err != nil {
+		return []Finding{{
+			Check:    "image_unreadable",
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("[%s] %s could not be rewound: %v", locale, filepath.Base(path), err),
+			Entry:    path,
+		}}
+	}
+	defer func() { _, _ = reader.Seek(0, io.SeekStart) }()
+
+	if size > maxScreenshotBytes {
 		out = append(out, Finding{
 			Check:    "image_size",
 			Severity: SeverityError,
-			Message:  fmt.Sprintf("[%s] %s is %d bytes, over the %d limit", locale, filepath.Base(path), info.Size(), maxScreenshotBytes),
+			Message:  fmt.Sprintf("[%s] %s is %d bytes, over the %d limit", locale, filepath.Base(path), size, maxScreenshotBytes),
 			Entry:    path,
 		})
 	}
 
-	cfg, _, err := decodeImageConfig(path)
-	if err != nil {
+	cfg, format, err := image.DecodeConfig(reader)
+	if err != nil || (format != "png" && format != "jpeg") {
+		if err == nil {
+			err = fmt.Errorf("unsupported image format %q", format)
+		}
 		return append(out, Finding{
 			Check:    "image_unreadable",
 			Severity: SeverityError,
@@ -338,12 +377,12 @@ func checkScreenshotFile(locale, path string) []Finding {
 
 // decodeImageConfig reads image dimensions without decoding pixel data.
 func decodeImageConfig(path string) (image.Config, string, error) {
-	f, err := os.Open(path) // #nosec G304 -- path derived from the user-supplied listings dir
+	file, err := os.Open(path) // #nosec G304 -- path derived from the user-supplied listings dir
 	if err != nil {
 		return image.Config{}, "", err
 	}
-	defer func() { _ = f.Close() }()
-	return image.DecodeConfig(f)
+	defer func() { _ = file.Close() }()
+	return image.DecodeConfig(file)
 }
 
 // isImageFile reports whether a filename has a Play-supported image extension.

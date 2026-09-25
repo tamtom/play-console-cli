@@ -2,7 +2,13 @@ package release
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -11,6 +17,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/preflight"
 )
 
 // Options describes the high-level release workflow inputs.
@@ -48,6 +55,30 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		artifactPath = apkPath
 		artifactDescription = "APK file"
 	}
+
+	var listings map[string]ListingData
+	if strings.TrimSpace(opts.ListingsDir) != "" && !opts.SkipMetadata {
+		var err error
+		listings, err = ParseListingsDir(opts.ListingsDir)
+		if err != nil {
+			return nil, fmt.Errorf("--listings-dir: %w", err)
+		}
+	}
+
+	var screenshots map[string]map[string][]string
+	if strings.TrimSpace(opts.ScreenshotsDir) != "" && !opts.SkipScreenshots {
+		var err error
+		screenshots, err = ParseScreenshotsDir(opts.ScreenshotsDir)
+		if err != nil {
+			return nil, fmt.Errorf("--screenshots-dir: %w", err)
+		}
+	}
+	screenshotUploads, err := openScreenshotUploads(screenshots)
+	if err != nil {
+		return nil, err
+	}
+	defer closeScreenshotUploads(screenshotUploads)
+
 	artifact, err := shared.OpenUploadFile(artifactPath, artifactDescription)
 	if err != nil {
 		return nil, err
@@ -71,6 +102,17 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		return nil, fmt.Errorf("failed to create edit: %w", err)
 	}
 	fmt.Fprintf(shared.Stderr(ctx), "Edit created: %s\n", edit.Id)
+
+	updatedLocales, err := applyListings(ctx, service, pkg, edit.Id, listings)
+	if err != nil {
+		return nil, err
+	}
+	// Plan the screenshots before the artifact upload, so that a limit error
+	// stops the release before the large upload.
+	plan, err := planScreenshotUploads(ctx, service, pkg, edit.Id, screenshotUploads)
+	if err != nil {
+		return nil, err
+	}
 
 	var versionCode int64
 	uploadCtx, uploadCancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
@@ -96,6 +138,10 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		}
 		versionCode = int64(apk.VersionCode)
 		fmt.Fprintf(shared.Stderr(ctx), "APK uploaded: version code %d\n", versionCode)
+	}
+
+	if err := uploadScreenshots(ctx, service, pkg, edit.Id, plan.uploads); err != nil {
+		return nil, err
 	}
 
 	fmt.Fprintf(shared.Stderr(ctx), "Configuring track: %s\n", opts.Track)
@@ -205,13 +251,282 @@ done:
 	if release.UserFraction > 0 && release.UserFraction < 1 {
 		result["rolloutFraction"] = release.UserFraction
 	}
-
-	// These flags are validated up-front and reserved for future release-media wiring.
-	_ = opts.ListingsDir
-	_ = opts.ScreenshotsDir
-	_ = opts.SkipMetadata
-	_ = opts.SkipScreenshots
+	if listings != nil {
+		result["listingsUpdated"] = updatedLocales
+	}
+	if screenshots != nil {
+		result["screenshotsUploaded"] = len(plan.uploads)
+		result["screenshotsSkipped"] = plan.skipped
+	}
 
 	shared.SuggestGitHubStar(ctx)
 	return result, nil
+}
+
+// maxScreenshotsPerType is the Play limit for each screenshot type.
+const maxScreenshotsPerType = 8
+
+func applyListings(ctx context.Context, service *playclient.Service, pkg, editID string, listings map[string]ListingData) ([]string, error) {
+	locales := sortedKeys(listings)
+	for _, locale := range locales {
+		data := listings[locale]
+		listing := &androidpublisher.Listing{
+			Title:            data.Title,
+			ShortDescription: data.ShortDescription,
+			FullDescription:  data.FullDescription,
+			Video:            data.Video,
+			ForceSendFields:  data.forceSendFields(),
+		}
+		requestCtx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+		_, err := service.API.Edits.Listings.Patch(pkg, editID, locale, listing).Context(requestCtx).Do()
+		cancel()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError(fmt.Sprintf("failed to update listing for %s", locale), err)
+		}
+		fmt.Fprintf(shared.Stderr(ctx), "Listing updated: %s\n", locale)
+	}
+	return locales, nil
+}
+
+type screenshotUpload struct {
+	locale    string
+	imageType string
+	path      string
+	sha256    string
+	file      *os.File
+}
+
+func (u *screenshotUpload) key() string {
+	return u.locale + "/" + u.imageType
+}
+
+// openScreenshotUploads opens, validates, and hashes each screenshot before
+// the service exists. The upload later sends the same descriptors.
+func openScreenshotUploads(screenshots map[string]map[string][]string) ([]*screenshotUpload, error) {
+	var uploads []*screenshotUpload
+	fail := func(err error) ([]*screenshotUpload, error) {
+		closeScreenshotUploads(uploads)
+		return nil, err
+	}
+	for _, locale := range sortedKeys(screenshots) {
+		for _, imageType := range sortedKeys(screenshots[locale]) {
+			unique := make(map[string]struct{})
+			for _, path := range screenshots[locale][imageType] {
+				file, err := shared.OpenUploadFile(path, "screenshot")
+				if err != nil {
+					return fail(err)
+				}
+				upload := &screenshotUpload{locale: locale, imageType: imageType, path: path, file: file}
+				uploads = append(uploads, upload)
+
+				info, err := file.Stat()
+				if err != nil {
+					return fail(fmt.Errorf("inspect screenshot %s: %w", path, err))
+				}
+				for _, finding := range preflight.ValidateScreenshotReader(locale, path, file, info.Size()) {
+					if finding.Severity == preflight.SeverityError {
+						return fail(fmt.Errorf("invalid screenshot: %s", finding.Message))
+					}
+				}
+				hasher := sha256.New()
+				if _, err := io.Copy(hasher, file); err != nil {
+					return fail(fmt.Errorf("hash screenshot %s: %w", path, err))
+				}
+				if _, err := file.Seek(0, io.SeekStart); err != nil {
+					return fail(fmt.Errorf("rewind screenshot %s: %w", path, err))
+				}
+				upload.sha256 = hex.EncodeToString(hasher.Sum(nil))
+				unique[upload.sha256] = struct{}{}
+			}
+			if len(unique) > maxScreenshotsPerType {
+				return fail(fmt.Errorf("[%s] %d different %s exceed the %d that Play accepts", locale, len(unique), imageType, maxScreenshotsPerType))
+			}
+		}
+	}
+	return uploads, nil
+}
+
+func closeScreenshotUploads(uploads []*screenshotUpload) {
+	for _, upload := range uploads {
+		if upload.file != nil {
+			_ = upload.file.Close()
+			upload.file = nil
+		}
+	}
+}
+
+type screenshotPlan struct {
+	uploads []*screenshotUpload
+	skipped int
+}
+
+// planScreenshotUploads compares the local screenshots with the images that
+// are already in the edit. Release never deletes screenshots. It skips a
+// local file that has the same SHA-256 as an image on Play, and it skips a
+// local file that has the same content as an earlier local file. It then
+// checks the Play limits on the final count, before any upload starts.
+func planScreenshotUploads(ctx context.Context, service *playclient.Service, pkg, editID string, uploads []*screenshotUpload) (*screenshotPlan, error) {
+	plan := &screenshotPlan{}
+	if len(uploads) == 0 {
+		return plan, nil
+	}
+
+	remote := make(map[string]*remoteScreenshots)
+	remoteKnown := !shared.IsDryRun(ctx)
+	if !remoteKnown {
+		fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Screenshots already on Play are not checked.\n")
+	} else {
+		var err error
+		remote, err = listRemoteScreenshots(ctx, service, pkg, editID, uploads)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var keys []string
+	firstLocal := make(map[string]map[string]string)
+	newCount := make(map[string]int)
+	for _, upload := range uploads {
+		key := upload.key()
+		if _, ok := firstLocal[key]; !ok {
+			firstLocal[key] = make(map[string]string)
+			keys = append(keys, key)
+		}
+		if remote[key].has(upload.sha256) {
+			fmt.Fprintf(shared.Stderr(ctx), "Screenshot already on Play, skipped: %s/%s\n", key, filepath.Base(upload.path))
+			plan.skipped++
+			continue
+		}
+		if first, ok := firstLocal[key][upload.sha256]; ok {
+			fmt.Fprintf(shared.Stderr(ctx), "Screenshot has the same content as %s, skipped: %s/%s\n", filepath.Base(first), key, filepath.Base(upload.path))
+			plan.skipped++
+			continue
+		}
+		firstLocal[key][upload.sha256] = upload.path
+		newCount[key]++
+		plan.uploads = append(plan.uploads, upload)
+	}
+
+	for _, key := range keys {
+		onPlay := remote[key].len()
+		total := onPlay + newCount[key]
+		if total > maxScreenshotsPerType {
+			return nil, fmt.Errorf("[%s] would have %d screenshots (%d already on Play, %d new); Play accepts at most %d. "+
+				"Release does not delete screenshots. Remove old screenshots with \"gplay images delete\" or \"gplay images delete-all\" in a separate edit, then run the release again",
+				key, total, onPlay, newCount[key], maxScreenshotsPerType)
+		}
+		if remoteKnown && strings.HasSuffix(key, "/phoneScreenshots") && total < 2 {
+			return nil, fmt.Errorf("[%s] would have %d screenshot(s) (%d already on Play, %d new); Play requires at least 2 phone screenshots",
+				key, total, onPlay, newCount[key])
+		}
+	}
+	return plan, nil
+}
+
+// remoteScreenshots holds the images of one locale and image type in the edit.
+type remoteScreenshots struct {
+	sums  map[string]struct{}
+	count int
+}
+
+func (r *remoteScreenshots) has(sum string) bool {
+	if r == nil {
+		return false
+	}
+	_, ok := r.sums[sum]
+	return ok
+}
+
+// len returns the number of images. Two identical images count as two.
+func (r *remoteScreenshots) len() int {
+	if r == nil {
+		return 0
+	}
+	return r.count
+}
+
+// listRemoteScreenshots returns the images in the edit for each locale and
+// image type that has local screenshots. A locale that has no listing in the
+// edit has no images.
+func listRemoteScreenshots(ctx context.Context, service *playclient.Service, pkg, editID string, uploads []*screenshotUpload) (map[string]*remoteScreenshots, error) {
+	requestCtx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+	resp, err := service.API.Edits.Listings.List(pkg, editID).Context(requestCtx).Do()
+	cancel()
+	if err != nil {
+		return nil, shared.WrapGoogleAPIError("failed to list listings", err)
+	}
+	locales := make(map[string]struct{}, len(resp.Listings))
+	for _, listing := range resp.Listings {
+		if listing != nil {
+			locales[listing.Language] = struct{}{}
+		}
+	}
+
+	remote := make(map[string]*remoteScreenshots)
+	for _, upload := range uploads {
+		key := upload.key()
+		if _, done := remote[key]; done {
+			continue
+		}
+		remote[key] = &remoteScreenshots{sums: make(map[string]struct{})}
+		if _, ok := locales[upload.locale]; !ok {
+			continue
+		}
+		requestCtx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+		images, err := service.API.Edits.Images.List(pkg, editID, upload.locale, upload.imageType).Context(requestCtx).Do()
+		cancel()
+		if err != nil {
+			return nil, shared.WrapGoogleAPIError(fmt.Sprintf("failed to list screenshots for %s", key), err)
+		}
+		for _, image := range images.Images {
+			if image == nil {
+				continue
+			}
+			remote[key].count++
+			if sum := strings.ToLower(strings.TrimSpace(image.Sha256)); sum != "" {
+				remote[key].sums[sum] = struct{}{}
+			}
+		}
+	}
+	return remote, nil
+}
+
+func uploadScreenshots(ctx context.Context, service *playclient.Service, pkg, editID string, uploads []*screenshotUpload) error {
+	for _, upload := range uploads {
+		requestCtx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
+		call := service.API.Edits.Images.Upload(pkg, editID, upload.locale, upload.imageType)
+		call.Media(upload.file, googleapi.ContentType(releaseImageContentType(upload.path)))
+		_, uploadErr := call.Context(requestCtx).Do()
+		cancel()
+		closeErr := upload.file.Close()
+		upload.file = nil
+		if uploadErr != nil {
+			return shared.WrapGoogleAPIError(fmt.Sprintf("failed to upload screenshot %s", upload.path), uploadErr)
+		}
+		if closeErr != nil {
+			return fmt.Errorf("close screenshot %s: %w", upload.path, closeErr)
+		}
+		fmt.Fprintf(shared.Stderr(ctx), "Screenshot uploaded: %s/%s\n", upload.key(), filepath.Base(upload.path))
+	}
+	return nil
+}
+
+func sortedKeys[V any](values map[string]V) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func releaseImageContentType(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	default:
+		return "application/octet-stream"
+	}
 }
