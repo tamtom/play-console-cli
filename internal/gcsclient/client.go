@@ -97,6 +97,7 @@ type ObjectInfo struct {
 func (s *Service) ListObjects(ctx context.Context, bucket, prefix string) ([]ObjectInfo, error) {
 	var objects []ObjectInfo
 	call := s.API.Objects.List(bucket).Prefix(prefix).Context(ctx)
+	guard := shared.NewPaginationGuard(0)
 
 	err := call.Pages(ctx, func(page *storage.Objects) error {
 		for _, obj := range page.Items {
@@ -106,7 +107,8 @@ func (s *Service) ListObjects(ctx context.Context, bucket, prefix string) ([]Obj
 				Updated: obj.Updated,
 			})
 		}
-		return nil
+		_, err := guard.Advance(page.NextPageToken)
+		return err
 	})
 	if err != nil {
 		return nil, shared.WrapGoogleAPIError("list reports", err)

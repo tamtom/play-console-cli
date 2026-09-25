@@ -103,6 +103,7 @@ func listAnomalies(ctx context.Context, service *reportingclient.Service, pkg, m
 	parent := fmt.Sprintf("apps/%s", pkg)
 	pageToken := ""
 	nextPageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for len(anomalies) < limit {
 		pageSize := limit - len(anomalies)
 		if pageSize > 100 {
@@ -125,7 +126,11 @@ func listAnomalies(ctx context.Context, service *reportingclient.Service, pkg, m
 				}
 			}
 		}
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			nextPageToken = ""
 			break
 		}

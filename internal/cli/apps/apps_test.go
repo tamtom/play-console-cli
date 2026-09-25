@@ -104,6 +104,36 @@ func TestListCommand_PaginatesReportingAppsSearch(t *testing.T) {
 	}
 }
 
+func TestListCommand_StopsWhenPaginationTokenRepeats(t *testing.T) {
+	requests := 0
+	installMockReportingService(t, func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		if requests <= 2 {
+			_, _ = io.WriteString(w, `{"apps":[],"nextPageToken":"repeat"}`)
+			return
+		}
+		http.Error(w, `{"error":{"code":500,"message":"guard failed"}}`, http.StatusInternalServerError)
+	})
+
+	cmd := ListCommand(nil)
+	if err := cmd.FlagSet.Parse([]string{"--paginate"}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	_, err := captureAppsStdout(func() error {
+		return cmd.Exec(context.Background(), nil)
+	})
+	if err == nil {
+		t.Fatal("expected repeated page token error")
+	}
+	if !strings.Contains(err.Error(), "repeated page token") {
+		t.Fatalf("error = %q, want repeated page token", err)
+	}
+	if requests != 2 {
+		t.Fatalf("requests = %d, want 2", requests)
+	}
+}
+
 func installMockReportingService(t *testing.T, handler http.HandlerFunc) {
 	t.Helper()
 

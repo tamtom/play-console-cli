@@ -86,9 +86,11 @@ func ReportsListCommand() *ffcli.Command {
 				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*checksapi.GoogleChecksReportV1alphaReport
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(resp *checksapi.GoogleChecksReportV1alphaListReportsResponse) error {
 				all = append(all, resp.Reports...)
-				return nil
+				_, err := guard.Advance(resp.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks reports", err)

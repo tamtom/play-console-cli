@@ -346,9 +346,11 @@ func RecentUpdateEventsCommand() *ffcli.Command {
 				return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 			}
 			var events []*androidpublisher.RecentUpdateEvent
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(page *androidpublisher.ListRecentUpdateEventsResponse) error {
 				events = append(events, page.RecentUpdateEvents...)
-				return nil
+				_, err := guard.Advance(page.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("list all recent Play Catalog update events", err)

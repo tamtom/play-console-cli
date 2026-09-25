@@ -84,6 +84,7 @@ func ListCommand() *ffcli.Command {
 
 			var all []*androidpublisher.OneTimeProductOffer
 			pageToken := ""
+			guard := shared.NewPaginationGuard(0)
 			for {
 				call := service.API.Monetization.Onetimeproducts.PurchaseOptions.Offers.List(pkg, *productID, *purchaseOptionID).Context(ctx).PageSize(int64(*pageSize))
 				if pageToken != "" {
@@ -97,7 +98,11 @@ func ListCommand() *ffcli.Command {
 					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.OneTimeProductOffers...)
-				if resp.NextPageToken == "" {
+				done, err := guard.Advance(resp.NextPageToken)
+				if err != nil {
+					return err
+				}
+				if done {
 					break
 				}
 				pageToken = resp.NextPageToken

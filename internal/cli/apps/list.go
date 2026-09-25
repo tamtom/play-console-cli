@@ -56,6 +56,7 @@ func ListCommand(rt *cliruntime.Runtime) *ffcli.Command {
 
 			var apps []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1App
 			pageToken := ""
+			guard := shared.NewPaginationGuard(0)
 			for {
 				call := service.API.Apps.Search().Context(ctx).PageSize(int64(*pageSize))
 				if strings.TrimSpace(pageToken) != "" {
@@ -66,7 +67,11 @@ func ListCommand(rt *cliruntime.Runtime) *ffcli.Command {
 					return shared.WrapGoogleAPIError("list accessible apps", err)
 				}
 				apps = append(apps, resp.Apps...)
-				if resp.NextPageToken == "" {
+				done, err := guard.Advance(resp.NextPageToken)
+				if err != nil {
+					return err
+				}
+				if done {
 					break
 				}
 				pageToken = resp.NextPageToken
