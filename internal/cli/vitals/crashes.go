@@ -150,6 +150,7 @@ func queryCrashRate(ctx context.Context, service *reportingclient.Service, pkg s
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Crashrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryCrashRateMetricSetRequest{
 			Dimensions:   buildCrashDimensions(opts.dimension),
@@ -162,7 +163,11 @@ func queryCrashRate(ctx context.Context, service *reportingclient.Service, pkg s
 			return nil, shared.WrapGoogleAPIError("query crash rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken
@@ -192,6 +197,7 @@ func queryANRRate(ctx context.Context, service *reportingclient.Service, pkg str
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Anrrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryAnrRateMetricSetRequest{
 			Dimensions:   buildCrashDimensions(opts.dimension),
@@ -204,7 +210,11 @@ func queryANRRate(ctx context.Context, service *reportingclient.Service, pkg str
 			return nil, shared.WrapGoogleAPIError("query ANR rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken

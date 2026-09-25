@@ -178,9 +178,11 @@ func RepoScanListCommand() *ffcli.Command {
 				return shared.PrintOutputContext(ctx, resp, *f.output, *f.pretty)
 			}
 			var scans []*checksapi.GoogleChecksRepoScanV1alphaRepoScan
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(resp *checksapi.GoogleChecksRepoScanV1alphaListRepoScansResponse) error {
 				scans = append(scans, resp.RepoScans...)
-				return nil
+				_, err := guard.Advance(resp.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("list Checks repository scans", err)

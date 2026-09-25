@@ -102,9 +102,11 @@ Examples:
 				call = call.OrderBy(*orderBy)
 			}
 			call = applyIssuesInterval(call, interval)
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(resp *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1SearchErrorIssuesResponse) error {
 				all = append(all, resp.ErrorIssues...)
-				return nil
+				_, err := guard.Advance(resp.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("search error issues (paginate)", err)

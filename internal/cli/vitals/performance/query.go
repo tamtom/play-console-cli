@@ -155,6 +155,7 @@ func querySlowStartRate(ctx context.Context, service *reportingclient.Service, p
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Slowstartrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowStartRateMetricSetRequest{
 			Dimensions:   buildDimensions(opts.dimension),
@@ -167,7 +168,11 @@ func querySlowStartRate(ctx context.Context, service *reportingclient.Service, p
 			return nil, shared.WrapGoogleAPIError("query slow start rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken
@@ -197,6 +202,7 @@ func querySlowRenderingRate(ctx context.Context, service *reportingclient.Servic
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Slowrenderingrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowRenderingRateMetricSetRequest{
 			Dimensions:   buildDimensions(opts.dimension),
@@ -209,7 +215,11 @@ func querySlowRenderingRate(ctx context.Context, service *reportingclient.Servic
 			return nil, shared.WrapGoogleAPIError("query slow rendering rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken
@@ -239,6 +249,7 @@ func queryExcessiveWakeupRate(ctx context.Context, service *reportingclient.Serv
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Excessivewakeuprate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryExcessiveWakeupRateMetricSetRequest{
 			Dimensions:   buildDimensions(opts.dimension),
@@ -251,7 +262,11 @@ func queryExcessiveWakeupRate(ctx context.Context, service *reportingclient.Serv
 			return nil, shared.WrapGoogleAPIError("query excessive wakeup rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken
@@ -281,6 +296,7 @@ func queryStuckBackgroundWakelockRate(ctx context.Context, service *reportingcli
 
 	var rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow
 	pageToken := ""
+	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Stuckbackgroundwakelockrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryStuckBackgroundWakelockRateMetricSetRequest{
 			Dimensions:   buildDimensions(opts.dimension),
@@ -293,7 +309,11 @@ func queryStuckBackgroundWakelockRate(ctx context.Context, service *reportingcli
 			return nil, shared.WrapGoogleAPIError("query stuck background wakelock rate metrics", err)
 		}
 		rows = append(rows, resp.Rows...)
-		if resp.NextPageToken == "" {
+		done, err := guard.Advance(resp.NextPageToken)
+		if err != nil {
+			return nil, err
+		}
+		if done {
 			break
 		}
 		pageToken = resp.NextPageToken

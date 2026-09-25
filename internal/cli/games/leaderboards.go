@@ -78,9 +78,11 @@ func leaderboardsListCommand() *ffcli.Command {
 				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*gamesconfiguration.LeaderboardConfiguration
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(resp *gamesconfiguration.LeaderboardConfigurationListResponse) error {
 				all = append(all, resp.Items...)
-				return nil
+				_, err := guard.Advance(resp.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("list leaderboard configurations", err)

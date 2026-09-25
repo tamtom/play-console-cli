@@ -950,6 +950,7 @@ The --type flag filters by voided source:
 
 			var all []*androidpublisher.VoidedPurchase
 			pageToken := ""
+			guard := shared.NewPaginationGuard(0)
 			for {
 				call := service.API.Purchases.Voidedpurchases.List(pkg).Context(ctx).MaxResults(int64(*maxResults))
 				if *startTime > 0 {
@@ -975,10 +976,18 @@ The --type flag filters by voided source:
 					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.VoidedPurchases...)
-				if resp.TokenPagination == nil || resp.TokenPagination.NextPageToken == "" {
+				nextPageToken := ""
+				if resp.TokenPagination != nil {
+					nextPageToken = resp.TokenPagination.NextPageToken
+				}
+				done, err := guard.Advance(nextPageToken)
+				if err != nil {
+					return err
+				}
+				if done {
 					break
 				}
-				pageToken = resp.TokenPagination.NextPageToken
+				pageToken = nextPageToken
 			}
 
 			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)

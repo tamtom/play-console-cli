@@ -151,6 +151,7 @@ func ListCommand() *ffcli.Command {
 
 			var all []*androidpublisher.InAppProduct
 			pageToken := ""
+			guard := shared.NewPaginationGuard(0)
 			for {
 				call := service.API.Inappproducts.List(pkg).Context(ctx).MaxResults(int64(*maxResults))
 				if pageToken != "" {
@@ -164,10 +165,18 @@ func ListCommand() *ffcli.Command {
 					return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 				}
 				all = append(all, resp.Inappproduct...)
-				if resp.TokenPagination == nil || resp.TokenPagination.NextPageToken == "" {
+				nextPageToken := ""
+				if resp.TokenPagination != nil {
+					nextPageToken = resp.TokenPagination.NextPageToken
+				}
+				done, err := guard.Advance(nextPageToken)
+				if err != nil {
+					return err
+				}
+				if done {
 					break
 				}
-				pageToken = resp.TokenPagination.NextPageToken
+				pageToken = nextPageToken
 			}
 
 			return shared.PrintOutputContext(ctx, all, *outputFlag, *pretty)

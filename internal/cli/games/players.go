@@ -150,9 +150,11 @@ func playersListHiddenCommand() *ffcli.Command {
 				return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
 			}
 			var all []*gamesmanagement.HiddenPlayer
+			guard := shared.NewPaginationGuard(0)
 			err = call.Pages(ctx, func(resp *gamesmanagement.HiddenPlayerList) error {
 				all = append(all, resp.Items...)
-				return nil
+				_, err := guard.Advance(resp.NextPageToken)
+				return err
 			})
 			if err != nil {
 				return shared.WrapGoogleAPIError("list hidden players", err)
