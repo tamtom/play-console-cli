@@ -1,10 +1,29 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func TestConfig_ExplicitZeroMaxRetriesRoundTrips(t *testing.T) {
+	var cfg Config
+	if err := json.Unmarshal([]byte(`{"package_name":"com.example.app","max_retries":0}`), &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.MaxRetriesConfigured() {
+		t.Fatal("explicit max_retries=0 was not retained")
+	}
+	encoded, err := json.Marshal(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(encoded), `"max_retries":0`) {
+		t.Fatalf("encoded config = %s, want explicit max_retries=0", encoded)
+	}
+}
 
 func TestSaveAtIsAtomicAndRefusesSymlinkDestination(t *testing.T) {
 	dir := t.TempDir()

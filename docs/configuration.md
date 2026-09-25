@@ -33,8 +33,8 @@ gplay init --package com.example.app --service-account /path/to/sa.json
 | `GPLAY_NO_UPDATE` | Disable update checks (set to `1`) |
 | `GPLAY_NO_STAR_PROMPT` | Suppress the one-time GitHub star suggestion (set to `1`) |
 | `GPLAY_DEBUG` | Enable debug logging (`1` or `api`) |
-| `GPLAY_MAX_RETRIES` | Max retries for failed requests (default: 3) |
-| `GPLAY_RETRY_DELAY` | Base delay between retries (default: `1s`) |
+| `GPLAY_MAX_RETRIES` | Max retries for transient read-only requests (default: 3; `0` disables retries) |
+| `GPLAY_RETRY_DELAY` | Base exponential-backoff delay for read-only retries (default: `1s`) |
 | `GPLAY_DEFAULT_OUTPUT` | Default output format (`json`, `table`, `markdown`) |
 | `GPLAY_AUDIT` | Set to `0` to disable the local audit log |
 | `GPLAY_AUDIT_LOG` | Override audit log path (default `~/.gplay/audit.log`) |

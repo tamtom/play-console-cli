@@ -134,6 +134,42 @@ type Config struct {
 	Debug                string        `json:"debug"`
 	ChecksAccount        string        `json:"checks_account,omitempty"`
 	GamesApplicationID   string        `json:"games_application_id,omitempty"`
+	maxRetriesSet        bool
+}
+
+// MaxRetriesConfigured reports whether max_retries was explicitly present in
+// the loaded config. This preserves the distinction between an omitted value
+// (use the default) and zero (disable retries).
+func (c *Config) MaxRetriesConfigured() bool {
+	return c != nil && (c.maxRetriesSet || c.MaxRetries != 0)
+}
+
+// UnmarshalJSON records whether max_retries was explicitly configured.
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type configAlias Config
+	var decoded configAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*c = Config(decoded)
+	_, c.maxRetriesSet = fields["max_retries"]
+	return nil
+}
+
+// MarshalJSON retains an explicitly configured zero max_retries value.
+func (c Config) MarshalJSON() ([]byte, error) {
+	type configAlias Config
+	if !c.maxRetriesSet || c.MaxRetries != 0 {
+		return json.Marshal(configAlias(c))
+	}
+	return json.Marshal(struct {
+		configAlias
+		MaxRetries int `json:"max_retries"`
+	}{configAlias: configAlias(c), MaxRetries: c.MaxRetries})
 }
 
 const maxConfigRetries = 30

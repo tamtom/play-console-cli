@@ -192,10 +192,15 @@ When quota is exceeded the API returns HTTP `429` with a `Retry-After` header
 
 ### CLI Implication
 
-The `playclient` HTTP layer implements automatic retry with exponential backoff
-for `429` and `5xx` responses. The base delay is configurable via
-`GPLAY_RETRY_DELAY` (default `1s`), and maximum retries via `GPLAY_MAX_RETRIES`
-(default `3`).
+The authenticated HTTP clients (`playclient`, `reportingclient`,
+`checksclient`, and `gcsclient`) retry read-only requests (`GET`, `HEAD`, and
+`OPTIONS`) with exponential backoff. They retry on transport errors and on
+`408`, `429`, `500`, `502`, `503`, and `504` responses. A `Retry-After` header
+sets the delay, to a maximum of `30s`. The clients do not retry mutations or
+uploads, because a replay after an ambiguous response can apply a change two
+times. `GPLAY_RETRY_DELAY` sets the base delay (default `1s`).
+`GPLAY_MAX_RETRIES` sets the maximum number of retries (default `3`; `0`
+disables retries).
 
 ---
 
