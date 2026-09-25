@@ -42,7 +42,7 @@ func TestOnetimeproductsCreate_DryRunWiresUpsertRequest(t *testing.T) {
 	r := cmdtest.Run(
 		t,
 		"--dry-run",
-		"onetimeproducts",
+		"onetime-products",
 		"create",
 		"--package", "com.example.app",
 		"--product-id", "coins_100_test",

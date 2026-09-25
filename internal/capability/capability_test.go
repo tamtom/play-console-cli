@@ -51,7 +51,7 @@ func TestCatalogIncludesNewOfficialAPIFamiliesAndSigningBoundary(t *testing.T) {
 	for _, item := range items {
 		byID[item.ID] = item
 	}
-	wantOfficial := []string{"app.enterprise_kms_signing", "app.third_party_store", "app.reporting_metric_sets", "app.checks_repo_scans", "app.play_integrity", "app.developer_id_status"}
+	wantOfficial := []string{"app.enterprise_kms_signing", "app.third_party_store", "app.reporting_metric_sets", "app.checks_repo_scans", "app.play_integrity", "app.developer_id_status", "app.one_time_products", "app.subscription_base_plan_states"}
 	for _, id := range wantOfficial {
 		if byID[id].Status != StatusOfficial {
 			t.Errorf("%s status = %q", id, byID[id].Status)

@@ -219,7 +219,7 @@ func TestLive_TracksReleasesList_Shape(t *testing.T) {
 }
 
 func TestLive_OneTimeProductsList_ReturnsJSON(t *testing.T) {
-	mustJSON(t, runCLI(t, "onetimeproducts", "list", "--package", AllowedMutationPackage, "--output", "json"), "onetimeproducts list")
+	mustJSON(t, runCLI(t, "onetime-products", "list", "--package", AllowedMutationPackage, "--output", "json"), "onetime-products list")
 }
 
 // --- Behavior smoke: safety promises against the real transport ---
@@ -454,7 +454,7 @@ func TestLive_Cleanup(t *testing.T) {
 			r := runCLI(t, "iap", "delete", "--package", res.Package, "--sku", res.ID, "--confirm")
 			t.Logf("cleanup iap %s: exit %d", res.ID, r.ExitCode)
 		case "onetimeproduct":
-			r := runCLI(t, "onetimeproducts", "delete", "--package", res.Package, "--product-id", res.ID, "--confirm")
+			r := runCLI(t, "onetime-products", "delete", "--package", res.Package, "--product-id", res.ID, "--confirm")
 			t.Logf("cleanup onetimeproduct %s: exit %d", res.ID, r.ExitCode)
 		default:
 			t.Errorf("ledger entry with unknown kind %q: manual cleanup needed for %+v", res.Kind, res)
@@ -500,7 +500,7 @@ func TestLive_Janitor(t *testing.T) {
 
 	// One-time products: the Go contract test creates ci_otp_* fixtures
 	// (see internal/cli/monetizationpricing). A crashed run leaks them.
-	otps := mustJSONArray(t, runCLI(t, "onetimeproducts", "list", "--package", pkg, "--paginate", "--output", "json"), "onetimeproducts list")
+	otps := mustJSONArray(t, runCLI(t, "onetime-products", "list", "--package", pkg, "--paginate", "--output", "json"), "onetime-products list")
 	for _, product := range otps {
 		productID, _ := product["productId"].(string)
 		if !IsJanitorTarget(productID) {
@@ -509,7 +509,7 @@ func TestLive_Janitor(t *testing.T) {
 		if err := EnsureMutationAllowed(pkg); err != nil {
 			t.Fatal(err)
 		}
-		r := runCLI(t, "onetimeproducts", "delete", "--package", pkg, "--product-id", productID, "--confirm")
+		r := runCLI(t, "onetime-products", "delete", "--package", pkg, "--product-id", productID, "--confirm")
 		if r.ExitCode != 0 {
 			t.Errorf("janitor: deleting one-time product %s failed: %s", productID, r.Stderr)
 			continue

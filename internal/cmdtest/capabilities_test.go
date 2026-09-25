@@ -23,6 +23,7 @@ func TestCapabilities_ReportsPolicySafeBoundaries(t *testing.T) {
 
 	want := map[string]string{
 		"app.create":                 "manual",
+		"app.one_time_products":      "official",
 		"console.private_automation": "unsupported",
 	}
 	for _, capability := range capabilities {

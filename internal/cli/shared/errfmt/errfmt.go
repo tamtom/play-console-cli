@@ -54,6 +54,13 @@ func Classify(err error) *ClassifiedError {
 				Hint:     "Your credentials are invalid or expired. Run `gplay auth login` to re-authenticate.",
 			}
 		case 403:
+			if strings.Contains(strings.ToLower(gerr.Message), "migrate to the new publishing api") {
+				return &ClassifiedError{
+					Original: err,
+					Category: CategoryPermission,
+					Hint:     "This app has migrated off the legacy in-app-products API. Use `gplay onetime-products` for one-time products; `gplay iap` is the legacy surface.",
+				}
+			}
 			return &ClassifiedError{
 				Original: err,
 				Category: CategoryPermission,

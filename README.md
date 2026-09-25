@@ -122,9 +122,16 @@ gplay release --package com.example.app --track production --bundle app.aab --ro
 # Create a subscription with base plans and offers
 gplay subscriptions create --package com.example.app --json @subscription.json
 
+# Managed/one-time products use the current monetization API
+gplay onetime-products create --package com.example.app --product-id lifetime --json @product.json --regions-version 2025/02
+
 # Everything outputs minified JSON — built for agents and pipes
 gplay reviews list --package com.example.app | jq '.reviews[0]'
 ```
+
+`gplay iap` is the legacy `inappproducts` surface and can return “Please
+migrate to the new publishing API” for migrated apps. Use
+`gplay onetime-products` for current one-time-product CRUD and batch workflows.
 
 ## Highlights
 

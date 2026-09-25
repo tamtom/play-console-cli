@@ -47,6 +47,16 @@ func TestSearch_FindsFlagsAndExamples(t *testing.T) {
 	}
 }
 
+func TestSearch_FindsOneTimeProducts(t *testing.T) {
+	stdout, stderr, err := runCommand(t, "search", "one-time", "product")
+	if err != nil {
+		t.Fatalf("search failed: %v\nstderr: %s", err, stderr)
+	}
+	if !strings.Contains(stdout, `"command":"gplay onetime-products`) {
+		t.Fatalf("expected current one-time-product command in results, got: %s", stdout)
+	}
+}
+
 func TestSearch_RequiresQuery(t *testing.T) {
 	_, stderr, err := runCommand(t, "search")
 	if err == nil {

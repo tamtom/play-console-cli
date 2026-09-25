@@ -14,7 +14,7 @@ func allCommandNames() []string {
 		"listings", "images", "init", "status", "reviews", "details", "testers",
 		"availability", "deobfuscation", "release", "promote", "rollout",
 		"sync", "validate", "vitals", "iap", "subscriptions", "baseplans",
-		"offers", "onetimeproducts", "purchase-options", "otp-offers",
+		"offers", "onetime-products", "purchase-options", "otp-offers",
 		"pricing", "orders", "purchases", "external-transactions",
 		"generated-apks", "grants", "internal-sharing", "system-apks",
 		"expansion", "recovery", "data-safety", "device-tiers", "notify",

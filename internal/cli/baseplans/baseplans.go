@@ -13,6 +13,18 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+const maxBasePlanBatchSize = 100
+
+func validateLatencyTolerance(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	switch value {
+	case "", "PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_SENSITIVE", "PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_TOLERANT":
+		return value, nil
+	default:
+		return "", fmt.Errorf("invalid --latency-tolerance %q: expected PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_SENSITIVE or PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_TOLERANT", value)
+	}
+}
+
 func BasePlansCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("baseplans", flag.ExitOnError)
 	return &ffcli.Command{
@@ -273,6 +285,7 @@ func BatchUpdateStatesCommand() *ffcli.Command {
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	productID := fs.String("product-id", "", "Subscription product ID")
 	jsonFlag := fs.String("json", "", "Batch update states request JSON (or @file)")
+	latencyTolerance := fs.String("latency-tolerance", "", "Propagation latency tolerance applied to every item (API default: latency-sensitive)")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -309,6 +322,20 @@ JSON format:
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			resolvedLatencyTolerance, err := validateLatencyTolerance(*latencyTolerance)
+			if err != nil {
+				return err
+			}
+			var req androidpublisher.BatchUpdateBasePlanStatesRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			if len(req.Requests) == 0 {
+				return fmt.Errorf("batch update requires at least one request")
+			}
+			if len(req.Requests) > maxBasePlanBatchSize {
+				return fmt.Errorf("batch update accepts at most %d requests (got %d)", maxBasePlanBatchSize, len(req.Requests))
+			}
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -317,10 +344,34 @@ JSON format:
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			var req androidpublisher.BatchUpdateBasePlanStatesRequest
-			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
+			seen := make(map[string]struct{}, len(req.Requests))
+			for index, item := range req.Requests {
+				if item == nil || (item.ActivateBasePlanRequest == nil) == (item.DeactivateBasePlanRequest == nil) {
+					return fmt.Errorf("request %d must contain exactly one of activateBasePlanRequest or deactivateBasePlanRequest", index+1)
+				}
+				var basePlanID string
+				if nested := item.ActivateBasePlanRequest; nested != nil {
+					basePlanID = nested.BasePlanId
+					nested.PackageName = pkg
+					nested.ProductId = *productID
+					if resolvedLatencyTolerance != "" {
+						nested.LatencyTolerance = resolvedLatencyTolerance
+					}
+				} else if nested := item.DeactivateBasePlanRequest; nested != nil {
+					basePlanID = nested.BasePlanId
+					nested.PackageName = pkg
+					nested.ProductId = *productID
+					if resolvedLatencyTolerance != "" {
+						nested.LatencyTolerance = resolvedLatencyTolerance
+					}
+				}
+				if strings.TrimSpace(basePlanID) == "" {
+					return fmt.Errorf("request %d: basePlanId is required", index+1)
+				}
+				if _, exists := seen[basePlanID]; exists {
+					return fmt.Errorf("duplicate basePlanId %q: every item in a batch must be different", basePlanID)
+				}
+				seen[basePlanID] = struct{}{}
 			}
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)

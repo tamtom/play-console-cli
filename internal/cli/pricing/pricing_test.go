@@ -39,7 +39,7 @@ func TestRegionsVersionCommand_LongHelpMentionsAutoConvertCreate(t *testing.T) {
 	cmd := RegionsVersionCommand()
 	for _, want := range []string{
 		"subscriptions create --auto-convert-regional-prices",
-		"onetimeproducts create --auto-convert-regional-prices",
+		"onetime-products create --auto-convert-regional-prices",
 	} {
 		if !strings.Contains(cmd.LongHelp, want) {
 			t.Fatalf("LongHelp should mention %q, got:\n%s", want, cmd.LongHelp)

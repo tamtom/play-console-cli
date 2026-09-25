@@ -231,15 +231,15 @@
 - [offers batch-get](#offers-batch-get)
 - [offers batch-update](#offers-batch-update)
 - [offers batch-update-states](#offers-batch-update-states)
-- [onetimeproducts](#onetimeproducts)
-- [onetimeproducts list](#onetimeproducts-list)
-- [onetimeproducts get](#onetimeproducts-get)
-- [onetimeproducts create](#onetimeproducts-create)
-- [onetimeproducts patch](#onetimeproducts-patch)
-- [onetimeproducts delete](#onetimeproducts-delete)
-- [onetimeproducts batch-get](#onetimeproducts-batch-get)
-- [onetimeproducts batch-update](#onetimeproducts-batch-update)
-- [onetimeproducts batch-delete](#onetimeproducts-batch-delete)
+- [onetime-products](#onetime-products)
+- [onetime-products list](#onetime-products-list)
+- [onetime-products get](#onetime-products-get)
+- [onetime-products create](#onetime-products-create)
+- [onetime-products update](#onetime-products-update)
+- [onetime-products delete](#onetime-products-delete)
+- [onetime-products batch-get](#onetime-products-batch-get)
+- [onetime-products batch-update](#onetime-products-batch-update)
+- [onetime-products batch-delete](#onetime-products-batch-delete)
 - [purchase-options](#purchase-options)
 - [purchase-options batch-update-states](#purchase-options-batch-update-states)
 - [purchase-options batch-delete](#purchase-options-batch-delete)
@@ -5162,6 +5162,7 @@ JSON format:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | Batch update states request JSON (or @file) | `` |
+| `--latency-tolerance` | Propagation latency tolerance applied to every item (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -5574,12 +5575,12 @@ JSON format:
 
 ---
 
-## gplay onetimeproducts
+## gplay onetime-products
 
 Manage one-time products (monetization).
 
 ```
-gplay onetimeproducts <subcommand> [flags]
+gplay onetime-products <subcommand> [flags]
 ```
 
 Manage one-time products in the monetization system.
@@ -5589,12 +5590,12 @@ This includes consumables (can be purchased again) and non-consumables.
 
 ---
 
-## gplay onetimeproducts list
+## gplay onetime-products list
 
 List all one-time products.
 
 ```
-gplay onetimeproducts list --package <name>
+gplay onetime-products list --package <name>
 ```
 
 | Flag | Description | Default |
@@ -5607,12 +5608,12 @@ gplay onetimeproducts list --package <name>
 
 ---
 
-## gplay onetimeproducts get
+## gplay onetime-products get
 
 Get a one-time product.
 
 ```
-gplay onetimeproducts get --package <name> --product-id <id>
+gplay onetime-products get --package <name> --product-id <id>
 ```
 
 | Flag | Description | Default |
@@ -5624,15 +5625,15 @@ gplay onetimeproducts get --package <name> --product-id <id>
 
 ---
 
-## gplay onetimeproducts create
+## gplay onetime-products create
 
 Create a one-time product.
 
 ```
-gplay onetimeproducts create --package <name> --product-id <id> --json <json>
+gplay onetime-products create --package <name> --product-id <id> --json <json>
 ```
 
-Create a one-time product (or update if it already exists).
+Create a one-time product using patch with allowMissing=true.
 
 The --regions-version flag is required when setting regional pricing.
 Use gplay pricing convert to get Google's current regionVersion and
@@ -5678,15 +5679,16 @@ JSON format:
 }
 
 Examples:
-  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"1","nanos":990000000}'
+	gplay onetime-products create --package com.example.app --product-id coins_100 --json @product.json --auto-convert-regional-prices --base-price-json '{"currencyCode":"USD","units":"1","nanos":990000000}'
   gplay pricing regions-version --package com.example.app --price-json '{"currencyCode":"USD","units":"1","nanos":990000000}' --output table
-  gplay onetimeproducts create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
+	gplay onetime-products create --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--auto-convert-regional-prices` | Generate regional pricing from --base-price-json | `false` |
 | `--base-price-json` | Base Money JSON for --auto-convert-regional-prices (or @file) | `` |
 | `--json` | OneTimeProduct JSON (or @file) | `` |
+| `--latency-tolerance` | Propagation latency tolerance (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -5696,17 +5698,18 @@ Examples:
 
 ---
 
-## gplay onetimeproducts patch
+## gplay onetime-products update
 
-Patch a one-time product.
+Update an existing one-time product.
 
 ```
-gplay onetimeproducts patch --package <name> --product-id <id> --json <json>
+gplay onetime-products update --package <name> --product-id <id> --json <json> --update-mask <fields>
 ```
 
 Update specific fields of a one-time product.
 
-If --update-mask is not provided, it is automatically derived from the JSON keys.
+--update-mask is required. Updates always send allowMissing=false so a typo in
+--product-id cannot silently create another product.
 
 Mutable fields: listings, offerTags, purchaseOptions, restrictedPaymentCountries,
 taxAndComplianceSettings.
@@ -5723,14 +5726,13 @@ JSON format (partial update):
 }
 
 Examples:
-  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @patch.json
-  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json '{"listings":[...]}' --update-mask listings
-  gplay onetimeproducts patch --package com.example.app --product-id coins_100 --json @product.json --regions-version 2025/02 --allow-missing
+	gplay onetime-products update --package com.example.app --product-id coins_100 --json @patch.json --update-mask listings
+	gplay onetime-products update --package com.example.app --product-id coins_100 --json @product.json --update-mask purchaseOptions --regions-version 2025/02
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--allow-missing` | Create if not exists | `false` |
 | `--json` | OneTimeProduct JSON (or @file) | `` |
+| `--latency-tolerance` | Propagation latency tolerance (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -5740,17 +5742,18 @@ Examples:
 
 ---
 
-## gplay onetimeproducts delete
+## gplay onetime-products delete
 
 Delete a one-time product.
 
 ```
-gplay onetimeproducts delete --package <name> --product-id <id> --confirm
+gplay onetime-products delete --package <name> --product-id <id> --confirm
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--confirm` | Confirm deletion | `false` |
+| `--latency-tolerance` | Propagation latency tolerance (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -5758,12 +5761,12 @@ gplay onetimeproducts delete --package <name> --product-id <id> --confirm
 
 ---
 
-## gplay onetimeproducts batch-get
+## gplay onetime-products batch-get
 
 Get multiple one-time products.
 
 ```
-gplay onetimeproducts batch-get --package <name> --product-ids <ids>
+gplay onetime-products batch-get --package <name> --product-ids <ids>
 ```
 
 | Flag | Description | Default |
@@ -5775,12 +5778,12 @@ gplay onetimeproducts batch-get --package <name> --product-ids <ids>
 
 ---
 
-## gplay onetimeproducts batch-update
+## gplay onetime-products batch-update
 
 Create or update multiple one-time products.
 
 ```
-gplay onetimeproducts batch-update --package <name> --json <json>
+gplay onetime-products batch-update --package <name> --json <json>
 ```
 
 Create or update multiple one-time products in a single request.
@@ -5825,24 +5828,25 @@ JSON format (BatchUpdateOneTimeProductsRequest):
 }
 
 Examples:
-  gplay onetimeproducts batch-update --package com.example.app --json @batch.json
-  gplay onetimeproducts batch-update --package com.example.app --json '{"requests":[...]}'
+	gplay onetime-products batch-update --package com.example.app --json @batch.json
+	gplay onetime-products batch-update --package com.example.app --json '{"requests":[...]}'
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--json` | BatchUpdateRequest JSON (or @file) | `` |
+| `--latency-tolerance` | Propagation latency tolerance applied to every item (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 
 ---
 
-## gplay onetimeproducts batch-delete
+## gplay onetime-products batch-delete
 
 Delete multiple one-time products.
 
 ```
-gplay onetimeproducts batch-delete --package <name> --json <json> --confirm
+gplay onetime-products batch-delete --package <name> --json <json> --confirm
 ```
 
 Delete multiple one-time products in a single request.
@@ -5858,13 +5862,14 @@ JSON format (BatchDeleteOneTimeProductsRequest):
 }
 
 Examples:
-  gplay onetimeproducts batch-delete --package com.example.app --json @delete.json --confirm
-  gplay onetimeproducts batch-delete --package com.example.app --json '{"requests":[...]}' --confirm
+	gplay onetime-products batch-delete --package com.example.app --json @delete.json --confirm
+	gplay onetime-products batch-delete --package com.example.app --json '{"requests":[...]}' --confirm
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--confirm` | Confirm deletion | `false` |
 | `--json` | BatchDeleteRequest JSON (or @file) | `` |
+| `--latency-tolerance` | Propagation latency tolerance applied to every item (API default: latency-sensitive) | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
@@ -6314,7 +6319,7 @@ responses when creating subscriptions or one-time products.
 
 For new products, the safer workflow is usually:
   gplay subscriptions create --auto-convert-regional-prices --base-price-json ...
-  gplay onetimeproducts create --auto-convert-regional-prices --base-price-json ...
+  gplay onetime-products create --auto-convert-regional-prices --base-price-json ...
 
 Those create commands call the same Google API and apply the returned
 regionVersion automatically.
