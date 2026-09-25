@@ -2,8 +2,13 @@ package release
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestReleaseCommand_Name(t *testing.T) {
@@ -179,5 +184,25 @@ func TestReleaseCommand_RolloutBoundary_One(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), "--rollout") {
 		t.Errorf("rollout=1.0 should be valid, got: %s", err.Error())
+	}
+}
+
+func TestExecute_RejectsEmptyArtifactBeforeServiceCreation(t *testing.T) {
+	emptyBundle := filepath.Join(t.TempDir(), "empty.aab")
+	if err := os.WriteFile(emptyBundle, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	serviceCreated := false
+	ctx := playclient.ContextWithServiceFactory(context.Background(), func(context.Context) (*playclient.Service, error) {
+		serviceCreated = true
+		return nil, errors.New("service should not be created")
+	})
+
+	_, err := Execute(ctx, Options{BundlePath: emptyBundle})
+	if err == nil || !strings.Contains(err.Error(), "empty") {
+		t.Fatalf("error = %v, want empty artifact error", err)
+	}
+	if serviceCreated {
+		t.Fatal("service was created before rejecting empty release artifact")
 	}
 }

@@ -3,7 +3,6 @@ package release
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -35,6 +34,26 @@ type Options struct {
 
 // Execute runs the high-level release workflow and returns the resulting payload.
 func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) {
+	bundlePath := strings.TrimSpace(opts.BundlePath)
+	apkPath := strings.TrimSpace(opts.APKPath)
+	if bundlePath == "" && apkPath == "" {
+		return nil, shared.UsageError("either --bundle or --apk is required")
+	}
+	if bundlePath != "" && apkPath != "" {
+		return nil, shared.UsageError("use either --bundle or --apk, not both")
+	}
+	artifactPath := bundlePath
+	artifactDescription := "bundle file"
+	if artifactPath == "" {
+		artifactPath = apkPath
+		artifactDescription = "APK file"
+	}
+	artifact, err := shared.OpenUploadFile(artifactPath, artifactDescription)
+	if err != nil {
+		return nil, err
+	}
+	defer artifact.Close()
+
 	service, err := playclient.NewService(ctx)
 	if err != nil {
 		return nil, err
@@ -57,16 +76,10 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 	uploadCtx, uploadCancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 	defer uploadCancel()
 
-	if strings.TrimSpace(opts.BundlePath) != "" {
+	if bundlePath != "" {
 		fmt.Fprintf(shared.Stderr(ctx), "Uploading bundle: %s\n", opts.BundlePath)
-		file, err := os.Open(opts.BundlePath)
-		if err != nil {
-			return nil, shared.WrapActionable(err, "failed to open bundle", "Check that the file exists and is readable.")
-		}
-		defer file.Close()
-
 		call := service.API.Edits.Bundles.Upload(pkg, edit.Id)
-		call.Media(file, googleapi.ContentType("application/octet-stream"))
+		call.Media(artifact, googleapi.ContentType("application/octet-stream"))
 		bundle, err := call.Context(uploadCtx).Do()
 		if err != nil {
 			return nil, shared.WrapGoogleAPIError("failed to upload bundle", err)
@@ -75,14 +88,8 @@ func Execute(ctx context.Context, opts Options) (map[string]interface{}, error) 
 		fmt.Fprintf(shared.Stderr(ctx), "Bundle uploaded: version code %d\n", versionCode)
 	} else {
 		fmt.Fprintf(shared.Stderr(ctx), "Uploading APK: %s\n", opts.APKPath)
-		file, err := os.Open(opts.APKPath)
-		if err != nil {
-			return nil, shared.WrapActionable(err, "failed to open APK", "Check that the file exists and is readable.")
-		}
-		defer file.Close()
-
 		call := service.API.Edits.Apks.Upload(pkg, edit.Id)
-		call.Media(file, googleapi.ContentType("application/octet-stream"))
+		call.Media(artifact, googleapi.ContentType("application/octet-stream"))
 		apk, err := call.Context(uploadCtx).Do()
 		if err != nil {
 			return nil, shared.WrapGoogleAPIError("failed to upload APK", err)

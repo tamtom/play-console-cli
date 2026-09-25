@@ -338,9 +338,9 @@ func (a *mediaBackendAdapter) ListImages(ctx context.Context, packageName, editI
 }
 
 func (a *mediaBackendAdapter) UploadImage(ctx context.Context, packageName, editID, locale, imageType, filePath string) (*androidpublisher.Image, error) {
-	file, err := os.Open(filePath)
+	file, err := shared.OpenUploadFile(filePath, "image file")
 	if err != nil {
-		return nil, shared.WrapActionable(err, "failed to open image file", "Check that the file exists and is readable.")
+		return nil, err
 	}
 	defer file.Close()
 

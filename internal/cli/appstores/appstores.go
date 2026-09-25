@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"mime"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -219,9 +218,9 @@ func uploadCommand(kind uploadKind) *ffcli.Command {
 			if err != nil {
 				return err
 			}
-			file, err := os.Open(*filePath)
+			file, err := shared.OpenUploadFile(*filePath, "upload file")
 			if err != nil {
-				return fmt.Errorf("open upload file: %w", err)
+				return err
 			}
 			defer func() { _ = file.Close() }()
 			s, err := newPlayService(ctx)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -74,9 +73,9 @@ operations.get when --wait is true and prints progress to stderr.`,
 			if strings.TrimSpace(resolvedAccount) == "" {
 				return shared.UsageError("--account is required (or set GPLAY_CHECKS_ACCOUNT/checks_account)")
 			}
-			file, err := os.Open(*binaryPath)
+			file, err := shared.OpenUploadFile(*binaryPath, "app binary")
 			if err != nil {
-				return fmt.Errorf("open binary: %w", err)
+				return err
 			}
 			defer file.Close()
 
