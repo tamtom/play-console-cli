@@ -126,6 +126,9 @@ func NewAuthenticatedClientWithScopes(ctx context.Context, scopeList ...string) 
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := ApplyRetryPolicy(client, cfg); err != nil {
+		return nil, nil, fmt.Errorf("apply HTTP retry policy: %w", err)
+	}
 
 	// Wrap transport with DryRunTransport when dry-run is active.
 	if shared.IsDryRun(ctx) {

@@ -17,6 +17,7 @@ import (
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 const (
@@ -128,7 +129,11 @@ func newHTTPClient(ctx context.Context, cfg *config.Config) (*http.Client, error
 	if err != nil {
 		return nil, err
 	}
-	return oauth2.NewClient(ctx, creds.TokenSource), nil
+	client := oauth2.NewClient(ctx, creds.TokenSource)
+	if err := playclient.ApplyRetryPolicy(client, cfg); err != nil {
+		return nil, fmt.Errorf("apply HTTP retry policy: %w", err)
+	}
+	return client, nil
 }
 
 type resolvedCredentials struct {

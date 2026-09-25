@@ -121,8 +121,8 @@ gplay auth doctor --fix --confirm
 | `GPLAY_UPLOAD_TIMEOUT` | Upload timeout (e.g., `5m`, `10m`) |
 | `GPLAY_DEBUG` | Enable debug logging (set to `api` for HTTP requests) |
 | `GPLAY_NO_UPDATE` | Disable update checks |
-| `GPLAY_MAX_RETRIES` | Max retries for failed requests (default: 3) |
-| `GPLAY_RETRY_DELAY` | Base delay between retries (default: `1s`) |
+| `GPLAY_MAX_RETRIES` | Max retries for transient read-only requests (default: 3; `0` disables retries) |
+| `GPLAY_RETRY_DELAY` | Base exponential-backoff delay for read-only retries (default: `1s`) |
 | `GPLAY_DEFAULT_OUTPUT` | Default output format (`json`, `table`, `markdown`) |
 | `GPLAY_API_BASE_URL` | Test only. Points the API client at a local sandbox server. Loopback hosts only; any other host is refused because the client attaches the OAuth token to the request. |
 
