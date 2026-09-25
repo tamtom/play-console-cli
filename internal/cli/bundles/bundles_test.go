@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
 func TestBundlesCommand_Name(t *testing.T) {
@@ -143,6 +147,38 @@ func TestBundlesUploadCommand_PrettyWithTable(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--pretty") {
 		t.Errorf("error should mention --pretty, got: %s", err.Error())
+	}
+}
+
+func TestBundlesUploadCommand_RejectsEmptyFileBeforeServiceCreation(t *testing.T) {
+	emptyBundle := filepath.Join(t.TempDir(), "empty.aab")
+	if err := os.WriteFile(emptyBundle, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := UploadCommand()
+	if err := cmd.FlagSet.Parse([]string{
+		"--package", "com.example.app",
+		"--edit", "edit-1",
+		"--file", emptyBundle,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	serviceCreated := false
+	ctx := playclient.ContextWithServiceFactory(context.Background(), func(context.Context) (*playclient.Service, error) {
+		serviceCreated = true
+		return nil, errors.New("service should not be created")
+	})
+
+	err := cmd.Exec(ctx, nil)
+	if err == nil {
+		t.Fatal("expected empty upload error")
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Fatalf("error = %q, want empty upload error", err)
+	}
+	if serviceCreated {
+		t.Fatal("service was created before rejecting empty upload")
 	}
 }
 

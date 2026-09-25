@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -195,6 +194,11 @@ func UploadCommand() *ffcli.Command {
 			if expType != "main" && expType != "patch" {
 				return fmt.Errorf("--type must be 'main' or 'patch'")
 			}
+			file, err := shared.OpenUploadFile(*filePath, "expansion file")
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -203,12 +207,6 @@ func UploadCommand() *ffcli.Command {
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			file, err := os.Open(*filePath)
-			if err != nil {
-				return shared.WrapActionable(err, "failed to open expansion file", "Check that the file exists and is readable.")
-			}
-			defer file.Close()
 
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()

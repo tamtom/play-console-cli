@@ -8,7 +8,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -118,16 +117,16 @@ Examples:
 				}
 			}
 
+			file, err := shared.OpenUploadFile(*apkPath, "APK file")
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
 			service, err := customappsclient.NewService(ctx)
 			if err != nil {
 				return err
 			}
-
-			file, err := os.Open(*apkPath)
-			if err != nil {
-				return shared.WrapActionable(err, "failed to open APK file", "Check that the file exists and is readable.")
-			}
-			defer file.Close()
 
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()

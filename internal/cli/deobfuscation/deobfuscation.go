@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -101,6 +100,12 @@ func UploadCommand() *ffcli.Command {
 				return fmt.Errorf("invalid --apk-version: %w", err)
 			}
 
+			file, err := shared.OpenUploadFile(*filePath, "deobfuscation file")
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
 			service, err := newPlayService(ctx)
 			if err != nil {
 				return err
@@ -109,12 +114,6 @@ func UploadCommand() *ffcli.Command {
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-
-			file, err := os.Open(*filePath)
-			if err != nil {
-				return shared.WrapActionable(err, "failed to open deobfuscation file", "Check that the file exists and is readable.")
-			}
-			defer file.Close()
 
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()

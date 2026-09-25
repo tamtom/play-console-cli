@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -58,6 +57,14 @@ func UploadCommand() *ffcli.Command {
 			if strings.TrimSpace(*filePath) == "" {
 				return fmt.Errorf("--file is required")
 			}
+			if strings.TrimSpace(*editID) == "" {
+				return fmt.Errorf("--edit is required")
+			}
+			file, err := shared.OpenUploadFile(*filePath, "bundle file")
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 			service, err := playclient.NewService(ctx)
 			if err != nil {
 				return err
@@ -66,14 +73,6 @@ func UploadCommand() *ffcli.Command {
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
 			}
-			if strings.TrimSpace(*editID) == "" {
-				return fmt.Errorf("--edit is required")
-			}
-			file, err := os.Open(*filePath)
-			if err != nil {
-				return shared.WrapActionable(err, "failed to open bundle file", "Check that the file exists and is readable.")
-			}
-			defer file.Close()
 
 			ctx, cancel := shared.ContextWithUploadTimeout(ctx, service.Cfg)
 			defer cancel()

@@ -719,9 +719,9 @@ func DiffListingsCommand() *ffcli.Command {
 }
 
 func uploadImage(ctx context.Context, service *playclient.Service, pkg, editID, locale, imageType, filePath string) error {
-	file, err := os.Open(filePath)
+	file, err := shared.OpenUploadFile(filePath, "image file")
 	if err != nil {
-		return shared.WrapActionable(err, "failed to open image file", "Check that the file exists and is readable.")
+		return err
 	}
 	defer file.Close()
 

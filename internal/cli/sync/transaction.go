@@ -470,6 +470,16 @@ func applyImageEffect(ctx context.Context, service *playclient.Service, plan *sy
 		return "", fmt.Errorf("open planned image %q: %w", effect.RelativePath, err)
 	}
 	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return "", fmt.Errorf("inspect planned image %q: %w", effect.RelativePath, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("planned image %q must be a regular file", effect.RelativePath)
+	}
+	if info.Size() == 0 {
+		return "", fmt.Errorf("planned image %q is empty", effect.RelativePath)
+	}
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
 		return "", fmt.Errorf("hash planned image %q: %w", effect.RelativePath, err)
