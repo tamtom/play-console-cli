@@ -122,8 +122,8 @@ gplay validate bundle --file app.aab
 
 ```bash
 # Manage testers on closed tracks
-gplay testers list --package com.example.app --edit <id> --track internal
-gplay testers update --package com.example.app --edit <id> --track internal --emails user@example.com
+gplay testers get --package com.example.app --edit <id> --track internal
+gplay testers update --package com.example.app --edit <id> --track internal --google-groups beta-testers@example.com --confirm
 
 # Internal app sharing (quick sharing without review)
 gplay internal-sharing upload-bundle --package com.example.app --file app.aab

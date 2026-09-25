@@ -3222,7 +3222,7 @@ gplay testers get --package <name> --edit <id> --track <track>
 Update testers for a track (replaces entire resource).
 
 ```
-gplay testers update --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]
+gplay testers update --package <name> --edit <id> --track <track> [--google-groups <list>] [--json <json>] --confirm
 ```
 
 Update testers for a track. This replaces the entire tester resource.
@@ -3239,12 +3239,13 @@ JSON format (via --json):
 }
 
 Alternatively, use the --google-groups flag:
-  --google-groups "beta-testers@example.com,qa-team@example.com"
+  --google-groups "beta-testers@example.com,qa-team@example.com" --confirm
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--confirm` | Confirm replacement of the entire tester resource | `false` |
 | `--edit` | Edit ID | `` |
-| `--emails` | Comma-separated list of tester email addresses | `` |
+| `--emails` | Deprecated: individual tester emails are not supported by the Google Play API; use --google-groups | `` |
 | `--google-groups` | Comma-separated list of Google Group email addresses | `` |
 | `--json` | Full Testers JSON (or @file) - overrides other flags | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |
@@ -3259,7 +3260,7 @@ Alternatively, use the --google-groups flag:
 Patch testers for a track (partial update).
 
 ```
-gplay testers patch --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]
+gplay testers patch --package <name> --edit <id> --track <track> [--google-groups <list>] [--json <json>]
 ```
 
 Patch testers for a track. This performs a partial update.
@@ -3280,7 +3281,7 @@ Alternatively, use the --google-groups flag:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--edit` | Edit ID | `` |
-| `--emails` | Comma-separated list of tester email addresses | `` |
+| `--emails` | Deprecated: individual tester emails are not supported by the Google Play API; use --google-groups | `` |
 | `--google-groups` | Comma-separated list of Google Group email addresses | `` |
 | `--json` | Partial Testers JSON (or @file) - overrides other flags | `` |
 | `--output` | Output format: json (default), table, markdown | `json` |

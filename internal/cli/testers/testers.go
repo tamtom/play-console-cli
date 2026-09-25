@@ -1,9 +1,13 @@
 package testers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -83,15 +87,16 @@ func UpdateCommand() *ffcli.Command {
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	editID := fs.String("edit", "", "Edit ID")
 	track := fs.String("track", "", "Track name")
-	emails := fs.String("emails", "", "Comma-separated list of tester email addresses")
+	emails := fs.String("emails", "", "Deprecated: individual tester emails are not supported by the Google Play API; use --google-groups")
 	googleGroups := fs.String("google-groups", "", "Comma-separated list of Google Group email addresses")
 	jsonFlag := fs.String("json", "", "Full Testers JSON (or @file) - overrides other flags")
+	confirm := fs.Bool("confirm", false, "Confirm replacement of the entire tester resource")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
 	return &ffcli.Command{
 		Name:       "update",
-		ShortUsage: "gplay testers update --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]",
+		ShortUsage: "gplay testers update --package <name> --edit <id> --track <track> [--google-groups <list>] [--json <json>] --confirm",
 		ShortHelp:  "Update testers for a track (replaces entire resource).",
 		LongHelp: `Update testers for a track. This replaces the entire tester resource.
 
@@ -107,11 +112,11 @@ JSON format (via --json):
 }
 
 Alternatively, use the --google-groups flag:
-  --google-groups "beta-testers@example.com,qa-team@example.com"`,
+  --google-groups "beta-testers@example.com,qa-team@example.com" --confirm`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, false)
+			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, false, *confirm, flagWasSet(fs, "google-groups"))
 		},
 	}
 }
@@ -121,7 +126,7 @@ func PatchCommand() *ffcli.Command {
 	packageName := fs.String("package", "", "Package name (applicationId)")
 	editID := fs.String("edit", "", "Edit ID")
 	track := fs.String("track", "", "Track name")
-	emails := fs.String("emails", "", "Comma-separated list of tester email addresses")
+	emails := fs.String("emails", "", "Deprecated: individual tester emails are not supported by the Google Play API; use --google-groups")
 	googleGroups := fs.String("google-groups", "", "Comma-separated list of Google Group email addresses")
 	jsonFlag := fs.String("json", "", "Partial Testers JSON (or @file) - overrides other flags")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
@@ -129,7 +134,7 @@ func PatchCommand() *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "patch",
-		ShortUsage: "gplay testers patch --package <name> --edit <id> --track <track> [--emails <list>] [--google-groups <list>] [--json <json>]",
+		ShortUsage: "gplay testers patch --package <name> --edit <id> --track <track> [--google-groups <list>] [--json <json>]",
 		ShortHelp:  "Patch testers for a track (partial update).",
 		LongHelp: `Patch testers for a track. This performs a partial update.
 
@@ -148,12 +153,12 @@ Alternatively, use the --google-groups flag:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, true)
+			return updateTesters(ctx, *packageName, *editID, *track, *emails, *googleGroups, *jsonFlag, *outputFlag, *pretty, true, false, flagWasSet(fs, "google-groups"))
 		},
 	}
 }
 
-func updateTesters(ctx context.Context, packageName, editID, track, emails, googleGroups, jsonFlag, outputFlag string, pretty, patch bool) error {
+func updateTesters(ctx context.Context, packageName, editID, track, emails, googleGroups, jsonFlag, outputFlag string, pretty, patch, confirm, googleGroupsSet bool) error {
 	if err := shared.ValidateOutputFlags(outputFlag, pretty); err != nil {
 		return err
 	}
@@ -163,6 +168,29 @@ func updateTesters(ctx context.Context, packageName, editID, track, emails, goog
 	if strings.TrimSpace(track) == "" {
 		return fmt.Errorf("--track is required")
 	}
+	if strings.TrimSpace(emails) != "" {
+		return shared.UsageError("--emails is not supported by the Google Play Android Publisher API; create a Google Group and pass its address with --google-groups")
+	}
+
+	var testers androidpublisher.Testers
+	googleGroupsPresent := googleGroupsSet
+	if strings.TrimSpace(jsonFlag) != "" {
+		var err error
+		testers, googleGroupsPresent, err = parseTestersJSON(jsonFlag)
+		if err != nil {
+			return fmt.Errorf("invalid JSON: %w", err)
+		}
+	} else {
+		if googleGroupsSet {
+			testers.GoogleGroups = shared.SplitUniqueCSV(googleGroups)
+		}
+	}
+	if !patch && !confirm {
+		return shared.UsageError("--confirm is required because testers update replaces the entire tester resource")
+	}
+	if !patch || googleGroupsPresent {
+		testers.ForceSendFields = []string{"GoogleGroups"}
+	}
 
 	service, err := playclient.NewService(ctx)
 	if err != nil {
@@ -171,32 +199,6 @@ func updateTesters(ctx context.Context, packageName, editID, track, emails, goog
 	pkg := shared.ResolvePackageName(packageName, service.Cfg)
 	if strings.TrimSpace(pkg) == "" {
 		return fmt.Errorf("--package is required")
-	}
-
-	var testers androidpublisher.Testers
-
-	if strings.TrimSpace(jsonFlag) != "" {
-		if err := shared.LoadJSONArg(jsonFlag, &testers); err != nil {
-			return fmt.Errorf("invalid JSON: %w", err)
-		}
-	} else {
-		// Build from individual flags
-		if strings.TrimSpace(emails) != "" {
-			emailList := strings.Split(emails, ",")
-			for i := range emailList {
-				emailList[i] = strings.TrimSpace(emailList[i])
-			}
-			testers.GoogleGroups = nil // Clear if using individual emails
-			// Note: The API uses GoogleGroups for both individual testers and groups
-			// For individual testers, we need to set them via the Testers resource
-		}
-		if strings.TrimSpace(googleGroups) != "" {
-			groupList := strings.Split(googleGroups, ",")
-			for i := range groupList {
-				groupList[i] = strings.TrimSpace(groupList[i])
-			}
-			testers.GoogleGroups = groupList
-		}
 	}
 
 	ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
@@ -215,4 +217,41 @@ func updateTesters(ctx context.Context, packageName, editID, track, emails, goog
 		return err
 	}
 	return shared.PrintOutputContext(ctx, resp, outputFlag, pretty)
+}
+
+func parseTestersJSON(value string) (androidpublisher.Testers, bool, error) {
+	raw, err := shared.LoadJSONArgRaw(value)
+	if err != nil {
+		return androidpublisher.Testers{}, false, err
+	}
+	var input struct {
+		GoogleGroups []string `json:"googleGroups"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		return androidpublisher.Testers{}, false, err
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = fmt.Errorf("multiple JSON values")
+		}
+		return androidpublisher.Testers{}, false, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return androidpublisher.Testers{}, false, err
+	}
+	_, present := fields["googleGroups"]
+	return androidpublisher.Testers{GoogleGroups: input.GoogleGroups}, present, nil
+}
+
+func flagWasSet(fs *flag.FlagSet, name string) bool {
+	set := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
 }
