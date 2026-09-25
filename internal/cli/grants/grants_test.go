@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/testutil"
 )
 
 // --- GrantsCommand tests ---
@@ -588,6 +590,15 @@ func TestDeleteCommand_ValidationOrder(t *testing.T) {
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %q, want to contain %q", err.Error(), tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestGrantsHelp_ListsOfficialAppPermissions(t *testing.T) {
+	current, deprecated := testutil.OfficialEnum(t, "androidpublisher", "Grant", "appLevelPermissions")
+	for _, cmd := range []*ffcli.Command{CreateCommand(), UpdateCommand()} {
+		t.Run(cmd.Name, func(t *testing.T) {
+			testutil.AssertHelpListsEnum(t, cmd.LongHelp, current, deprecated)
 		})
 	}
 }

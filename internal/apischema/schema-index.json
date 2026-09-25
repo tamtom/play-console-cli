@@ -4,7 +4,7 @@
       "base_url": "https://androiddeveloperidstatus.googleapis.com/",
       "discovery_url": "https://androiddeveloperidstatus.googleapis.com/$discovery/rest?version=v1",
       "name": "androiddeveloperidstatus",
-      "revision": "20260823",
+      "revision": "20260924",
       "service_path": "",
       "version": "v1"
     },
@@ -12,7 +12,7 @@
       "base_url": "https://androidpublisher.googleapis.com/",
       "discovery_url": "https://androidpublisher.googleapis.com/$discovery/rest?version=v3",
       "name": "androidpublisher",
-      "revision": "20260824",
+      "revision": "20260924",
       "service_path": "",
       "version": "v3"
     },
@@ -20,7 +20,7 @@
       "base_url": "https://checks.googleapis.com/",
       "discovery_url": "https://checks.googleapis.com/$discovery/rest?version=v1alpha",
       "name": "checks",
-      "revision": "20260823",
+      "revision": "20260923",
       "service_path": "",
       "version": "v1alpha"
     },
@@ -28,7 +28,7 @@
       "base_url": "https://gamesconfiguration.googleapis.com/",
       "discovery_url": "https://gamesconfiguration.googleapis.com/$discovery/rest?version=v1configuration",
       "name": "gamesconfiguration",
-      "revision": "20260813",
+      "revision": "20260907",
       "service_path": "",
       "version": "v1configuration"
     },
@@ -36,7 +36,7 @@
       "base_url": "https://gamesmanagement.googleapis.com/",
       "discovery_url": "https://gamesmanagement.googleapis.com/$discovery/rest?version=v1management",
       "name": "gamesmanagement",
-      "revision": "20260813",
+      "revision": "20260907",
       "service_path": "",
       "version": "v1management"
     },
@@ -44,7 +44,7 @@
       "base_url": "https://playcustomapp.googleapis.com/",
       "discovery_url": "https://playcustomapp.googleapis.com/$discovery/rest?version=v1",
       "name": "playcustomapp",
-      "revision": "20260823",
+      "revision": "20260924",
       "service_path": "",
       "version": "v1"
     },
@@ -52,7 +52,7 @@
       "base_url": "https://playdeveloperreporting.googleapis.com/",
       "discovery_url": "https://playdeveloperreporting.googleapis.com/$discovery/rest?version=v1beta1",
       "name": "playdeveloperreporting",
-      "revision": "20260823",
+      "revision": "20260924",
       "service_path": "",
       "version": "v1beta1"
     },
@@ -60,7 +60,7 @@
       "base_url": "https://playintegrity.googleapis.com/",
       "discovery_url": "https://playintegrity.googleapis.com/$discovery/rest?version=v1",
       "name": "playintegrity",
-      "revision": "20260823",
+      "revision": "20260924",
       "service_path": "",
       "version": "v1"
     }
@@ -1070,7 +1070,7 @@
         "accept": [
           "application/octet-stream"
         ],
-        "max_size": "1677721600",
+        "max_size": "2097152000",
         "resumable_path": "/resumable/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/deobfuscationFiles/{deobfuscationFileType}",
         "simple_path": "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/deobfuscationFiles/{deobfuscationFileType}"
       },
@@ -8578,9 +8578,13 @@
     {
       "api": "androidpublisher",
       "definition": {
-        "description": "An installable set of active APKs. A set of APKs might only contain 1 APK if the app in question publishes using APKs. If the app uses app bundles (or a similar technology), this set should contain all APKs (even optional ones) that might be installed for this app. A set of APKs should be installable together. If certain APKs are exclusive to one another and cannot be installed together, then a separate AppStoreAppActiveApkSet should be created.",
+        "description": "An installable set of active APKs. All APKs in this set should belong to the same version of the app. A set of APKs might only contain 1 APK if the app in question publishes using APKs. If the app uses app bundles (or a similar technology), this set should contain all APKs (even optional ones) that might be installed for this app. A set of APKs should be installable together. If certain APKs are exclusive to one another and cannot be installed together, then a separate AppStoreAppActiveApkSet should be created.",
         "id": "AppStoreAppActiveApkSet",
         "properties": {
+          "alreadyPublishedOnPlay": {
+            "description": "Optional. Whether all APKs referenced in this active APK set are published on Play Store (or derived from an app bundle published on Play Store). When this is set, version_code must be provided.",
+            "type": "boolean"
+          },
           "baseApkId": {
             "description": "Required. The ID for the main base application module. Example: base.apk or app.apk.",
             "type": "string"
@@ -8591,6 +8595,11 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "versionCode": {
+            "description": "Optional. Version code for the version this APK set represents.",
+            "format": "int64",
+            "type": "string"
           }
         },
         "type": "object"
@@ -11412,6 +11421,49 @@
     {
       "api": "androidpublisher",
       "definition": {
+        "description": "Reporting details unique to the external content link program.",
+        "id": "ExternalContentLinkDetails",
+        "properties": {
+          "externalAppCategory": {
+            "description": "Optional. The category of the downlaoded app. This must match the category provided in Play Console during the external app verification process. Only required for app installs.",
+            "enum": [
+              "EXTERNAL_CONTENT_APP_CATEGORY_UNSPECIFIED",
+              "APP",
+              "GAME"
+            ],
+            "enumDescriptions": [
+              "Unspecified, do not use.",
+              "The app is classified under the app category.",
+              "The app is classified under the game category."
+            ],
+            "type": "string"
+          },
+          "installedAppPackage": {
+            "description": "Optional. The package name of the app downloaded through this transaction. Only required for app installs.",
+            "type": "string"
+          },
+          "linkType": {
+            "description": "Required. The type content being reported by this transaction.",
+            "enum": [
+              "EXTERNAL_CONTENT_LINK_TYPE_UNSPECIFIED",
+              "LINK_TO_DIGITAL_CONTENT_OFFER",
+              "LINK_TO_APP_DOWNLOAD"
+            ],
+            "enumDescriptions": [
+              "Unspecified, do not use.",
+              "An offer to purchase digital content.",
+              "An app install."
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "ExternalContentLinkDetails"
+    },
+    {
+      "api": "androidpublisher",
+      "definition": {
         "description": "Reporting details unique to the external offers program.",
         "id": "ExternalOfferDetails",
         "properties": {
@@ -11502,6 +11554,10 @@
             "$ref": "Price",
             "description": "Output only. The current tax amount. This represents the current tax amount including any refunds that may have been applied to this transaction.",
             "readOnly": true
+          },
+          "externalContentLinkDetails": {
+            "$ref": "ExternalContentLinkDetails",
+            "description": "Optional. Details necessary to accurately report external content link transactions."
           },
           "externalOfferDetails": {
             "$ref": "ExternalOfferDetails",
@@ -13659,6 +13715,22 @@
     {
       "api": "androidpublisher",
       "definition": {
+        "description": "Configuration specific to game reward offers.",
+        "id": "OneTimeProductGameRewardOffer",
+        "properties": {
+          "redemptionLimit": {
+            "description": "Optional. The number of times this offer can be redeemed. If unset or set to 0, allows for unlimited offer redemptions. Otherwise must be a number between 1 and 50 inclusive.",
+            "format": "int64",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "OneTimeProductGameRewardOffer"
+    },
+    {
+      "api": "androidpublisher",
+      "definition": {
         "description": "Regional store listing for a one-time product.",
         "id": "OneTimeProductListing",
         "properties": {
@@ -13688,6 +13760,10 @@
           "discountedOffer": {
             "$ref": "OneTimeProductDiscountedOffer",
             "description": "A discounted offer."
+          },
+          "gameRewardOffer": {
+            "$ref": "OneTimeProductGameRewardOffer",
+            "description": "A game reward offer."
           },
           "offerId": {
             "description": "Required. Immutable. The ID of this product offer. Must be unique within the purchase option. It must start with a number or lower-case letter, and can only contain lower-case letters (a-z), numbers (0-9), and hyphens (-). The maximum length is 63 characters.",
@@ -14628,7 +14704,7 @@
     {
       "api": "androidpublisher",
       "definition": {
-        "description": "An individual response to a policy question about an app.",
+        "description": "An individual response (answer) to a policy question about an app.",
         "id": "PolicyResponse",
         "properties": {
           "booleanResponse": {
@@ -17605,7 +17681,12 @@
       "definition": {
         "description": "Response for updating an app record for an app store hosted app.",
         "id": "UpdateAppStoreHostedAppResponse",
-        "properties": {},
+        "properties": {
+          "updateId": {
+            "description": "Unique identifier for the specific version of the hosted app submitted in this update. This identifier can be used to correlate publishing signals (such as those returned by ListHostedAppsPublishingSignals) with this specific app update.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "name": "UpdateAppStoreHostedAppResponse"
@@ -18034,7 +18115,7 @@
                 false,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -18057,7 +18138,7 @@
                 "Manage store presence.",
                 "Create, edit, and delete draft apps.",
                 "Create and publish private apps to your organization.",
-                "Choose whether apps are public, or only available to your organization.",
+                "Deprecated: This permission is no longer supported. Choose whether apps are public, or only available to your organization.",
                 "Manage orders and subscriptions.",
                 "Manage policy related pages on all apps for the developer.",
                 "View app information and download bulk reports (read-only).",
@@ -23530,6 +23611,31 @@
           "appAccessRiskVerdict": {
             "$ref": "AppAccessRiskVerdict",
             "description": "The evaluation of the App Access Risk verdicts."
+          },
+          "locationSpoofingRiskVerdict": {
+            "description": "The evaluation of the Location Spoofing Risk verdict.",
+            "items": {
+              "enum": [
+                "LOCATION_SPOOFING_RISK_VERDICT_UNSPECIFIED",
+                "LOW_RISK_DEVICE",
+                "LOW_RISK_NETWORK",
+                "MEDIUM_RISK_DEVICE",
+                "MEDIUM_RISK_NETWORK",
+                "HIGH_RISK_DEVICE",
+                "HIGH_RISK_NETWORK"
+              ],
+              "enumDescriptions": [
+                "Catch-all for unrecognized enum values.",
+                "Device-related spoofing was evaluated, and no issues were detected.",
+                "Network-related spoofing was evaluated, and no issues were detected.",
+                "Potential device-related spoofing was detected.",
+                "Potential network-related spoofing was detected.",
+                "Likely device-related spoofing was detected.",
+                "Likely network-related spoofing was detected."
+              ],
+              "type": "string"
+            },
+            "type": "array"
           },
           "playProtectVerdict": {
             "description": "The evaluation of Play Protect verdict.",

@@ -2350,20 +2350,26 @@ JSON format:
 }
 
 Available account permissions:
-  - CAN_SEE_ALL_APPS
-  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
-  - CAN_MANAGE_PERMISSIONS_GLOBAL
-  - CAN_EDIT_GAMES_GLOBAL
-  - CAN_PUBLISH_GAMES_GLOBAL
-  - CAN_REPLY_TO_REVIEWS_GLOBAL
-  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_USERS_GLOBAL
-  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
-  - CAN_MANAGE_DRAFT_APPS_GLOBAL
-  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
-  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
-  - CAN_MANAGE_ORDERS_GLOBAL
+  - CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL: View app information and download bulk reports (read-only)
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL: View financial data, orders, and cancellation survey responses
+  - CAN_MANAGE_PERMISSIONS_GLOBAL: Admin (all permissions)
+  - CAN_EDIT_GAMES_GLOBAL: Edit Play Games Services projects
+  - CAN_PUBLISH_GAMES_GLOBAL: Publish Play Games Services projects
+  - CAN_REPLY_TO_REVIEWS_GLOBAL: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS_GLOBAL: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS_GLOBAL: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL: Create, edit, and delete draft apps
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL: Create and publish private apps to your organization
+  - CAN_MANAGE_ORDERS_GLOBAL: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT_GLOBAL: Manage policy pages for all apps
+  - CAN_VIEW_APP_QUALITY_GLOBAL: View app quality data for all apps
+  - CAN_MANAGE_DEEPLINKS_GLOBAL: Manage the deep link setup for all apps
+  - CAN_VIEW_CONNECTED_APPS_GLOBAL: View connected apps in Play Console
+  - CAN_EDIT_CONNECTED_APPS_GLOBAL: Edit connected apps in Play Console
+
+The list does not show deprecated permissions.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -2388,26 +2394,32 @@ Update a developer account user.
 JSON format:
 {
   "developerAccountPermissions": [
-    "CAN_SEE_ALL_APPS",
+    "CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL",
     "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
   ]
 }
 
 Available account permissions:
-  - CAN_SEE_ALL_APPS
-  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
-  - CAN_MANAGE_PERMISSIONS_GLOBAL
-  - CAN_EDIT_GAMES_GLOBAL
-  - CAN_PUBLISH_GAMES_GLOBAL
-  - CAN_REPLY_TO_REVIEWS_GLOBAL
-  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_USERS_GLOBAL
-  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
-  - CAN_MANAGE_DRAFT_APPS_GLOBAL
-  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
-  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
-  - CAN_MANAGE_ORDERS_GLOBAL
+  - CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL: View app information and download bulk reports (read-only)
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL: View financial data, orders, and cancellation survey responses
+  - CAN_MANAGE_PERMISSIONS_GLOBAL: Admin (all permissions)
+  - CAN_EDIT_GAMES_GLOBAL: Edit Play Games Services projects
+  - CAN_PUBLISH_GAMES_GLOBAL: Publish Play Games Services projects
+  - CAN_REPLY_TO_REVIEWS_GLOBAL: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS_GLOBAL: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS_GLOBAL: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL: Create, edit, and delete draft apps
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL: Create and publish private apps to your organization
+  - CAN_MANAGE_ORDERS_GLOBAL: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT_GLOBAL: Manage policy pages for all apps
+  - CAN_VIEW_APP_QUALITY_GLOBAL: View app quality data for all apps
+  - CAN_MANAGE_DEEPLINKS_GLOBAL: Manage the deep link setup for all apps
+  - CAN_VIEW_CONNECTED_APPS_GLOBAL: View connected apps in Play Console
+  - CAN_EDIT_CONNECTED_APPS_GLOBAL: Edit connected apps in Play Console
+
+The list does not show deprecated permissions.
 
 Use --update-mask to specify which fields to update. If omitted, all
 fields in the request body are applied.
@@ -7693,30 +7705,28 @@ Create a permission grant for a user on a specific app.
 JSON format:
 {
   "appLevelPermissions": [
-    "CAN_ACCESS_APP",
-    "CAN_VIEW_FINANCIAL_DATA",
-    "CAN_MANAGE_PERMISSIONS",
-    "CAN_REPLY_TO_REVIEWS",
-    "CAN_MANAGE_PUBLIC_APKS",
-    "CAN_MANAGE_TRACK_APKS",
-    "CAN_MANAGE_TRACK_USERS",
-    "CAN_MANAGE_PUBLIC_LISTING",
-    "CAN_MANAGE_DRAFT_APPS",
-    "CAN_MANAGE_ORDERS"
+    "CAN_VIEW_NON_FINANCIAL_DATA",
+    "CAN_VIEW_APP_QUALITY",
+    "CAN_REPLY_TO_REVIEWS"
   ]
 }
 
 Available app permissions:
-  - CAN_ACCESS_APP: Basic app access
-  - CAN_VIEW_FINANCIAL_DATA: View financial reports
-  - CAN_MANAGE_PERMISSIONS: Manage user permissions
-  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
-  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
-  - CAN_MANAGE_TRACK_APKS: Manage test tracks
-  - CAN_MANAGE_TRACK_USERS: Manage testers
-  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
-  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
+  - CAN_VIEW_NON_FINANCIAL_DATA: View app information (read-only)
+  - CAN_VIEW_FINANCIAL_DATA: View financial data
+  - CAN_MANAGE_PERMISSIONS: Admin (all permissions)
+  - CAN_REPLY_TO_REVIEWS: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS: Edit and delete draft apps
   - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT: Manage policy pages
+  - CAN_VIEW_APP_QUALITY: View app quality data, such as vitals and crashes
+  - CAN_MANAGE_DEEPLINKS: Manage the deep link setup of the app
+
+The list does not show deprecated permissions.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -7742,22 +7752,27 @@ Update permissions for an existing app-level grant.
 JSON format:
 {
   "appLevelPermissions": [
-    "CAN_ACCESS_APP",
+    "CAN_VIEW_NON_FINANCIAL_DATA",
     "CAN_MANAGE_PUBLIC_LISTING"
   ]
 }
 
 Available app permissions:
-  - CAN_ACCESS_APP: Basic app access
-  - CAN_VIEW_FINANCIAL_DATA: View financial reports
-  - CAN_MANAGE_PERMISSIONS: Manage user permissions
-  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
-  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
-  - CAN_MANAGE_TRACK_APKS: Manage test tracks
-  - CAN_MANAGE_TRACK_USERS: Manage testers
-  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
-  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
+  - CAN_VIEW_NON_FINANCIAL_DATA: View app information (read-only)
+  - CAN_VIEW_FINANCIAL_DATA: View financial data
+  - CAN_MANAGE_PERMISSIONS: Admin (all permissions)
+  - CAN_REPLY_TO_REVIEWS: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS: Edit and delete draft apps
   - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT: Manage policy pages
+  - CAN_VIEW_APP_QUALITY: View app quality data, such as vitals and crashes
+  - CAN_MANAGE_DEEPLINKS: Manage the deep link setup of the app
+
+The list does not show deprecated permissions.
 
 Use --update-mask to specify which fields to update. If omitted, all
 fields in the request body are applied.
