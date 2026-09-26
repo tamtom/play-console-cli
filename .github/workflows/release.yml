@@ -44,8 +44,10 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13.2
+      # govulncheck v1.1.4 uses x/tools v0.29.0. Its SSA builder panics on
+      # Go 1.27 code, so the gate failed at random. v1.8.0 supports Go 1.27.
       - name: Reachable vulnerability gate
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   build:
     name: Build ${{ matrix.os }}/${{ matrix.arch }}
