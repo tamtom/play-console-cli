@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"context"
+	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
 func TestGlobalDryRunReachesCommandsWithLocalDryRun(t *testing.T) {
@@ -100,5 +105,37 @@ func TestFlagParseErrorsExitWithUsageCodeAndPrintOnce(t *testing.T) {
 				t.Fatalf("stderr has the parse error %d times, want 1: %q", n, stderr)
 			}
 		})
+	}
+}
+
+func TestErrorOutputRedactsSecretsInURLs(t *testing.T) {
+	runErr := errors.New(`Post "https://example.test/v1/apps/com.example/purchases/subscriptions/monthly/tokens/SECRET_MARKER:acknowledge?key=SECRET_MARKER&alt=json": dial tcp: connection refused`)
+
+	fs := shared.FilesystemFrom(context.Background())
+	report := filepath.Join(t.TempDir(), "junit.xml")
+	if err := writeJUnitReport(fs, report, "gplay purchases", runErr, 0); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "SECRET_MARKER") || !strings.Contains(string(data), "alt=json") {
+		t.Fatalf("JUnit report does not redact the URL: %s", data)
+	}
+
+	code, _, stderr := runReleaseCommand(t, []string{"purchases", "products", "get", "--package", "com.example.test", "--product-id", "p", "--token", "SECRET_MARKER"}, func(w http.ResponseWriter, r *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			t.Fatal("response writer cannot hijack")
+		}
+		conn, _, _ := hj.Hijack()
+		_ = conn.Close()
+	})
+	if code == ExitSuccess {
+		t.Fatalf("expected a transport error; stderr %q", stderr)
+	}
+	if strings.Contains(stderr, "SECRET_MARKER") {
+		t.Fatalf("stderr shows the token: %q", stderr)
 	}
 }

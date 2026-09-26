@@ -53,6 +53,8 @@ func TestAuditRedactsSensitiveArgumentsAndErrors(t *testing.T) {
 		{"-token=SECRET_MARKER"},
 		{"--data", `{"purchaseToken":"SECRET_MARKER"}`},
 		{"--json", `{"nested":{"secret":"SECRET_MARKER"}}`},
+		{"--param", "API_TOKEN=SECRET_MARKER"},
+		{"--param=API_TOKEN=SECRET_MARKER"},
 	} {
 		if got := strings.Join(scrubArgs(args), " "); strings.Contains(got, "SECRET_MARKER") {
 			t.Errorf("secret in args: %s", got)

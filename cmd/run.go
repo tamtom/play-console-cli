@@ -104,7 +104,7 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 			return ExitUsage
 		}
 		if !shared.IsReportedError(runErr) {
-			fmt.Fprintln(shared.Stderr(ctx), errfmt.FormatStderr(runErr))
+			fmt.Fprintln(shared.Stderr(ctx), shared.RedactURLsInText(errfmt.FormatStderr(runErr)))
 		}
 		return ExitCodeFromError(runErr)
 	}
@@ -213,12 +213,28 @@ func scrubArgs(args []string) []string {
 		}
 		return false
 	}
+	// keyValue reports flags that take KEY=VALUE pairs. The key stays in the
+	// log; the value is redacted, because it can hold a secret.
+	keyValue := func(name string) bool {
+		return strings.ToLower(strings.TrimLeft(name, "-")) == "param"
+	}
+	redactPair := func(pair string) string {
+		if eq := strings.IndexByte(pair, '='); eq >= 0 {
+			return pair[:eq] + "=<redacted>"
+		}
+		return "<redacted>"
+	}
 	out := make([]string, 0, len(args))
-	skipNext := false
+	skipNext, pairNext := false, false
 	for _, a := range args {
 		if skipNext {
 			out = append(out, "<redacted>")
 			skipNext = false
+			continue
+		}
+		if pairNext {
+			out = append(out, redactPair(a))
+			pairNext = false
 			continue
 		}
 		if eq := strings.IndexByte(a, '='); eq > 0 {
@@ -226,9 +242,17 @@ func scrubArgs(args []string) []string {
 				out = append(out, a[:eq]+"=<redacted>")
 				continue
 			}
+			if strings.HasPrefix(a, "-") && keyValue(a[:eq]) {
+				out = append(out, a[:eq]+"="+redactPair(a[eq+1:]))
+				continue
+			}
 		} else if strings.HasPrefix(a, "-") && sensitive(a) {
 			out = append(out, a)
 			skipNext = true
+			continue
+		} else if strings.HasPrefix(a, "-") && keyValue(a) {
+			out = append(out, a)
+			pairNext = true
 			continue
 		}
 		out = append(out, a)
@@ -270,8 +294,8 @@ func writeJUnitReport(filesystem shared.Filesystem, reportFile, commandName stri
 			Message string `xml:"message,attr"`
 			Text    string `xml:",chardata"`
 		}{
-			Message: runErr.Error(),
-			Text:    runErr.Error(),
+			Message: shared.RedactURLsInText(runErr.Error()),
+			Text:    shared.RedactURLsInText(runErr.Error()),
 		}
 	}
 

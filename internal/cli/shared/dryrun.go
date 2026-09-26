@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -96,7 +97,12 @@ func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func dryRunURL(req *http.Request) string {
-	u := *req.URL
+	return redactURL(*req.URL)
+}
+
+// redactURL removes user info, the fragment, sensitive query values and the
+// path segment after "tokens" from a copy of u.
+func redactURL(u url.URL) string {
 	u.User = nil
 	query := u.Query()
 	for key := range query {
