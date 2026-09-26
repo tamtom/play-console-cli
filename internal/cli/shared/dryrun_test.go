@@ -190,7 +190,7 @@ func TestDryRunTransport_LargeBodyTruncated(t *testing.T) {
 	var buf bytes.Buffer
 	transport := &DryRunTransport{Base: base, Writer: &buf}
 
-	// Create a body larger than 2048 bytes.
+	// Create a non-JSON body larger than the display limit.
 	largeBody := strings.Repeat("x", 3000)
 	req, err := http.NewRequest(http.MethodPost, "https://example.com/upload", strings.NewReader(largeBody))
 	if err != nil {
@@ -203,8 +203,8 @@ func TestDryRunTransport_LargeBodyTruncated(t *testing.T) {
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "... (truncated)") {
-		t.Fatalf("expected truncation marker in output, got: %s", output)
+	if strings.Contains(output, largeBody[:100]) || !strings.Contains(output, "[omitted: non-JSON body]") {
+		t.Fatalf("expected the non-JSON body to be omitted, got: %s", output)
 	}
 }
 
@@ -306,5 +306,45 @@ func TestDryRunDoesNotLogCredentials(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "completed") {
 		t.Fatal("lost non-sensitive payload preview")
+	}
+}
+
+func TestDryRunTransportShowsRedactedPrefixOfLargeJSON(t *testing.T) {
+	var output bytes.Buffer
+	transport := &DryRunTransport{Base: &fakeTransport{}, Writer: &output}
+	prices := make([]string, 0, 300)
+	for range 300 {
+		prices = append(prices, `{"regionCode":"DE","price":{"currencyCode":"EUR","units":"1"}}`)
+	}
+	// The secret is at the end, after the truncation point, and at the start.
+	body := `{"apiKey":"SECRET_MARKER","productId":"monthly","regionalConfigs":[` + strings.Join(prices, ",") + `],"purchaseToken":"SECRET_MARKER"}`
+	req, err := http.NewRequest(http.MethodPatch, "https://example.test/subscriptions/monthly", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	got := output.String()
+	if strings.Contains(got, "SECRET_MARKER") {
+		t.Fatalf("dry-run leaked a secret: %s", got)
+	}
+	if !strings.Contains(got, `"productId":"monthly"`) || !strings.Contains(got, "truncated") {
+		t.Fatalf("large JSON body has no redacted prefix: %s", got)
+	}
+}
+
+func TestDryRunSensitiveNameMatchesWordsNotSubstrings(t *testing.T) {
+	for name, want := range map[string]bool{
+		"purchaseToken": true, "access_token": true, "IDTOKEN": true, "client_secret": true, "apiKey": true,
+		"private_key": true, "key": true, "password": true, "credentials": true, "Authorization": true,
+		"webhookUrl": true, "developerPayload": true, "data": true, "rawData": true,
+		"metadata": false, "dataSafety": false, "keywords": false, "productId": false, "packageName": false,
+	} {
+		if got := dryRunSensitiveName(name); got != want {
+			t.Errorf("dryRunSensitiveName(%q) = %v, want %v", name, got, want)
+		}
 	}
 }

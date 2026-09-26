@@ -207,6 +207,11 @@ func scrubArgs(args []string) []string {
 	}
 	sensitive := func(name string) bool {
 		name = strings.ToLower(strings.TrimLeft(name, "-"))
+		// Boolean switches such as --skip-secrets take no value, so the
+		// next argument is not a secret.
+		if strings.HasPrefix(name, "skip-") || strings.HasPrefix(name, "no-") {
+			return false
+		}
 		switch name {
 		case "service-account", "service-account-json", "webhook-url", "json", "data", "body", "payload", "authorization":
 			return true

@@ -265,3 +265,10 @@ func TestReleaseCommandsRejectNaNRollout(t *testing.T) {
 		})
 	}
 }
+
+func TestAuditKeepsArgumentAfterBooleanSkipFlag(t *testing.T) {
+	got := strings.Join(scrubArgs([]string{"preflight", "--skip-secrets", "app.aab"}), " ")
+	if got != "preflight --skip-secrets app.aab" {
+		t.Fatalf("scrubArgs = %q", got)
+	}
+}

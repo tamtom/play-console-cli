@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode"
 )
 
 // dryRunKey is the context key for the dry-run flag.
@@ -61,12 +62,14 @@ func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	fmt.Fprintf(w, "[DRY RUN] %s %s\n", req.Method, dryRunURL(req)) // #nosec G705 -- writing to stderr, not a web response
 
 	if req.Body != nil && req.Body != http.NoBody {
-		const limit = 2048
-		body, err := io.ReadAll(io.LimitReader(req.Body, limit+1))
+		// Parse and redact the full JSON body first. Only then cut the
+		// redacted text, so that a cut can never show a secret.
+		const readLimit, displayLimit = 1 << 20, 2048
+		body, err := io.ReadAll(io.LimitReader(req.Body, readLimit+1))
 		req.Body.Close()
 		if err == nil && len(body) > 0 {
 			display := "[omitted: non-JSON body]"
-			if len(body) > limit {
+			if len(body) > readLimit {
 				display = "[omitted: large body] ... (truncated)"
 			} else {
 				var value any
@@ -74,6 +77,9 @@ func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 					redactDryRunJSON(value)
 					if safe, err := json.Marshal(value); err == nil {
 						display = string(safe)
+						if len(display) > displayLimit {
+							display = strings.ToValidUTF8(display[:displayLimit], "") + fmt.Sprintf(" ... (truncated, %d bytes)", len(safe))
+						}
 					}
 				}
 			}
@@ -140,12 +146,61 @@ func redactDryRunJSON(value any) {
 	}
 }
 
+var (
+	// sensitiveNameWords are words that mark a field or query name as secret.
+	sensitiveNameWords = map[string]bool{
+		"token": true, "tokens": true, "secret": true, "secrets": true, "password": true, "passwords": true,
+		"passphrase": true, "credential": true, "credentials": true, "key": true, "keys": true,
+		"authorization": true, "webhook": true, "payload": true,
+	}
+	// sensitiveNameSuffixes also match names that have no word separators,
+	// for example IDTOKEN or apikey.
+	sensitiveNameSuffixes = []string{"token", "secret", "password", "credential", "credentials", "key", "payload"}
+)
+
+// dryRunSensitiveName reports whether a JSON field or a query parameter can
+// hold a secret. It compares words, not substrings, so that names such as
+// metadata or keywords stay visible. A name whose last word is "data" is
+// sensitive, because RTDN messages carry the notification in "data".
 func dryRunSensitiveName(key string) bool {
-	name := strings.ToLower(key)
-	for _, part := range []string{"token", "secret", "password", "credential", "key", "authorization", "webhook", "payload", "data"} {
-		if strings.Contains(name, part) {
+	lower := strings.ToLower(key)
+	for _, suffix := range sensitiveNameSuffixes {
+		if strings.HasSuffix(lower, suffix) {
 			return true
 		}
 	}
-	return false
+	words := nameWords(key)
+	for _, word := range words {
+		if sensitiveNameWords[word] {
+			return true
+		}
+	}
+	return len(words) > 0 && words[len(words)-1] == "data"
+}
+
+// nameWords splits a camelCase, snake_case or kebab-case name into
+// lower-case words.
+func nameWords(name string) []string {
+	var words []string
+	var current []rune
+	flush := func() {
+		if len(current) > 0 {
+			words = append(words, strings.ToLower(string(current)))
+			current = current[:0]
+		}
+	}
+	runes := []rune(name)
+	for i, r := range runes {
+		switch {
+		case r == '_' || r == '-' || r == '.' || r == ' ':
+			flush()
+		case unicode.IsUpper(r) && i > 0 && (unicode.IsLower(runes[i-1]) || (i+1 < len(runes) && unicode.IsLower(runes[i+1]))):
+			flush()
+			current = append(current, r)
+		default:
+			current = append(current, r)
+		}
+	}
+	flush()
+	return words
 }
