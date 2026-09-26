@@ -219,3 +219,24 @@ func assertCheckState(t *testing.T, report *validation.ReadinessReport, id strin
 	}
 	t.Fatalf("check %q not found", id)
 }
+
+func TestReadinessPassesTargetSDKPolicyToPreflight(t *testing.T) {
+	apkPath := filepath.Join(t.TempDir(), "app.apk")
+	writeTextFile(t, apkPath, "fixture")
+	original := scanArtifactPreflightFn
+	var got preflightpkg.Options
+	scanArtifactPreflightFn = func(path string, opts preflightpkg.Options) (*preflightpkg.Report, error) {
+		got = opts
+		return &preflightpkg.Report{Path: path, Format: "apk", Package: "dev.example.real", VersionCode: 1}, nil
+	}
+	t.Cleanup(func() { scanArtifactPreflightFn = original })
+
+	cmd := ValidateCommand()
+	if err := cmd.FlagSet.Parse([]string{"--offline", "--apk", apkPath, "--app-type", "wear", "--min-target-sdk", "33"}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	_ = cmd.Exec(context.Background(), nil)
+	if got.AppType != "wear" || got.MinTargetSDK != 33 {
+		t.Fatalf("preflight options = %+v, want AppType wear and MinTargetSDK 33", got)
+	}
+}

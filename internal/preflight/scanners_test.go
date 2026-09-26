@@ -705,3 +705,43 @@ func TestBillingSubmissionVersionPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestTargetSDKPolicyDetectsAppTypeFromManifest(t *testing.T) {
+	feature := func(name string, required ...bool) pbElem {
+		attrs := []pbAttr{{ns: AndroidNS, name: "name", value: name}}
+		for _, r := range required {
+			attrs = append(attrs, pbAttr{ns: AndroidNS, name: "required", compiled: pbPrimBool(r)})
+		}
+		return pbElem{name: "uses-feature", attrs: attrs}
+	}
+	for _, tc := range []struct {
+		name     string
+		feature  []pbElem
+		appType  string
+		wantType string
+		wantMin  int
+	}{
+		{"watch", []pbElem{feature("android.hardware.type.watch")}, "", "wear", 35},
+		{"automotive", []pbElem{feature("android.hardware.type.automotive", true)}, "", "automotive", 35},
+		{"leanback", []pbElem{feature("android.software.leanback", true)}, "", "tv", 34},
+		{"xr spatial", []pbElem{feature("android.software.xr.api.spatial", true)}, "", "xr", 34},
+		{"optional leanback", []pbElem{feature("android.software.leanback", false)}, "", "mobile", 36},
+		{"no feature", nil, "", "mobile", 36},
+		{"flag wins", []pbElem{feature("android.hardware.type.watch")}, "mobile", "mobile", 36},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := cleanManifest()
+			m.children[0] = pbElem{name: "uses-sdk", attrs: []pbAttr{{ns: AndroidNS, name: "targetSdkVersion", compiled: pbPrimInt(35)}}}
+			m.children = append(m.children, tc.feature...)
+			r := scanFixture(t, m, nil, Options{AppType: tc.appType, Only: []string{"policy"}})
+			if r.TargetSDKPolicy.AppType != tc.wantType || r.TargetSDKPolicy.Minimum != tc.wantMin {
+				t.Fatalf("policy = %+v, want %s/%d", r.TargetSDKPolicy, tc.wantType, tc.wantMin)
+			}
+			if tc.wantMin > 35 {
+				requireFinding(t, r, "target_sdk", SeverityError)
+			} else {
+				requireNoFinding(t, r, "target_sdk")
+			}
+		})
+	}
+}

@@ -66,8 +66,9 @@ func ValidateScannerIDs(ids []string) error {
 
 // Scan runs the selected scanners against an AAB or APK and returns a Report.
 func Scan(path string, opts Options) (*Report, error) {
-	policy, err := targetSDKPolicy(opts)
-	if err != nil {
+	// Validate the policy flags before the bundle is opened. The manifest
+	// can change the app type, so the policy is computed again below.
+	if _, err := targetSDKPolicy(opts, nil); err != nil {
 		return nil, err
 	}
 	if err := ValidateScannerIDs(opts.Only); err != nil {
@@ -84,6 +85,7 @@ func Scan(path string, opts Options) (*Report, error) {
 	defer func() { _ = r.Close() }()
 
 	ctx := newScanContext(path, r, opts)
+	policy, _ := targetSDKPolicy(opts, ctx.manifest)
 
 	report := &Report{
 		TargetSDKPolicy: policy,

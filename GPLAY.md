@@ -1321,9 +1321,11 @@ Exit codes:
   1   findings at or above --fail-on severity
 
 Target SDK policy effective 2026-08-31: mobile 36, Wear OS/Automotive 35,
-TV/XR 34. Permanently private organization apps are exempt. Use --app-type
-to select the app context. For a Play-approved extension, explicitly set
---min-target-sdk to the permitted level; the report marks this override.
+TV/XR 34. Permanently private organization apps are exempt. Without
+--app-type, a required <uses-feature> for watch, automotive, leanback or XR
+selects the app type; otherwise the mobile rule applies. For a Play-approved
+extension, explicitly set --min-target-sdk to the permitted level; the report
+marks this override.
 
 Examples:
   gplay preflight --file app.aab
@@ -1335,7 +1337,7 @@ Examples:
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) | `mobile` |
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--fail-on` | Exit non-zero when findings reach this severity: info, warning, error | `error` |
 | `--file` | Path to .aab or .apk to scan (required) | `` |
 | `--list-scanners` | Print the available scanner IDs and exit | `false` |
@@ -3460,9 +3462,11 @@ This command:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--apk` | Path to .apk file | `` |
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--bundle` | Path to .aab bundle file | `` |
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
 | `--listings-dir` | Path to listings metadata directory | `` |
+| `--min-target-sdk` | Minimum accepted targetSdkVersion (default: the current Play requirement) | `0` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--poll-interval` | Polling interval when waiting | `10s` |
@@ -3885,9 +3889,11 @@ Legacy local-only validators remain available as subcommands:
 |------|-------------|---------|
 | `--apk` | Path to .apk file to validate | `` |
 | `--app-content` | Offline app-content inventory JSON or @file | `` |
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--bundle` | Path to .aab bundle file to validate | `` |
 | `--dir` | Metadata directory to validate (legacy combined layout) | `` |
 | `--listings-dir` | Directory containing listing metadata | `` |
+| `--min-target-sdk` | Minimum accepted targetSdkVersion (default: the current Play requirement) | `0` |
 | `--offline` | Skip authentication and every remote Play check | `false` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |

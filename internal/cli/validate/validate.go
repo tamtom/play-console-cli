@@ -39,6 +39,8 @@ func ValidateCommand() *ffcli.Command {
 	screenshotsDir := fs.String("screenshots-dir", "", "Directory containing screenshots grouped by locale/device type")
 	releaseNotes := fs.String("release-notes", "", "Release notes input: plain text, JSON array, or @file")
 	appContent := fs.String("app-content", "", "Offline app-content inventory JSON or @file")
+	appType := fs.String("app-type", "", shared.PreflightAppTypeUsage)
+	minTargetSDK := fs.Int("min-target-sdk", 0, shared.PreflightMinTargetSDKUsage)
 	offline := fs.Bool("offline", false, "Skip authentication and every remote Play check")
 	strict := fs.Bool("strict", false, "Treat warnings as failures")
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
@@ -112,6 +114,8 @@ Legacy local-only validators remain available as subcommands:
 				ScreenshotsDir: *screenshotsDir,
 				ReleaseNotes:   *releaseNotes,
 				AppContent:     *appContent,
+				AppType:        *appType,
+				MinTargetSDK:   *minTargetSDK,
 				Offline:        *offline,
 				Strict:         *strict,
 				Output:         *outputFlag,

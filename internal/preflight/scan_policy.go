@@ -21,10 +21,47 @@ type TargetSDKPolicy struct {
 	Source        string `json:"source"`
 	Override      bool   `json:"override,omitempty"`
 	Exempt        bool   `json:"exempt,omitempty"`
+	// DetectedFrom names the required <uses-feature> that selected AppType
+	// when --app-type was not given.
+	DetectedFrom string `json:"detected_from,omitempty"`
 }
 
-func targetSDKPolicy(opts Options) (TargetSDKPolicy, error) {
+// formFactorFeatures map a required <uses-feature> to the app type whose
+// target API rule applies. An optional feature (required="false") means the
+// app also runs on phones, so the mobile rule applies.
+var formFactorFeatures = []struct{ feature, appType string }{
+	{"android.hardware.type.watch", "wear"},
+	{"android.hardware.type.automotive", "automotive"},
+	{"android.software.leanback", "tv"},
+	{"android.software.xr.api.spatial", "xr"},
+	{"android.software.xr.api.openxr", "xr"},
+}
+
+// detectAppType returns the app type implied by the manifest, or "" when the
+// manifest declares no required form-factor feature.
+func detectAppType(m *Manifest) (appType, feature string) {
+	if m == nil {
+		return "", ""
+	}
+	for _, rule := range formFactorFeatures {
+		for _, f := range m.Features {
+			if f.Name == rule.feature && (f.Required == nil || *f.Required) {
+				return rule.appType, f.Name
+			}
+		}
+	}
+	return "", ""
+}
+
+// targetSDKPolicy selects the target API rule. An explicit --app-type wins;
+// otherwise the manifest decides, and the default is mobile. Call it with a
+// nil manifest to validate the options only.
+func targetSDKPolicy(opts Options, m *Manifest) (TargetSDKPolicy, error) {
 	appType := strings.ToLower(strings.TrimSpace(opts.AppType))
+	detectedFrom := ""
+	if appType == "" {
+		appType, detectedFrom = detectAppType(m)
+	}
 	if appType == "" {
 		appType = "mobile"
 	}
@@ -37,7 +74,7 @@ func targetSDKPolicy(opts Options) (TargetSDKPolicy, error) {
 	if opts.MinTargetSDK < 0 {
 		return TargetSDKPolicy{}, fmt.Errorf("--min-target-sdk must be non-negative")
 	}
-	p := TargetSDKPolicy{AppType: appType, Minimum: floor, EffectiveDate: "2026-08-31", Source: refTargetSDK, Exempt: appType == "private"}
+	p := TargetSDKPolicy{AppType: appType, Minimum: floor, EffectiveDate: "2026-08-31", Source: refTargetSDK, Exempt: appType == "private", DetectedFrom: detectedFrom}
 	if opts.MinTargetSDK > 0 {
 		p.Minimum, p.Override, p.Exempt = opts.MinTargetSDK, true, false
 	}
@@ -100,7 +137,7 @@ func checkTargetSDKFloor(c *scanContext) []Finding {
 	}
 	m := c.manifest
 
-	policy, _ := targetSDKPolicy(c.opts) // Scan validates options before opening the archive.
+	policy, _ := targetSDKPolicy(c.opts, c.manifest) // Scan validates options before opening the archive.
 	floor := policy.Minimum
 
 	var out []Finding

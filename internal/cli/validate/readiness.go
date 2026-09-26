@@ -29,6 +29,8 @@ type readinessOptions struct {
 	ScreenshotsDir string
 	ReleaseNotes   string
 	AppContent     string
+	AppType        string
+	MinTargetSDK   int
 	Offline        bool
 	Strict         bool
 	Output         string
@@ -121,7 +123,11 @@ func addArtifactChecks(report *validation.ReadinessReport, opts readinessOptions
 	if listingsDir == "" {
 		listingsDir = strings.TrimSpace(opts.MetadataDir)
 	}
-	preflightReport, err := scanArtifactPreflightFn(artifactPath, preflightpkg.Options{ListingsDir: listingsDir})
+	preflightReport, err := scanArtifactPreflightFn(artifactPath, preflightpkg.Options{
+		ListingsDir:  listingsDir,
+		AppType:      opts.AppType,
+		MinTargetSDK: opts.MinTargetSDK,
+	})
 	if err != nil {
 		report.AddCheck(validation.ReadinessCheck{
 			ID:          "artifact-preflight-failed",
