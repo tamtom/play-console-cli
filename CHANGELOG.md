@@ -8,6 +8,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [1.0.0] - 2026-09-26
+
+### Upgrade notes
+
+- **Windows:** `gplay update` in 0.10.0 cannot replace the running `.exe`.
+  Run `install.ps1` again to install 1.0.0. On macOS and Linux,
+  `gplay update` works.
+- **Default output:** commands now print JSON by default, also in a
+  terminal. Use `--output table` or `GPLAY_DEFAULT_OUTPUT=table` for tables.
+- **Strict JSON input:** `--json` input now rejects unknown fields and extra
+  JSON values.
+- **Target SDK policy:** preflight, `validate` and `publish track` now use
+  API 36 as the floor for mobile apps. A required `<uses-feature>` for watch,
+  automotive, leanback or XR selects the floor for that app type.
+  Use `--app-type` or `--min-target-sdk` to override it.
+- **Rollouts:** `rollout resume` requires `--rollout` when the halted release
+  has no fraction. `rollout update` requires a fraction greater than the
+  current fraction, and does not resume a halted release.
+- **Testers:** `testers update` requires `--confirm`, and `--emails` is
+  rejected (#290).
+- **Config:** `gplay init` writes `.gplay/config.json`. A local
+  `.gplay/config.yaml` from an older `init` gives an error with the steps to
+  recreate it. A global `~/.gplay/config.yaml` was never read. It is ignored,
+  with a warning.
+- **Package:** `GPLAY_PACKAGE` has priority over `GPLAY_PACKAGE_NAME`.
+- **Exit codes:** a flag parse error now exits with code 2, not 1.
+- **Source builds:** Go 1.27.1 or newer is necessary.
+
+### Added
+
+- Successful interactive commands suggest a newer stable release on stderr.
+  The check uses a 24-hour cache, and a failed check waits one hour.
+  Development builds, CI and piped commands skip the check. Set
+  `GPLAY_NO_UPDATE` to `1`, `true` or `yes` to turn it off.
+- Preflight reports a `billing_version` finding for a known expired Play
+  Billing Library version.
+- `validate` and `publish track` accept `--app-type` and `--min-target-sdk`.
+- The release workflow can run from `workflow_dispatch` with a `version`
+  input. This run builds and checks all assets, but does not publish.
+
+### Changed
+
+- Updated `google.golang.org/api` to `v0.298.0`, `golang.org/x/oauth2` to
+  `v0.37.0`, `golang.org/x/text` to `v0.42.0`, `golang.org/x/term` to
+  `v0.46.0` and `tablewriter` to `v1.1.5` (#281-#283, #285, #286).
+- CI uses Go 1.27.1 and pinned lint tools (#284).
+- The official API files and the permission help match the current Google
+  discovery documents (#292).
+- `subscriptions archive` is a stub that fails with a pointer to
+  `baseplans deactivate`, because Google does not support subscription
+  archiving.
+- `init` writes only the values that you give, and stores an absolute key
+  path.
+- The release gate uses the offline API schema check. The live drift check
+  stays in the weekly API Drift workflow.
+
+### Fixed
+
+- The global `--dry-run` flag now reaches every write path: HTTP writes,
+  `workflow run` steps, `migrate fastlane`, `metadata push`, `sync`, local
+  config, notifications and the updater.
+- An invalid `--output` value now fails before the command changes anything.
+  Commands that use `--output` for a directory are not affected.
+- `rollout complete` and `--rollout 1` send a valid completed release. A
+  halted release keeps its country targeting.
+- `release`, `promote` and `publish track` reject `--rollout NaN`.
+- Read-only requests retry on transient errors (#287). Pagination stops on a
+  repeated page token (#288). Empty upload files fail before the API calls
+  (#289). `release` applies `--listings-dir` and `--screenshots-dir` (#291).
+- A flag parse error prints once.
+- The root help lists `baseplans` and `onetimeproducts` under MONETIZATION.
+- `doctor` accepts `GPLAY_PACKAGE` as a default package.
+- Verification commands use the configured timeout and retries.
+- `rtdn setup` continues to the IAM repair when the topic already exists.
+
+### Security
+
+- `gplay update` and both installers verify the SHA-256 checksum from
+  `checksums.txt` before they replace the binary.
+- The audit log, stderr, the JUnit report, webhook results and dry-run logs
+  redact tokens, keys and other secrets. This includes the URL in a transport
+  error and the value of `--param KEY=VALUE`.
+- Dry-run shows a redacted prefix of a large JSON body. Redaction happens
+  before the text is cut.
+
+### Known limitations
+
+- `validate` and `publish track` have no option to accept a Play Billing
+  Library extension. An app with an extension for an expired version gets a
+  blocking finding. `preflight --skip billing` skips the billing scanner.
+
 ## [0.10.0] - 2026-09-05
 
 ### Added

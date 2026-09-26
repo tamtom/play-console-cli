@@ -235,11 +235,18 @@ func LocalPath() (string, error) {
 		return "", err
 	}
 
+	home, _ := os.UserHomeDir()
 	dir := cwd
-	for {
+	// The .gplay directory in the home directory holds the global config,
+	// so the search stops before it.
+	for home == "" || !sameDir(dir, home) {
 		candidate := filepath.Join(dir, configDirName, configFileName)
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
+		}
+		legacy := filepath.Join(dir, configDirName, "config.yaml")
+		if _, err := os.Stat(legacy); err == nil {
+			return legacy, nil
 		}
 
 		// Stop at .git boundary
@@ -295,6 +302,46 @@ func resolvePath() (string, error) {
 	return configPath()
 }
 
+// sameDir reports whether a and b name the same directory. It compares the
+// files, not the strings, because a path can contain a symbolic link.
+func sameDir(a, b string) bool {
+	aInfo, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	bInfo, err := os.Stat(b)
+	if err != nil {
+		return false
+	}
+	return os.SameFile(aInfo, bInfo)
+}
+
+// IgnoredLegacyGlobalPath returns the path of ~/.gplay/config.yaml when the
+// active config is the global config.json and only the YAML file exists.
+// gplay never read the global YAML file, so the caller shows a warning and
+// the file stays ignored. It returns "" in all other cases.
+func IgnoredLegacyGlobalPath() string {
+	if strings.TrimSpace(os.Getenv(configPathEnvVar)) != "" {
+		return ""
+	}
+	active, err := resolvePath()
+	if err != nil {
+		return ""
+	}
+	global, err := configPath()
+	if err != nil || active != global {
+		return ""
+	}
+	if _, err := os.Stat(global); err == nil {
+		return ""
+	}
+	legacy := filepath.Join(filepath.Dir(global), "config.yaml")
+	if _, err := os.Stat(legacy); err != nil {
+		return ""
+	}
+	return legacy
+}
+
 func cleanConfigPath(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", ErrInvalidPath
@@ -320,6 +367,9 @@ func Load() (*Config, error) {
 
 // LoadAt reads configuration from a specific path.
 func LoadAt(path string) (*Config, error) {
+	if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+		return nil, fmt.Errorf("legacy YAML configuration at %s is unsupported; in %s, run gplay init --force with your --package, --service-account and --timeout values to create .gplay/config.json", path, filepath.Dir(filepath.Dir(path)))
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -336,6 +386,9 @@ func LoadAt(path string) (*Config, error) {
 
 // SaveAt writes configuration to a specific path.
 func SaveAt(path string, cfg *Config) error {
+	if ext := strings.ToLower(filepath.Ext(path)); ext == ".yaml" || ext == ".yml" {
+		return fmt.Errorf("legacy YAML configuration at %s is unsupported; recreate it as config.json using gplay init --force", path)
+	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err

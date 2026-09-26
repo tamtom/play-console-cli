@@ -92,11 +92,16 @@ gplay tracks list --package com.example.app --output json --pretty
 
 ### Debug logging
 
-Enable debug mode to see HTTP requests and responses:
+gplay does not log HTTP requests or responses. `GPLAY_DEBUG` (or `--debug`)
+only turns off the progress spinners, so that other stderr output stays
+readable.
+
+To see the write requests that a command would send, put the global
+`--dry-run` flag before the command. It prints each write request to stderr,
+with secrets redacted, and does not send it. Read requests still run.
 
 ```bash
-export GPLAY_DEBUG=api
-gplay tracks list --package com.example.app
+gplay --dry-run <command> [flags]
 ```
 
 ### Config not loading

@@ -17,7 +17,7 @@ import (
 const (
 	strictAuthEnvVar           = "GPLAY_STRICT_AUTH"
 	profileEnvVar              = "GPLAY_PROFILE"
-	packageEnvVar              = "GPLAY_PACKAGE_NAME"
+	packageEnvVar              = "GPLAY_PACKAGE"
 	timeoutEnvVar              = "GPLAY_TIMEOUT"
 	timeoutSecondsEnvVar       = "GPLAY_TIMEOUT_SECONDS"
 	uploadTimeoutEnvVar        = "GPLAY_UPLOAD_TIMEOUT"
@@ -76,6 +76,9 @@ func ResolvePackageName(flagValue string, cfg *config.Config) string {
 	if env := strings.TrimSpace(os.Getenv(packageEnvVar)); env != "" {
 		return env
 	}
+	if env := strings.TrimSpace(os.Getenv("GPLAY_PACKAGE_NAME")); env != "" {
+		return env
+	}
 	if cfg != nil && strings.TrimSpace(cfg.PackageName) != "" {
 		return strings.TrimSpace(cfg.PackageName)
 	}
@@ -86,7 +89,7 @@ func ResolvePackageName(flagValue string, cfg *config.Config) string {
 func RequirePackageName(flagValue string, cfg *config.Config) (string, error) {
 	pkg := ResolvePackageName(flagValue, cfg)
 	if pkg == "" {
-		return "", fmt.Errorf("package name required: specify --package, set GPLAY_PACKAGE_NAME, or add package_name to config")
+		return "", fmt.Errorf("package name required: specify --package, set GPLAY_PACKAGE (legacy alias: GPLAY_PACKAGE_NAME), or add package_name to config")
 	}
 	return pkg, nil
 }
@@ -169,9 +172,16 @@ func RequireFlags(flagSet *flag.FlagSet, required ...string) error {
 }
 
 // ValidateOutputFlags enforces output/pretty compatibility.
-func ValidateOutputFlags(output string, pretty bool) error {
+func ValidateOutputFlags(output string, pretty bool, additionalFormats ...string) error {
 	normalized := strings.ToLower(strings.TrimSpace(output))
-	if (normalized == "table" || normalized == "markdown" || normalized == "md") && pretty {
+	valid := normalized == "" || normalized == "json" || normalized == "table" || normalized == "markdown" || normalized == "md"
+	for _, format := range additionalFormats {
+		valid = valid || normalized == format
+	}
+	if !valid {
+		return fmt.Errorf("unsupported output format: %s", output)
+	}
+	if normalized != "" && normalized != "json" && pretty {
 		return fmt.Errorf("--pretty is only valid with JSON output")
 	}
 	return nil

@@ -4,13 +4,41 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	preflightpkg "github.com/tamtom/play-console-cli/internal/preflight"
 )
+
+func TestPreflightAppTypePolicy(t *testing.T) {
+	for _, tc := range []struct {
+		appType string
+		floor   float64
+	}{{"mobile", 36}, {"wear", 35}, {"automotive", 35}, {"tv", 34}, {"xr", 34}, {"private", 0}} {
+		t.Run(tc.appType, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "app.aab")
+			writeAAB(t, path, minimalAAB())
+			cmd := PreflightCommand()
+			var out, stderr bytes.Buffer
+			ctx := shared.ContextWithIO(context.Background(), &out, &stderr)
+			if err := cmd.ParseAndRun(ctx, []string{"--file", path, "--app-type", tc.appType, "--only", "policy", "--output", "json"}); err != nil {
+				t.Fatal(err)
+			}
+			var result map[string]any
+			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			policy, ok := result["target_sdk_policy"].(map[string]any)
+			if !ok || policy["minimum"] != tc.floor || policy["effective_date"] != "2026-08-31" {
+				t.Fatalf("policy=%v", policy)
+			}
+		})
+	}
+}
 
 func writeAAB(t *testing.T, path string, entries map[string][]byte) {
 	t.Helper()

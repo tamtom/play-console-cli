@@ -52,8 +52,8 @@ Example:
 			if strings.TrimSpace(*toTrack) == "" {
 				return fmt.Errorf("--to is required")
 			}
-			if *rolloutFraction < 0 || *rolloutFraction > 1 {
-				return fmt.Errorf("--rollout must be between 0.0 and 1.0")
+			if err := shared.ValidateRolloutFraction(*rolloutFraction); err != nil {
+				return err
 			}
 
 			service, err := playclient.NewService(ctx)

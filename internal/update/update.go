@@ -2,15 +2,19 @@ package update
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 
 	"github.com/tamtom/play-console-cli/internal/rootfs"
 	"github.com/tamtom/play-console-cli/internal/version"
@@ -25,7 +29,32 @@ const (
 
 	// CheckInterval is how often to check for updates
 	CheckInterval = 24 * time.Hour
+
+	// FailedCheckInterval is how long a failed check stops new checks, so
+	// that an offline machine does not wait for the network on each command.
+	FailedCheckInterval = time.Hour
 )
+
+// describeSuffix matches the suffix that `git describe --tags --dirty` adds
+// to a tag, for example "-35-gc896cf6" or "-dirty".
+var describeSuffix = regexp.MustCompile(`(-\d+-g[0-9a-f]+)?(-dirty)?$`)
+
+// IsReleaseVersion reports whether v is the version of a release build. A
+// `git describe` version such as 0.10.0-35-gc896cf6 is a valid SemVer
+// prerelease of 0.10.0, but it is a development build of a later commit.
+func IsReleaseVersion(v string) bool {
+	v = "v" + strings.TrimPrefix(strings.TrimSpace(v), "v")
+	return semver.IsValid(v) && describeSuffix.FindString(v) == ""
+}
+
+// Disabled reports whether GPLAY_NO_UPDATE turns off the update check.
+func Disabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("GPLAY_NO_UPDATE"))) {
+	case "1", "true", "yes":
+		return true
+	}
+	return false
+}
 
 // Release represents a GitHub release
 type Release struct {
@@ -51,106 +80,111 @@ type UpdateInfo struct {
 	LatestVersion  string
 	ReleaseURL     string
 	DownloadURL    string
+	AssetName      string
+	ChecksumURL    string
 	IsNewer        bool
 }
 
 // Options configures update behavior
 type Options struct {
+	CurrentVersion string
+
 	// SkipCheck disables update checking
 	SkipCheck bool
 
 	// ForceCheck ignores the check interval cache
 	ForceCheck bool
-
-	// AutoUpdate enables automatic updating
-	AutoUpdate bool
 }
 
-// getCacheDir returns the cache directory for update checks
-func getCacheDir() (string, error) {
+type cachedRelease struct {
+	CheckedAt time.Time `json:"checked_at"`
+	Release   Release   `json:"release"`
+	Failed    bool      `json:"failed,omitempty"`
+}
+
+func cachePath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	cacheDir := filepath.Join(homeDir, ".cache", "gplay")
-	root, err := rootfs.OpenOrCreate(cacheDir, 0o700)
-	if err != nil {
-		return "", err
-	}
-	if err := root.Close(); err != nil {
-		return "", err
-	}
-	return cacheDir, nil
+	return filepath.Join(homeDir, ".cache", "gplay", "update-release.json"), nil
 }
 
-// shouldCheck returns true if enough time has passed since the last check
-func shouldCheck(forceCheck bool) bool {
-	if forceCheck {
-		return true
-	}
-
-	cacheDir, err := getCacheDir()
-	if err != nil {
-		return true
-	}
-
-	lastCheckFile := filepath.Join(cacheDir, "last_update_check")
-	info, err := os.Stat(lastCheckFile)
-	if err != nil {
-		return true
-	}
-
-	return time.Since(info.ModTime()) > CheckInterval
-}
-
-// recordCheck updates the last check timestamp
-func recordCheck() {
-	cacheDir, err := getCacheDir()
-	if err != nil {
-		return
-	}
-
-	lastCheckFile := filepath.Join(cacheDir, "last_update_check")
-	_ = rootfs.AtomicWriteFile(lastCheckFile, []byte(time.Now().Format(time.RFC3339)), 0o600, 0o700)
-}
-
-// CheckForUpdate checks if a newer version is available
+// CheckForUpdate caches a successful stable-release lookup for CheckInterval
+// and a failed lookup for FailedCheckInterval. A cached release is compared
+// with the running version again after every upgrade. ForceCheck ignores the
+// cache and does not record a failure.
 func CheckForUpdate(ctx context.Context, opts Options) (*UpdateInfo, error) {
 	if opts.SkipCheck {
 		return nil, nil
 	}
-
-	if !shouldCheck(opts.ForceCheck) {
+	current := opts.CurrentVersion
+	if current == "" {
+		current = version.Version
+	}
+	current = strings.TrimPrefix(current, "v")
+	if !opts.ForceCheck && (!IsReleaseVersion(current) || Disabled()) {
 		return nil, nil
 	}
 
-	defer recordCheck()
-
-	release, err := getLatestRelease(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	currentVersion := strings.TrimPrefix(version.Version, "v")
-	latestVersion := strings.TrimPrefix(release.TagName, "v")
-
-	info := &UpdateInfo{
-		CurrentVersion: currentVersion,
-		LatestVersion:  latestVersion,
-		ReleaseURL:     release.HTMLURL,
-		IsNewer:        compareVersions(latestVersion, currentVersion) > 0,
-	}
-
-	// Find the appropriate asset for this platform
-	assetName := getBinaryName()
-	for _, asset := range release.Assets {
-		if asset.Name == assetName {
-			info.DownloadURL = asset.BrowserDownloadURL
-			break
+	var release *Release
+	path, pathErr := cachePath()
+	if !opts.ForceCheck && pathErr == nil {
+		if data, err := os.ReadFile(path); err == nil {
+			var cached cachedRelease
+			if json.Unmarshal(data, &cached) == nil {
+				age := time.Since(cached.CheckedAt)
+				switch {
+				case cached.Failed && age >= 0 && age < FailedCheckInterval:
+					return nil, nil
+				case !cached.Failed && age >= 0 && age < CheckInterval && validStableRelease(&cached.Release):
+					release = &cached.Release
+				}
+			}
 		}
 	}
-
+	if release == nil {
+		var err error
+		release, err = getLatestRelease(ctx)
+		if err == nil && !validStableRelease(release) {
+			err = fmt.Errorf("GitHub did not return a valid stable release")
+		}
+		if err != nil {
+			if !opts.ForceCheck && pathErr == nil {
+				if data, marshalErr := json.Marshal(cachedRelease{CheckedAt: time.Now().UTC(), Failed: true}); marshalErr == nil {
+					_ = rootfs.AtomicWriteFile(path, data, 0o600, 0o700)
+				}
+			}
+			return nil, err
+		}
+		if pathErr == nil {
+			data, err := json.Marshal(cachedRelease{CheckedAt: time.Now().UTC(), Release: *release})
+			if err == nil {
+				_ = rootfs.AtomicWriteFile(path, data, 0o600, 0o700)
+			}
+		}
+	}
+	latest := strings.TrimPrefix(release.TagName, "v")
+	info := &UpdateInfo{
+		CurrentVersion: current,
+		LatestVersion:  latest,
+		ReleaseURL:     release.HTMLURL,
+		IsNewer:        IsReleaseVersion(current) && compareVersions(latest, current) > 0,
+	}
+	for _, asset := range release.Assets {
+		if asset.Name == getBinaryName() {
+			info.DownloadURL, info.AssetName = asset.BrowserDownloadURL, asset.Name
+		}
+		if asset.Name == "checksums.txt" {
+			info.ChecksumURL = asset.BrowserDownloadURL
+		}
+	}
 	return info, nil
+}
+
+func validStableRelease(release *Release) bool {
+	v := "v" + strings.TrimPrefix(release.TagName, "v")
+	return !release.Draft && !release.Prerelease && semver.IsValid(v) && semver.Prerelease(v) == ""
 }
 
 // getLatestRelease fetches the latest release from GitHub
@@ -194,33 +228,21 @@ func getBinaryName() string {
 // compareVersions compares two semver versions
 // Returns: 1 if a > b, -1 if a < b, 0 if equal
 func compareVersions(a, b string) int {
-	partsA := strings.Split(strings.TrimPrefix(a, "v"), ".")
-	partsB := strings.Split(strings.TrimPrefix(b, "v"), ".")
-
-	for i := 0; i < 3; i++ {
-		var numA, numB int
-		if i < len(partsA) {
-			_, _ = fmt.Sscanf(partsA[i], "%d", &numA)
-		}
-		if i < len(partsB) {
-			_, _ = fmt.Sscanf(partsB[i], "%d", &numB)
-		}
-
-		if numA > numB {
-			return 1
-		}
-		if numA < numB {
-			return -1
-		}
-	}
-
-	return 0
+	return semver.Compare("v"+strings.TrimPrefix(a, "v"), "v"+strings.TrimPrefix(b, "v"))
 }
 
 // DownloadUpdate downloads the latest binary
 func DownloadUpdate(ctx context.Context, info *UpdateInfo) (string, error) {
-	if info.DownloadURL == "" {
+	if info == nil || info.DownloadURL == "" {
 		return "", fmt.Errorf("no download URL available for this platform")
+	}
+	if info.ChecksumURL == "" || info.AssetName != getBinaryName() {
+		return "", fmt.Errorf("release is missing checksum metadata for this platform")
+	}
+	client := &http.Client{Timeout: 5 * time.Minute}
+	expected, err := releaseChecksum(ctx, client, info.ChecksumURL, info.AssetName)
+	if err != nil {
+		return "", err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", info.DownloadURL, nil)
@@ -228,7 +250,6 @@ func DownloadUpdate(ctx context.Context, info *UpdateInfo) (string, error) {
 		return "", err
 	}
 
-	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -244,24 +265,30 @@ func DownloadUpdate(ctx context.Context, info *UpdateInfo) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	success := false
+	defer func() {
+		_ = tmpFile.Close()
+		if !success {
+			_ = os.Remove(tmpFile.Name())
+		}
+	}()
 
-	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-		tmpFile.Close()
-		_ = os.Remove(tmpFile.Name())
+	hash := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(tmpFile, hash), resp.Body); err != nil {
 		return "", err
 	}
-
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("close update download: %w", err)
+	}
+	if fmt.Sprintf("%x", hash.Sum(nil)) != expected {
+		return "", fmt.Errorf("SHA-256 checksum mismatch for %s", info.AssetName)
+	}
+	success = true
 	return tmpFile.Name(), nil
 }
 
 // ApplyUpdate replaces the current binary with the new one
-func ApplyUpdate(newBinaryPath string) error {
-	currentBinary, err := os.Executable()
-	if err != nil {
-		return err
-	}
-
+func ApplyUpdate(newBinaryPath, currentBinary string) error {
 	sourceRoot, err := rootfs.Open(filepath.Dir(newBinaryPath))
 	if err != nil {
 		return err
@@ -272,12 +299,7 @@ func ApplyUpdate(newBinaryPath string) error {
 		return err
 	}
 	defer func() { _ = source.Close() }()
-	destinationRoot, err := rootfs.Open(filepath.Dir(currentBinary))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = destinationRoot.Close() }()
-	if _, err := destinationRoot.AtomicWriteFrom(filepath.Base(currentBinary), source, 0o755); err != nil {
+	if err := replaceExecutable(currentBinary, source); err != nil {
 		return err
 	}
 	_ = os.Remove(newBinaryPath)
@@ -285,33 +307,52 @@ func ApplyUpdate(newBinaryPath string) error {
 	return nil
 }
 
-// PrintUpdateMessage prints an update notification if one is available
-func PrintUpdateMessage(info *UpdateInfo) {
+func PrintUpdateMessageTo(w io.Writer, info *UpdateInfo) {
 	if info == nil || !info.IsNewer {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "A new version of gplay is available: %s → %s\n", info.CurrentVersion, info.LatestVersion)
+	fmt.Fprintf(w, "\nA new version of gplay is available: %s → %s\n", info.CurrentVersion, info.LatestVersion)
 
 	// Check installation method and provide appropriate instructions
-	if isHomebrew() {
-		fmt.Fprintf(os.Stderr, "Update with: brew upgrade tamtom/tap/gplay\n")
-	} else {
-		fmt.Fprintf(os.Stderr, "Update with: curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | bash\n", GitHubRepo)
+	executable, _ := os.Executable()
+	if resolved, err := filepath.EvalSymlinks(executable); err == nil {
+		executable = resolved
 	}
-
-	fmt.Fprintf(os.Stderr, "Release notes: %s\n", info.ReleaseURL)
-	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(w, "Update with: %s\n", InstallHint(executable))
+	fmt.Fprintf(w, "Release notes: %s\n\n", info.ReleaseURL)
 }
 
-// isHomebrew checks if gplay was installed via Homebrew
-func isHomebrew() bool {
-	executable, err := os.Executable()
-	if err != nil {
-		return false
+// DetectInstallMethod selects update instructions for the resolved executable path.
+func DetectInstallMethod(path string) string {
+	if strings.Contains(path, "homebrew") || strings.Contains(path, "Cellar") || strings.Contains(path, "linuxbrew") {
+		return "homebrew"
 	}
+	goPath := os.Getenv("GOPATH")
+	if goPath == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			goPath = filepath.Join(home, "go")
+		}
+	}
+	binDirs := []string{os.Getenv("GOBIN")}
+	for _, dir := range filepath.SplitList(goPath) {
+		binDirs = append(binDirs, filepath.Join(dir, "bin"))
+	}
+	for _, dir := range binDirs {
+		if dir != "" && filepath.Clean(filepath.Dir(path)) == filepath.Clean(dir) {
+			return "goinstall"
+		}
+	}
+	return "binary"
+}
 
-	// Check if the executable is in a Homebrew cellar
-	return strings.Contains(executable, "/Cellar/") || strings.Contains(executable, "/homebrew/")
+func InstallHint(path string) string {
+	switch DetectInstallMethod(path) {
+	case "homebrew":
+		return "brew upgrade tamtom/tap/gplay"
+	case "goinstall":
+		return "go install github.com/tamtom/play-console-cli@latest (installs play-console-cli; rename it to gplay if desired)"
+	default:
+		return "gplay update"
+	}
 }

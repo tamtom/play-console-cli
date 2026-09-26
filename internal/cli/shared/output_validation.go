@@ -2,7 +2,8 @@ package shared
 
 import (
 	"context"
-	"fmt"
+	"flag"
+	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -33,21 +34,45 @@ func WrapCommandOutputValidation(cmd *ffcli.Command) {
 			outputFlag := cmd.FlagSet.Lookup("output")
 			prettyFlag := cmd.FlagSet.Lookup("pretty")
 
-			if outputFlag != nil {
-				format := strings.ToLower(strings.TrimSpace(outputFlag.Value.String()))
-				validFormats := map[string]bool{"json": true, "table": true, "markdown": true, "md": true, "": true}
-				if !validFormats[format] {
-					return fmt.Errorf("unsupported output format: %s", format)
-				}
-
-				if prettyFlag != nil && prettyFlag.Value.String() == "true" {
-					if format == "table" || format == "markdown" || format == "md" {
-						return fmt.Errorf("--pretty is only valid with JSON output")
+			if isFormatFlag(outputFlag) {
+				explicit := map[string]bool{}
+				cmd.FlagSet.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
+				// Commands with a "text" default support their own format list,
+				// so the environment default applies only to JSON-default flags.
+				if value := os.Getenv("GPLAY_DEFAULT_OUTPUT"); !explicit["output"] && value != "" && outputFlag.DefValue == "json" {
+					if err := outputFlag.Value.Set(value); err != nil {
+						return err
 					}
+				}
+				format := strings.ToLower(strings.TrimSpace(outputFlag.Value.String()))
+				var additionalFormats []string
+				if outputFlag.DefValue == "text" {
+					additionalFormats = append(additionalFormats, "text")
+				}
+				if err := outputFlag.Value.Set(format); err != nil {
+					return err
+				}
+				pretty := prettyFlag != nil && prettyFlag.Value.String() == "true"
+				// A --pretty default of true applies only to JSON output.
+				if pretty && !explicit["pretty"] && format != "json" {
+					if err := prettyFlag.Value.Set("false"); err != nil {
+						return err
+					}
+					pretty = false
+				}
+				if err := ValidateOutputFlags(format, pretty, additionalFormats...); err != nil {
+					return err
 				}
 			}
 		}
 
 		return originalExec(ctx, args)
 	}
+}
+
+// isFormatFlag reports whether an --output flag selects an output format.
+// Some commands, such as generated-apks download, use --output for a
+// directory; their usage text does not start with "Output format".
+func isFormatFlag(f *flag.Flag) bool {
+	return f != nil && strings.HasPrefix(f.Usage, "Output format")
 }

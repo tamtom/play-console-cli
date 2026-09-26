@@ -53,7 +53,8 @@ For validation and readiness commands, cover:
 Standard `_test.go` files. Run offline, no credentials needed. Use table-driven tests.
 
 ### Integration Tests
-Files with `//go:build integration` tag. Require real API credentials. Also call `testutil.SkipUnlessIntegration(t)` as a safety net.
+Files with `//go:build integration` tag. Require real API credentials. Each
+suite checks `GPLAY_INTEGRATION_TEST` and skips unless it is `1` or `true`.
 
 Mutating integration tests require `GPLAY_MUTATING_INTEGRATION_TEST=1` in
 addition to `GPLAY_INTEGRATION_TEST=1`. These tests write to the configured Play
@@ -65,10 +66,14 @@ Test command-line behavior by verifying flag parsing, output format, and error m
 
 ## Test Helpers (`internal/testutil`)
 
-- `SkipUnlessIntegration(t)` — skip unless `GPLAY_INTEGRATION_TEST=1`
-- `IsolateConfig(t)` — isolated config directory for tests
 - `MockServiceAccount(t)` — fake service account JSON file
-- `RequireEnv(t, key)` — skip if env var not set
+- `SandboxServiceAccount(t, tokenURL)` — generated RSA credentials for local sandbox authentication
+- `OfficialEnum(t, api, typeName, property)` — current and deprecated values from the official API schema
+- `AssertHelpListsEnum(t, help, current, deprecated)` — validate help against those enum values
+
+Use `t.TempDir()` and `t.Setenv()` to isolate configuration. `GPLAY_CONFIG_PATH`
+must point to a file inside the temporary directory. Commands that write to the
+global configuration also need isolated `HOME` and `USERPROFILE` directories.
 
 ## Writing New Tests
 

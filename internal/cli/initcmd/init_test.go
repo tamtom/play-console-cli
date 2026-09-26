@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/config"
 )
 
 func TestInitCommand_CreatesConfig(t *testing.T) {
@@ -32,7 +34,7 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 	}
 	_ = buf
 
-	configPath := filepath.Join(dir, ".gplay", "config.yaml")
+	configPath := filepath.Join(dir, ".gplay", "config.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("reading config: %v", err)
@@ -60,7 +62,7 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 	if err := os.MkdirAll(".gplay", 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0o600); err != nil {
+	if err := os.WriteFile(".gplay/config.json", []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,7 +91,7 @@ func TestInitCommand_Force(t *testing.T) {
 	if err := os.MkdirAll(".gplay", 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0o600); err != nil {
+	if err := os.WriteFile(".gplay/config.json", []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -100,9 +102,27 @@ func TestInitCommand_Force(t *testing.T) {
 	}
 }
 
-func TestGenerateConfig(t *testing.T) {
-	cfg := generateConfig("com.test.app", "/path/to/key.json", "30s")
-	if cfg == "" {
-		t.Error("expected non-empty config")
+func TestInitCommand_WritesOnlyExplicitValues(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := os.WriteFile("key.json", []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := InitCommand().ParseAndRun(context.Background(), []string{"--service-account", "key.json"}); err != nil {
+		t.Fatalf("init failed: %v", err)
+	}
+	cfg, err := config.LoadAt(filepath.Join(dir, ".gplay", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.PackageName != "" {
+		t.Errorf("package_name = %q, want empty without --package", cfg.PackageName)
+	}
+	if _, ok := cfg.Timeout.Value(); ok {
+		t.Errorf("timeout = %q, want unset without --timeout", cfg.Timeout.Raw)
+	}
+	if len(cfg.Profiles) != 1 || !filepath.IsAbs(cfg.Profiles[0].KeyPath) {
+		t.Fatalf("profiles = %+v, want one profile with an absolute key path", cfg.Profiles)
 	}
 }

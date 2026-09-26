@@ -40,6 +40,8 @@ func constructRootCommandForArgs(version string, args []string) (*ffcli.Command,
 }
 
 func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []*ffcli.Command) (*ffcli.Command, *cliruntime.Runtime) {
+	// RunWithRuntime handles --version after the parse step, before dispatch.
+	rootFS.Bool("version", false, "Print version information and exit (or use gplay version)")
 	var root *ffcli.Command
 	root = &ffcli.Command{
 		Name:        "gplay",
@@ -61,6 +63,7 @@ func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []
 		},
 	}
 
+	shared.WrapCommandOutputValidation(root)
 	return root, rt
 }
 

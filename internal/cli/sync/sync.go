@@ -212,6 +212,7 @@ func ImportListingsCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			*dryRun = *dryRun || shared.IsDryRun(ctx)
 			if strings.TrimSpace(*editID) == "" {
 				return fmt.Errorf("--edit is required")
 			}
@@ -445,6 +446,7 @@ func ImportImagesCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			*dryRun = *dryRun || shared.IsDryRun(ctx)
 			if strings.TrimSpace(*editID) == "" {
 				return fmt.Errorf("--edit is required")
 			}

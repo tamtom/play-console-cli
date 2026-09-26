@@ -14,6 +14,7 @@ import (
 	"github.com/tamtom/play-console-cli/internal/apischema"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/sync"
+	"github.com/tamtom/play-console-cli/internal/output"
 )
 
 var runWinnerSync = sync.RunTransaction
@@ -43,6 +44,22 @@ type supportResult struct {
 	ManualConsoleRequired   bool     `json:"manualConsoleRequired"`
 	PrivateInterfacesUsed   bool     `json:"privateInterfacesUsed"`
 	RecommendedApplyCommand string   `json:"recommendedApplyCommand"`
+}
+
+func init() {
+	output.RegisterType(supportResult{}, []string{"Capability", "Support"}, func(value any) [][]string {
+		result := value.(supportResult)
+		return [][]string{
+			{"Official lifecycle API", fmt.Sprint(result.OfficialLifecycleAPI)},
+			{"Official results API", fmt.Sprint(result.OfficialResultsAPI)},
+			{"Apply selected winner", fmt.Sprint(result.OfficialApplyWinnerAPI)},
+			{"Apply resources", strings.Join(result.ApplyWinnerResources, ", ")},
+			{"Discovery revision", result.DiscoveryRevision},
+			{"Manual Console required", fmt.Sprint(result.ManualConsoleRequired)},
+			{"Private interfaces used", fmt.Sprint(result.PrivateInterfacesUsed)},
+			{"Apply command", result.RecommendedApplyCommand},
+		}
+	})
 }
 
 // SupportCommand reports the reviewed embedded public-API boundary offline.

@@ -17,6 +17,9 @@ import (
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/shared/errfmt"
+	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/update"
+	"golang.org/x/term"
 )
 
 // Run is the main entry point. It returns an exit code.
@@ -40,6 +43,7 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 	var err error
 	ctx, err = rt.ApplyRootContext(ctx)
 	if err != nil {
+		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitUsage
 	}
 	setCommandOutput(root, shared.Stderr(ctx))
@@ -53,13 +57,29 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 
 	// Parse flags and subcommands
 	if err := root.Parse(args); err != nil {
-		fmt.Fprintln(shared.Stderr(ctx), err)
-		return ExitCodeFromError(err)
+		if errors.Is(err, flag.ErrHelp) {
+			return ExitSuccess
+		}
+		// Every flag set uses ContinueOnError (see setCommandOutput), so the
+		// flag package already printed the error and the usage to stderr.
+		return ExitUsage
 	}
 
 	ctx, err = rt.ApplyRootContext(ctx)
 	if err != nil {
+		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitUsage
+	}
+
+	// A root informational flag must never dispatch a trailing subcommand,
+	// so `gplay --version rollout halt` prints the version and changes nothing.
+	if versionFlag := root.FlagSet.Lookup("version"); versionFlag != nil && versionFlag.Value.String() == "true" {
+		fmt.Fprintln(shared.Stdout(ctx), versionInfo)
+		return ExitSuccess
+	}
+
+	if legacy := config.IgnoredLegacyGlobalPath(); legacy != "" {
+		fmt.Fprintf(shared.Stderr(ctx), "Warning: %s is ignored. gplay reads config.json in the same directory. Run gplay auth login --service-account <path> to create it.\n", legacy)
 	}
 
 	// Record start time for JUnit reporting
@@ -96,21 +116,45 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 			return ExitUsage
 		}
 		if !shared.IsReportedError(runErr) {
-			fmt.Fprintln(shared.Stderr(ctx), errfmt.FormatStderr(runErr))
+			fmt.Fprintln(shared.Stderr(ctx), shared.RedactURLsInText(errfmt.FormatStderr(runErr)))
 		}
 		return ExitCodeFromError(runErr)
 	}
 
+	maybeSuggestUpdate(ctx, args, versionInfo)
 	return ExitSuccess
+}
+
+func maybeSuggestUpdate(ctx context.Context, args []string, versionInfo string) {
+	terminal, ok := shared.Stderr(ctx).(*os.File)
+	if shared.IsDryRun(ctx) || update.Disabled() || os.Getenv("CI") != "" || (!ok || !term.IsTerminal(int(terminal.Fd()))) {
+		return
+	}
+	switch selectedRootCommand(args) {
+	case "", "version", "completion", "update":
+		return
+	}
+	fields := strings.Fields(versionInfo)
+	if len(fields) == 0 {
+		return
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	info, err := update.CheckForUpdate(checkCtx, update.Options{CurrentVersion: fields[0]})
+	if err == nil {
+		update.PrintUpdateMessageTo(shared.Stderr(ctx), info)
+	}
 }
 
 func setCommandOutput(command *ffcli.Command, writer io.Writer) {
 	if command == nil {
 		return
 	}
-	if command.FlagSet != nil {
-		command.FlagSet.SetOutput(writer)
+	if command.FlagSet == nil {
+		command.FlagSet = flag.NewFlagSet(command.Name, flag.ContinueOnError)
 	}
+	command.FlagSet.Init(command.FlagSet.Name(), flag.ContinueOnError)
+	command.FlagSet.SetOutput(writer)
 	for _, subcommand := range command.Subcommands {
 		setCommandOutput(subcommand, writer)
 	}
@@ -156,7 +200,9 @@ func logAudit(ctx context.Context, rt *cliruntime.Runtime, commandName string, a
 	}
 	if runErr != nil && !errors.Is(runErr, flag.ErrHelp) {
 		entry.Status = "error"
-		entry.Error = runErr.Error()
+		// API errors can echo credentials from files or responses, not just flags.
+		// Persist only the classification; keep detailed diagnostics on stderr.
+		entry.Error = string(errfmt.Classify(runErr).Category)
 	}
 	_ = sink.Write(entry)
 }
@@ -166,29 +212,64 @@ func scrubArgs(args []string) []string {
 	if len(args) == 0 {
 		return nil
 	}
-	sensitive := map[string]bool{
-		"--service-account": true,
-		"--client-secret":   true,
-		"--token":           true,
-		"--key":             true,
-		"--json":            true,
+	sensitive := func(name string) bool {
+		name = strings.ToLower(strings.TrimLeft(name, "-"))
+		// Boolean switches such as --skip-secrets take no value, so the
+		// next argument is not a secret.
+		if strings.HasPrefix(name, "skip-") || strings.HasPrefix(name, "no-") {
+			return false
+		}
+		switch name {
+		case "service-account", "service-account-json", "webhook-url", "json", "data", "body", "payload", "authorization":
+			return true
+		}
+		for _, part := range []string{"token", "secret", "password", "key", "credential"} {
+			if strings.Contains(name, part) {
+				return true
+			}
+		}
+		return false
+	}
+	// keyValue reports flags that take KEY=VALUE pairs. The key stays in the
+	// log; the value is redacted, because it can hold a secret.
+	keyValue := func(name string) bool {
+		return strings.ToLower(strings.TrimLeft(name, "-")) == "param"
+	}
+	redactPair := func(pair string) string {
+		if eq := strings.IndexByte(pair, '='); eq >= 0 {
+			return pair[:eq] + "=<redacted>"
+		}
+		return "<redacted>"
 	}
 	out := make([]string, 0, len(args))
-	skipNext := false
+	skipNext, pairNext := false, false
 	for _, a := range args {
 		if skipNext {
 			out = append(out, "<redacted>")
 			skipNext = false
 			continue
 		}
+		if pairNext {
+			out = append(out, redactPair(a))
+			pairNext = false
+			continue
+		}
 		if eq := strings.IndexByte(a, '='); eq > 0 {
-			if sensitive[a[:eq]] {
+			if strings.HasPrefix(a, "-") && sensitive(a[:eq]) {
 				out = append(out, a[:eq]+"=<redacted>")
 				continue
 			}
-		} else if sensitive[a] {
+			if strings.HasPrefix(a, "-") && keyValue(a[:eq]) {
+				out = append(out, a[:eq]+"="+redactPair(a[eq+1:]))
+				continue
+			}
+		} else if strings.HasPrefix(a, "-") && sensitive(a) {
 			out = append(out, a)
 			skipNext = true
+			continue
+		} else if strings.HasPrefix(a, "-") && keyValue(a) {
+			out = append(out, a)
+			pairNext = true
 			continue
 		}
 		out = append(out, a)
@@ -230,8 +311,8 @@ func writeJUnitReport(filesystem shared.Filesystem, reportFile, commandName stri
 			Message string `xml:"message,attr"`
 			Text    string `xml:",chardata"`
 		}{
-			Message: runErr.Error(),
-			Text:    runErr.Error(),
+			Message: shared.RedactURLsInText(runErr.Error()),
+			Text:    shared.RedactURLsInText(runErr.Error()),
 		}
 	}
 

@@ -32,7 +32,7 @@ Examples:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty, "text"); err != nil {
 				return err
 			}
 			report := Run(ctx, DefaultEnv())

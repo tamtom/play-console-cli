@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tamtom/play-console-cli/internal/developeridclient"
 )
@@ -20,6 +21,54 @@ func TestStatusRequiresAPIKeyBeforeNetwork(t *testing.T) {
 	err := cmd.Exec(context.Background(), nil)
 	if err == nil || !strings.Contains(err.Error(), "--api-key") {
 		t.Fatalf("expected API key error, got %v", err)
+	}
+}
+
+func TestStatusHonorsTimeoutAndReadRetries(t *testing.T) {
+	for _, mode := range []string{"timeout", "retry", "disabled"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Setenv("GPLAY_CONFIG_PATH", t.TempDir()+"/config.json")
+			t.Setenv("GPLAY_MAX_RETRIES", "1")
+			t.Setenv("GPLAY_RETRY_DELAY", "1ms")
+			t.Setenv("GPLAY_TIMEOUT", "1s")
+			if mode == "timeout" {
+				t.Setenv("GPLAY_TIMEOUT", "20ms")
+			}
+			if mode == "disabled" {
+				t.Setenv("GPLAY_MAX_RETRIES", "0")
+			}
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if mode == "timeout" {
+					time.Sleep(150 * time.Millisecond)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				if mode != "timeout" && calls == 1 {
+					w.WriteHeader(503)
+					_, _ = io.WriteString(w, `{"error":{"message":"retry"}}`)
+					return
+				}
+				_, _ = io.WriteString(w, `{"packageName":"dev.example"}`)
+			}))
+			defer server.Close()
+			ctx := developeridclient.ContextWithServiceFactory(context.Background(), func(ctx context.Context, key string) (*developeridclient.Service, error) {
+				return developeridclient.NewServiceWithClient(ctx, server.Client(), server.URL+"/")
+			})
+			start := time.Now()
+			err := StatusCommand().ParseAndRun(ctx, []string{"--package", "dev.example", "--api-key", "test"})
+			if mode == "timeout" {
+				if err == nil || !strings.Contains(err.Error(), "deadline") || time.Since(start) > 120*time.Millisecond {
+					t.Fatalf("deadline not enforced: %v", err)
+				}
+			} else if mode == "retry" {
+				if err != nil || calls != 2 {
+					t.Fatalf("calls=%d err=%v", calls, err)
+				}
+			} else if err == nil || calls != 1 {
+				t.Fatalf("calls=%d err=%v", calls, err)
+			}
+		})
 	}
 }
 

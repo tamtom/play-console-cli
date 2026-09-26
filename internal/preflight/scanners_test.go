@@ -3,6 +3,7 @@ package preflight
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -36,7 +37,7 @@ func cleanManifest() pbElem {
 		children: []pbElem{
 			{name: "uses-sdk", attrs: []pbAttr{
 				{ns: AndroidNS, name: "minSdkVersion", compiled: pbPrimInt(24)},
-				{ns: AndroidNS, name: "targetSdkVersion", compiled: pbPrimInt(35)},
+				{ns: AndroidNS, name: "targetSdkVersion", compiled: pbPrimInt(36)},
 			}},
 			{name: "application", children: []pbElem{
 				{name: "activity", attrs: []pbAttr{
@@ -139,7 +140,7 @@ func TestCleanBundleHasNoErrors(t *testing.T) {
 	if r.Errors != 0 {
 		t.Fatalf("expected no errors, got %d: %+v", r.Errors, r.Findings)
 	}
-	if r.Package != "com.acme.app" || r.TargetSdk != 35 || r.VersionCode != 10 {
+	if r.Package != "com.acme.app" || r.TargetSdk != 36 || r.VersionCode != 10 {
 		t.Errorf("report metadata = %+v", r)
 	}
 	if r.Format != formatAAB {
@@ -586,6 +587,37 @@ func TestPolicyTargetSDKBelowFloor(t *testing.T) {
 	requireNoFinding(t, relaxed, "target_sdk")
 }
 
+func TestSubmissionTargetSDKPolicy(t *testing.T) {
+	for _, tc := range []struct {
+		appType  string
+		target   int32
+		rejected bool
+	}{
+		{"mobile", 35, true},
+		{"mobile", 36, false},
+		{"wear", 34, true},
+		{"wear", 35, false},
+		{"automotive", 34, true},
+		{"automotive", 35, false},
+		{"tv", 33, true},
+		{"tv", 34, false},
+		{"xr", 33, true},
+		{"xr", 34, false},
+		{"private", 30, false},
+	} {
+		t.Run(fmt.Sprintf("%s/target%d", tc.appType, tc.target), func(t *testing.T) {
+			m := cleanManifest()
+			m.children[0] = pbElem{name: "uses-sdk", attrs: []pbAttr{{ns: AndroidNS, name: "targetSdkVersion", compiled: pbPrimInt(tc.target)}}}
+			r := scanFixture(t, m, nil, Options{AppType: tc.appType, Only: []string{"policy"}})
+			if tc.rejected {
+				requireFinding(t, r, "target_sdk", SeverityError)
+			} else {
+				requireNoFinding(t, r, "target_sdk")
+			}
+		})
+	}
+}
+
 func TestPolicyRestrictedService(t *testing.T) {
 	m := cleanManifest()
 	appNode(&m).children = append(appNode(&m).children, pbElem{
@@ -654,5 +686,62 @@ func TestHumanBytes(t *testing.T) {
 		if got := humanBytes(in); got != want {
 			t.Errorf("humanBytes(%d) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestBillingSubmissionVersionPolicy(t *testing.T) {
+	for _, tc := range []struct {
+		version  string
+		severity Severity
+	}{{"7.1.1", SeverityError}, {"8.0.0", SeverityInfo}, {"9.0.0", SeverityInfo}, {"", SeverityWarning}, {"@string/billing_version", SeverityWarning}} {
+		t.Run(tc.version, func(t *testing.T) {
+			m := withPermissions(cleanManifest(), billingPermission)
+			if tc.version != "" {
+				app := appNode(&m)
+				app.children = append(app.children, pbElem{name: "meta-data", attrs: []pbAttr{{ns: AndroidNS, name: "name", value: "com.google.android.play.billingclient.version"}, {ns: AndroidNS, name: "value", value: tc.version}}})
+			}
+			r := scanFixture(t, m, map[string][]byte{"base/dex/classes.dex": dexWith("Lcom/android/billingclient/api/")}, Options{})
+			requireFinding(t, r, "billing_version", tc.severity)
+		})
+	}
+}
+
+func TestTargetSDKPolicyDetectsAppTypeFromManifest(t *testing.T) {
+	feature := func(name string, required ...bool) pbElem {
+		attrs := []pbAttr{{ns: AndroidNS, name: "name", value: name}}
+		for _, r := range required {
+			attrs = append(attrs, pbAttr{ns: AndroidNS, name: "required", compiled: pbPrimBool(r)})
+		}
+		return pbElem{name: "uses-feature", attrs: attrs}
+	}
+	for _, tc := range []struct {
+		name     string
+		feature  []pbElem
+		appType  string
+		wantType string
+		wantMin  int
+	}{
+		{"watch", []pbElem{feature("android.hardware.type.watch")}, "", "wear", 35},
+		{"automotive", []pbElem{feature("android.hardware.type.automotive", true)}, "", "automotive", 35},
+		{"leanback", []pbElem{feature("android.software.leanback", true)}, "", "tv", 34},
+		{"xr spatial", []pbElem{feature("android.software.xr.api.spatial", true)}, "", "xr", 34},
+		{"optional leanback", []pbElem{feature("android.software.leanback", false)}, "", "mobile", 36},
+		{"no feature", nil, "", "mobile", 36},
+		{"flag wins", []pbElem{feature("android.hardware.type.watch")}, "mobile", "mobile", 36},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := cleanManifest()
+			m.children[0] = pbElem{name: "uses-sdk", attrs: []pbAttr{{ns: AndroidNS, name: "targetSdkVersion", compiled: pbPrimInt(35)}}}
+			m.children = append(m.children, tc.feature...)
+			r := scanFixture(t, m, nil, Options{AppType: tc.appType, Only: []string{"policy"}})
+			if r.TargetSDKPolicy.AppType != tc.wantType || r.TargetSDKPolicy.Minimum != tc.wantMin {
+				t.Fatalf("policy = %+v, want %s/%d", r.TargetSDKPolicy, tc.wantType, tc.wantMin)
+			}
+			if tc.wantMin > 35 {
+				requireFinding(t, r, "target_sdk", SeverityError)
+			} else {
+				requireNoFinding(t, r, "target_sdk")
+			}
+		})
 	}
 }

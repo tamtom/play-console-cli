@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -19,7 +20,7 @@ var rootCommandGroups = []commandGroup{
 	{title: "RELEASES & TRACKS", commands: []string{"edits", "bundles", "apks", "tracks", "release", "promote", "rollout", "sync", "validate", "deobfuscation", "expansion", "generated-apks", "system-apks"}},
 	{title: "TESTING", commands: []string{"testers", "internal-sharing"}},
 	{title: "VITALS & REVIEWS", commands: []string{"status", "vitals", "reviews"}},
-	{title: "MONETIZATION", commands: []string{"iap", "subscriptions", "base-plans", "offers", "one-time-products", "purchase-options", "otp-offers", "pricing", "orders", "purchases", "external-transactions"}},
+	{title: "MONETIZATION", commands: []string{"iap", "subscriptions", "baseplans", "offers", "onetimeproducts", "purchase-options", "otp-offers", "pricing", "orders", "purchases", "external-transactions"}},
 	{title: "ACCOUNT & ACCESS", commands: []string{"users", "grants"}},
 	{title: "AUTOMATION", commands: []string{"notify", "migrate", "release-notes", "reports", "recovery"}},
 	{title: "UTILITIES", commands: []string{"version", "update", "completion", "docs"}},
@@ -81,5 +82,12 @@ func RootUsageFunc(c *ffcli.Command) string {
 		fmt.Fprintln(&b)
 	}
 
+	if c.FlagSet != nil {
+		fmt.Fprintln(&b, "GLOBAL FLAGS (before the command)")
+		tw := tabwriter.NewWriter(&b, 2, 4, 2, ' ', 0)
+		c.FlagSet.VisitAll(func(f *flag.Flag) { fmt.Fprintf(tw, "  --%s\t%s\n", f.Name, f.Usage) })
+		_ = tw.Flush()
+		fmt.Fprintln(&b)
+	}
 	return b.String()
 }

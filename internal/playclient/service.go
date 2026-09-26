@@ -22,8 +22,9 @@ var scopes = []string{"https://www.googleapis.com/auth/androidpublisher"}
 
 // Service wraps the Android Publisher service and config.
 type Service struct {
-	API *androidpublisher.Service
-	Cfg *config.Config
+	API        *androidpublisher.Service
+	Cfg        *config.Config
+	HTTPClient *http.Client
 }
 
 // ServiceFactory creates an Android Publisher service. Runtime wiring uses a
@@ -61,7 +62,7 @@ func NewService(ctx context.Context) (*Service, error) {
 	if base != "" {
 		api.BasePath = base
 	}
-	return &Service{API: api, Cfg: cfg}, nil
+	return &Service{API: api, Cfg: cfg, HTTPClient: client}, nil
 }
 
 // sandboxBaseURL returns the GPLAY_API_BASE_URL override, normalized to end
@@ -119,7 +120,7 @@ func NewAuthenticatedClientWithScopes(ctx context.Context, scopeList ...string) 
 		return nil, nil, shared.NewActionableError(
 			"failed to load config",
 			err,
-			"Check that your config file is valid JSON and readable. Use `gplay auth init` to recreate it.",
+			"Check that your config file is valid JSON and readable. Run `gplay init --force` to recreate a project config, or `gplay auth init --force` for the global config.",
 		)
 	}
 	client, err := newHTTPClient(ctx, cfg, scopeList...)
@@ -134,7 +135,7 @@ func NewAuthenticatedClientWithScopes(ctx context.Context, scopeList ...string) 
 	if shared.IsDryRun(ctx) {
 		client.Transport = &shared.DryRunTransport{
 			Base:   client.Transport,
-			Writer: os.Stderr,
+			Writer: shared.Stderr(ctx),
 		}
 	}
 	return client, cfg, nil
@@ -143,6 +144,11 @@ func NewAuthenticatedClientWithScopes(ctx context.Context, scopeList ...string) 
 // NewServiceWithClient creates an Android Publisher service using a provided
 // HTTP client. Tests use this to point the generated client at a mock server.
 func NewServiceWithClient(ctx context.Context, client *http.Client, basePath string) (*Service, error) {
+	if shared.IsDryRun(ctx) {
+		copyClient := *client
+		copyClient.Transport = &shared.DryRunTransport{Base: client.Transport, Writer: shared.Stderr(ctx)}
+		client = &copyClient
+	}
 	api, err := androidpublisher.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
@@ -150,7 +156,7 @@ func NewServiceWithClient(ctx context.Context, client *http.Client, basePath str
 	if basePath != "" {
 		api.BasePath = basePath
 	}
-	return &Service{API: api, Cfg: &config.Config{}}, nil
+	return &Service{API: api, Cfg: &config.Config{}, HTTPClient: client}, nil
 }
 
 func newHTTPClient(ctx context.Context, cfg *config.Config, scopeList ...string) (*http.Client, error) {

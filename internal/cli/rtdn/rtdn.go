@@ -81,13 +81,13 @@ at the end.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty, "text"); err != nil {
 				return err
 			}
 			return runSetup(ctx, SetupOptions{
 				Project: strings.TrimSpace(*project),
 				Topic:   strings.TrimSpace(*topic),
-				DryRun:  *dryRun,
+				DryRun:  *dryRun || shared.IsDryRun(ctx),
 				Output:  *outputFlag,
 				Pretty:  *pretty,
 				Runner:  realRunner{},
@@ -131,8 +131,8 @@ func runSetup(ctx context.Context, opts SetupOptions) error {
 	if opts.Stdout == nil {
 		opts.Stdout = shared.Stdout(ctx)
 	}
-	if _, err := opts.Runner.LookPath("gcloud"); err != nil {
-		return shared.NewReportedError(errors.New("gcloud CLI is required for rtdn setup"))
+	if _, err := opts.Runner.LookPath("gcloud"); err != nil && !opts.DryRun {
+		return errors.New("gcloud CLI is required for rtdn setup")
 	}
 
 	topicResource := fmt.Sprintf("projects/%s/topics/%s", opts.Project, opts.Topic)
@@ -161,10 +161,11 @@ func runSetup(ctx context.Context, opts SetupOptions) error {
 			result.StepsExecuted = append(result.StepsExecuted, cmdLine)
 			continue
 		}
-		if _, err := opts.Runner.Run(ctx, "gcloud", s...); err != nil {
+		if out, err := opts.Runner.Run(ctx, "gcloud", s...); err != nil {
 			// topics create is idempotent-ish: if it already exists, continue.
-			if !strings.Contains(err.Error(), "already exists") {
-				return fmt.Errorf("step failed: %s: %w", cmdLine, err)
+			message := strings.ToLower(string(out) + " " + err.Error())
+			if s[2] != "create" || (!strings.Contains(message, "already exists") && !strings.Contains(message, "already_exists")) {
+				return fmt.Errorf("step failed: %s: %w: %s", cmdLine, err, strings.TrimSpace(string(out)))
 			}
 		}
 		result.StepsExecuted = append(result.StepsExecuted, cmdLine)
@@ -200,7 +201,7 @@ func statusCommand() *ffcli.Command {
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty, "text"); err != nil {
 				return err
 			}
 			if strings.TrimSpace(*project) == "" {
@@ -241,7 +242,7 @@ func runStatus(ctx context.Context, opts StatusOptions) error {
 		opts.Runner = realRunner{}
 	}
 	if _, err := opts.Runner.LookPath("gcloud"); err != nil {
-		return shared.NewReportedError(errors.New("gcloud CLI is required"))
+		return errors.New("gcloud CLI is required; install it from https://cloud.google.com/sdk")
 	}
 	out, err := opts.Runner.Run(ctx, "gcloud", "pubsub", "topics", "get-iam-policy",
 		opts.Topic, "--project", opts.Project, "--format", "json", "--quiet")

@@ -1,0 +1,9 @@
+package update
+
+import "testing"
+
+func TestAuditStableSupersedesRC(t *testing.T) {
+	if got := compareVersions("1.0.0", "1.0.0-rc.1"); got <= 0 {
+		t.Errorf("stable 1.0.0 must be newer than rc.1, got %d", got)
+	}
+}

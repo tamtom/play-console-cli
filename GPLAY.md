@@ -1320,6 +1320,13 @@ Exit codes:
   0   no findings at or above --fail-on
   1   findings at or above --fail-on severity
 
+Target SDK policy effective 2026-08-31: mobile 36, Wear OS/Automotive 35,
+TV/XR 34. Permanently private organization apps are exempt. Without
+--app-type, a required <uses-feature> for watch, automotive, leanback or XR
+selects the app type; otherwise the mobile rule applies. For a Play-approved
+extension, explicitly set --min-target-sdk to the permitted level; the report
+marks this override.
+
 Examples:
   gplay preflight --file app.aab
   gplay preflight --file app.aab --fail-on warning
@@ -1330,6 +1337,7 @@ Examples:
 
 | Flag | Description | Default |
 |------|-------------|---------|
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--fail-on` | Exit non-zero when findings reach this severity: info, warning, error | `error` |
 | `--file` | Path to .aab or .apk to scan (required) | `` |
 | `--list-scanners` | Print the available scanner IDs and exit | `false` |
@@ -3003,7 +3011,7 @@ The token-bearing request must be read from a file. JSON example: {"integrityTok
 
 ## gplay init
 
-Initialize a .gplay/config.yaml in the current directory.
+Initialize a .gplay/config.json in the current directory.
 
 ```
 gplay init [--package <name>] [--service-account <path>] [flags]
@@ -3014,7 +3022,7 @@ gplay init [--package <name>] [--service-account <path>] [flags]
 | `--force` | Overwrite existing config | `false` |
 | `--package` | Default package name (applicationId) | `` |
 | `--service-account` | Path to service account JSON file | `` |
-| `--timeout` | Default request timeout | `30s` |
+| `--timeout` | Default request timeout, for example 90s (default: not written, so the built-in default applies) | `` |
 
 ---
 
@@ -3454,9 +3462,11 @@ This command:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--apk` | Path to .apk file | `` |
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--bundle` | Path to .aab bundle file | `` |
 | `--changes-not-sent-for-review` | Changes not sent for review | `false` |
 | `--listings-dir` | Path to listings metadata directory | `` |
+| `--min-target-sdk` | Minimum accepted targetSdkVersion (default: the current Play requirement) | `0` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--poll-interval` | Polling interval when waiting | `10s` |
@@ -3520,13 +3530,16 @@ gplay rollout <subcommand> [flags]
 
 ## gplay rollout halt
 
-Halt a staged rollout.
+Halt a staged or completed rollout.
 
 ```
 gplay rollout halt --package <name> --track <track>
 ```
 
-Halt a staged rollout, preventing new users from getting the update.
+Halt a staged or completed rollout, preventing new users from getting the update.
+An active staged release is selected first. A completed release is selected only
+when no staged or halted release exists. Ambiguous tracks require tracks update.
+Google requires an eligible previous release to serve as the fallback.
 Existing users who received the update are not affected.
 
 Example:
@@ -3551,7 +3564,9 @@ gplay rollout resume --package <name> --track <track> [--rollout <fraction>]
 ```
 
 Resume a previously halted staged rollout.
-Optionally specify a new rollout fraction.
+Optionally specify a new rollout fraction. If the halted release has no
+fraction, --rollout is required; use rollout complete to release to all users.
+To change the fraction of an active rollout, use rollout update.
 
 Example:
   gplay rollout resume --package com.example.app --track production
@@ -3576,8 +3591,9 @@ Update rollout percentage.
 gplay rollout update --package <name> --track <track> --rollout <fraction>
 ```
 
-Update the rollout percentage for a staged rollout.
-The new fraction must be greater than the current fraction.
+Update the rollout percentage for an active staged rollout.
+Use rollout resume to restart a halted release.
+The new fraction must be greater than the current fraction. A fraction of 1 completes the rollout.
 
 Example:
   gplay rollout update --package com.example.app --track production --rollout 0.5
@@ -3875,9 +3891,11 @@ Legacy local-only validators remain available as subcommands:
 |------|-------------|---------|
 | `--apk` | Path to .apk file to validate | `` |
 | `--app-content` | Offline app-content inventory JSON or @file | `` |
+| `--app-type` | Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps) (default: detected from the manifest, else mobile) | `` |
 | `--bundle` | Path to .aab bundle file to validate | `` |
 | `--dir` | Metadata directory to validate (legacy combined layout) | `` |
 | `--listings-dir` | Directory containing listing metadata | `` |
+| `--min-target-sdk` | Minimum accepted targetSdkVersion (default: the current Play requirement) | `0` |
 | `--offline` | Skip authentication and every remote Play check | `false` |
 | `--output` | Output format: json (default), table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
@@ -4966,15 +4984,17 @@ gplay subscriptions delete --package <name> --product-id <id> --confirm
 
 ## gplay subscriptions archive
 
-Archive a subscription (deprecate without deleting).
+DEPRECATED: Google does not support subscription archiving.
 
 ```
-gplay subscriptions archive --package <name> --product-id <id>
+gplay subscriptions archive [flags]
 ```
+
+Subscription archiving is not supported by Google. To stop new sales, consider gplay baseplans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--output` | Output format: json (default), table, markdown | `json` |
+| `--output` | Output format: json, table, markdown | `json` |
 | `--package` | Package name (applicationId) | `` |
 | `--pretty` | Pretty-print JSON output | `false` |
 | `--product-id` | Subscription product ID | `` |
@@ -6661,16 +6681,17 @@ refunded. Use this when server-side acknowledgement is required.
 
 ## gplay purchases subscriptions cancel
 
-Cancel a subscription.
+DEPRECATED: Cancel via the legacy API; prefer subscriptionsv2 cancel.
 
 ```
 gplay purchases subscriptions cancel --package <name> --subscription-id <id> --token <token> --confirm
 ```
 
-Cancel a subscription.
+Legacy cancellation (API shutdown: 2028-08-31). Prefer purchases subscriptionsv2 cancel.
 
-The subscription remains active until the end of the current
-billing period, then will not renew.
+This preserves the legacy developer-requested stopping of payments: it prevents
+restoration and cancels remaining installment payments. User-requested stopping
+of renewals has different semantics; choose the cancellation type explicitly in v2.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -6685,25 +6706,26 @@ billing period, then will not renew.
 
 ## gplay purchases subscriptions defer
 
-Defer billing for a subscription.
+DEPRECATED: Defer via the legacy API; prefer subscriptionsv2 defer.
 
 ```
 gplay purchases subscriptions defer --package <name> --subscription-id <id> --token <token> --json <json>
 ```
 
-Defer billing for a subscription.
+Legacy deferral (API shutdown: 2028-08-31). Prefer purchases subscriptionsv2 defer.
+Replace the example timestamps with the current and desired expiry from your purchase.
 
 JSON format:
 {
   "deferralInfo": {
-    "expectedExpiryTimeMillis": 1735689600000,
-    "desiredExpiryTimeMillis": 1738368000000
+    "expectedExpiryTimeMillis": "1893456000000",
+    "desiredExpiryTimeMillis": "1894060800000"
   }
 }
 
 The new expiry time must be:
 - In the future
-- Before the current billing period ends
+- Greater than the current expiry (expectedExpiryTimeMillis)
 - No more than one year ahead
 
 | Flag | Description | Default |
@@ -6818,7 +6840,7 @@ Defer subscription renewal using the v2 API.
 JSON format:
 {
   "deferralContext": {
-    "deferDuration": "P7D",
+    "deferDuration": "604800s",
     "etag": "<etag from purchases subscriptionsv2 get>"
   }
 }

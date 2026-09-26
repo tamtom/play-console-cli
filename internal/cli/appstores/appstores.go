@@ -5,6 +5,7 @@ package appstores
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"mime"
@@ -123,8 +124,14 @@ JSON example: {"packageName":"app.example","activeApks":{},"activeLocalizedStore
 			if !*confirm {
 				return fmt.Errorf("--confirm is required")
 			}
-			var req androidpublisher.UpdateAppStoreHostedAppRequest
-			if err := shared.LoadJSONArg(*jsonArg, &req); err != nil {
+			raw, err := shared.LoadJSONArgRaw(*jsonArg)
+			if err != nil {
+				return fmt.Errorf("invalid --json: %w", err)
+			}
+			var req struct {
+				PackageName string `json:"packageName"`
+			}
+			if err := json.Unmarshal(raw, &req); err != nil {
 				return fmt.Errorf("invalid --json: %w", err)
 			}
 			if strings.TrimSpace(req.PackageName) == "" {
@@ -136,11 +143,15 @@ JSON example: {"packageName":"app.example","activeApks":{},"activeLocalizedStore
 			}
 			ctx, cancel := shared.ContextWithTimeout(ctx, s.Cfg)
 			defer cancel()
-			_, err = s.API.Appstoreappsreview.Updateappstorehostedapp(*c.storePackage, &req).Context(ctx).Do()
+			response, err := s.UpdateAppStoreHostedApp(ctx, *c.storePackage, raw)
 			if err != nil {
 				return shared.WrapGoogleAPIError("update third-party app-store hosted app", err)
 			}
-			return shared.PrintOutputContext(ctx, map[string]any{"updated": true, "appStorePackageName": *c.storePackage, "packageName": req.PackageName}, *c.output, *c.pretty)
+			result := map[string]any{"updated": true, "appStorePackageName": *c.storePackage, "packageName": req.PackageName}
+			for key, value := range response {
+				result[key] = value
+			}
+			return shared.PrintOutputContext(ctx, result, *c.output, *c.pretty)
 		},
 	}
 }

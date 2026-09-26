@@ -62,6 +62,8 @@ func TrackCommand() *ffcli.Command {
 	skipMetadata := fs.Bool("skip-metadata", false, "Skip metadata sync even if --listings-dir is set")
 	skipScreenshots := fs.Bool("skip-screenshots", false, "Skip screenshot sync even if --screenshots-dir is set")
 	strict := fs.Bool("strict", false, "Treat readiness warnings as publish blockers")
+	appType := fs.String("app-type", "", shared.PreflightAppTypeUsage)
+	minTargetSDK := fs.Int("min-target-sdk", 0, shared.PreflightMinTargetSDKUsage)
 	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 
@@ -87,8 +89,8 @@ This command:
 			if strings.TrimSpace(*bundlePath) != "" && strings.TrimSpace(*apkPath) != "" {
 				return fmt.Errorf("use either --bundle or --apk, not both")
 			}
-			if *rolloutFraction < 0 || *rolloutFraction > 1 {
-				return fmt.Errorf("--rollout must be between 0.0 and 1.0")
+			if err := shared.ValidateRolloutFraction(*rolloutFraction); err != nil {
+				return err
 			}
 
 			pkgName, err := shared.RequirePackageName(*packageName, nil)
@@ -104,6 +106,8 @@ This command:
 				ListingsDir:    *listingsDir,
 				ScreenshotsDir: *screenshotsDir,
 				ReleaseNotes:   *releaseNotes,
+				AppType:        *appType,
+				MinTargetSDK:   *minTargetSDK,
 				Strict:         *strict,
 			})
 

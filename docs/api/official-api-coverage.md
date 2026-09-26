@@ -20,7 +20,7 @@ official discovery documents. A credential-free scheduled workflow runs the
 same check weekly. After reviewing a legitimate API change and updating the
 implementation/tests, run `make update-api-manifest`.
 
-`gplay schema` embeds the complete reviewed surface: all 218 endpoints and 566
+`gplay schema` embeds the complete reviewed surface: all 218 endpoints and 568
 request/response type definitions. It can inspect method IDs, HTTP paths,
 parameters, OAuth scopes, media upload paths, and Google's unmodified nested
 type definitions without credentials or network access. `make
@@ -58,3 +58,13 @@ documented official APIs. High-impact operations (refund review, enterprise key
 enrollment/rotation, Device Recall writes, repository scan generation, and
 global Games resets) remain mocked unless a dedicated disposable test resource
 is explicitly configured.
+
+## SDK field coverage
+
+`make check-api-schema` compares the reviewed discovery fields with the pinned
+Go SDK. `make check-api-drift` also fetches current official discovery documents
+and rejects structural schema drift. The three app-store fields absent from
+the SDK are recorded in `docs/api/sdk-field-adapters.json`; the raw JSON adapter
+preserves those fields, explicit false values, and response `updateId`.
+Typed `--json` requests reject unknown fields instead of silently discarding them.
+The adapter exceptions must be reviewed when the SDK gains the missing fields.

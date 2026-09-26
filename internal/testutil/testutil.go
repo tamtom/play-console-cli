@@ -11,31 +11,6 @@ import (
 	"testing"
 )
 
-// SkipUnlessIntegration skips the test unless GPLAY_INTEGRATION_TEST is set to "1" or "true".
-func SkipUnlessIntegration(t *testing.T) {
-	t.Helper()
-	v := os.Getenv("GPLAY_INTEGRATION_TEST")
-	if v != "1" && v != "true" {
-		t.Skip("skipping integration test; set GPLAY_INTEGRATION_TEST=1 to run")
-	}
-}
-
-// IsolateConfig sets GPLAY_CONFIG_PATH to a fresh temp directory and registers cleanup.
-func IsolateConfig(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	prev := os.Getenv("GPLAY_CONFIG_PATH")
-	os.Setenv("GPLAY_CONFIG_PATH", dir)
-	t.Cleanup(func() {
-		if prev == "" {
-			os.Unsetenv("GPLAY_CONFIG_PATH")
-		} else {
-			os.Setenv("GPLAY_CONFIG_PATH", prev)
-		}
-	})
-	return dir
-}
-
 // MockServiceAccount creates a fake but structurally valid service account JSON file.
 func MockServiceAccount(t *testing.T) string {
 	t.Helper()
@@ -92,14 +67,4 @@ func SandboxServiceAccount(t *testing.T, tokenURL string) string {
 		t.Fatal(err)
 	}
 	return path
-}
-
-// RequireEnv skips the test if the named env var is not set, otherwise returns its value.
-func RequireEnv(t *testing.T, key string) string {
-	t.Helper()
-	v := os.Getenv(key)
-	if v == "" {
-		t.Skipf("skipping: %s not set", key)
-	}
-	return v
 }

@@ -70,29 +70,28 @@ try {
     }
 
     # --- Verify checksum --------------------------------------------------
-    # Download failures only warn (matching install.sh); a real hash MISMATCH
-    # must abort, so the comparison lives outside the download's catch.
     $checksumsPath = Join-Path $tmpDir 'checksums.txt'
-    $haveChecksums = $true
     try {
         Invoke-WebRequest -Uri $checksumsUrl -OutFile $checksumsPath -UseBasicParsing
     } catch {
-        $haveChecksums = $false
-        Write-Host "Warning: Could not download checksums.txt. Skipping verification."
+        throw "Cannot download checksums.txt; refusing to install an unverified binary."
     }
-    if ($haveChecksums) {
-        $line = Select-String -Path $checksumsPath -Pattern ([regex]::Escape($asset)) | Select-Object -First 1
-        if ($line) {
-            $expected = ($line.Line -split '\s+')[0].ToLower()
-            $actual   = (Get-FileHash -Path $binPath -Algorithm SHA256).Hash.ToLower()
-            if ($expected -ne $actual) {
-                throw "Checksum verification failed for $asset (expected $expected, got $actual)."
-            }
-            Write-Host "Checksum verified."
-        } else {
-            Write-Host "Warning: $asset not found in checksums.txt. Skipping verification."
-        }
+    $entries = @(Get-Content -Path $checksumsPath | Where-Object {
+        $fields = $_.Trim() -split '\s+'
+        $fields.Count -eq 2 -and $fields[1].TrimStart('*') -ceq $asset
+    })
+    if ($entries.Count -ne 1) {
+        throw "Missing or duplicate SHA-256 checksum for $asset."
     }
+    $expected = ($entries[0].Trim() -split '\s+')[0].ToLower()
+    if ($expected -notmatch '^[0-9a-f]{64}$') {
+        throw "Invalid SHA-256 checksum for $asset."
+    }
+    $actual = (Get-FileHash -Path $binPath -Algorithm SHA256).Hash.ToLower()
+    if ($expected -ne $actual) {
+        throw "Checksum verification failed for $asset."
+    }
+    Write-Host "Checksum verified."
 
     # --- Install ----------------------------------------------------------
     New-Item -ItemType Directory -Path $installDir -Force | Out-Null

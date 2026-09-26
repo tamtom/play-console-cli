@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -34,13 +32,20 @@ func UpdateCommand() *ffcli.Command {
 }
 
 func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
+	if shared.IsDryRun(ctx) {
+		fmt.Fprintln(shared.Stderr(ctx), "[DRY RUN] Would check for an update and, unless --check is set, install the verified release; no changes made.")
+		return nil
+	}
 	// Detect installation method
 	execPath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("cannot determine executable path: %w", err)
 	}
-	execPath, _ = filepath.EvalSymlinks(execPath)
-	method := detectInstallMethod(execPath)
+	execPath, err = filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return fmt.Errorf("resolve executable: %w", err)
+	}
+	method := update.DetectInstallMethod(execPath)
 
 	// Check for latest version (force check to bypass cache)
 	info, err := update.CheckForUpdate(ctx, update.Options{ForceCheck: true})
@@ -48,12 +53,14 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 		return fmt.Errorf("checking for updates: %w", err)
 	}
 	if info == nil {
-		fmt.Fprintf(shared.Stderr(ctx), "Could not determine latest version.\n")
-		return nil
+		return fmt.Errorf("could not determine latest version")
 	}
 
 	currentVersion := version.Version
-	if !info.IsNewer && !force {
+	if !checkOnly && !force && !update.IsReleaseVersion(info.CurrentVersion) {
+		return fmt.Errorf("cannot compare development version %q with release %s; use --check for details or --force to install", currentVersion, info.LatestVersion)
+	}
+	if !info.IsNewer && !force && !checkOnly {
 		fmt.Fprintf(shared.Stderr(ctx), "Already on latest version: %s\n", currentVersion)
 		return nil
 	}
@@ -61,18 +68,15 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 	if checkOnly {
 		fmt.Fprintf(shared.Stderr(ctx), "Current: %s\nLatest:  %s\n", currentVersion, info.LatestVersion)
 		if info.IsNewer {
-			fmt.Fprintf(shared.Stderr(ctx), "Update available! Run 'gplay update' to install.\n")
+			fmt.Fprintf(shared.Stderr(ctx), "Update available! Run: %s\n", update.InstallHint(execPath))
 		}
 		return nil
 	}
 
 	// Handle based on install method
 	switch method {
-	case "homebrew":
-		fmt.Fprintf(shared.Stderr(ctx), "Installed via Homebrew. Run:\n  brew upgrade gplay\n")
-		return nil
-	case "goinstall":
-		fmt.Fprintf(shared.Stderr(ctx), "Installed via go install. Run:\n  go install github.com/tamtom/play-console-cli@latest\n")
+	case "homebrew", "goinstall":
+		fmt.Fprintf(shared.Stderr(ctx), "Update with: %s\n", update.InstallHint(execPath))
 		return nil
 	case "binary":
 		return selfUpdate(ctx, execPath, info)
@@ -82,33 +86,8 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 	}
 }
 
-// detectInstallMethod determines how gplay was installed based on the executable path.
-func detectInstallMethod(path string) string {
-	if strings.Contains(path, "homebrew") || strings.Contains(path, "Cellar") || strings.Contains(path, "linuxbrew") {
-		return "homebrew"
-	}
-	gopath := os.Getenv("GOPATH")
-	if gopath == "" {
-		home, err := os.UserHomeDir()
-		if err == nil {
-			gopath = filepath.Join(home, "go")
-		}
-	}
-	if gopath != "" && strings.HasPrefix(path, filepath.Join(gopath, "bin")) {
-		return "goinstall"
-	}
-	return "binary"
-}
-
-func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
+func selfUpdate(ctx context.Context, execPath string, info *update.UpdateInfo) error {
 	fmt.Fprintf(shared.Stderr(ctx), "Updating %s -> %s...\n", version.Version, info.LatestVersion)
-
-	if info.DownloadURL == "" {
-		assetName := fmt.Sprintf("gplay-%s-%s", runtime.GOOS, runtime.GOARCH)
-		fmt.Fprintf(shared.Stderr(ctx), "No matching asset (%s) found in the release.\n", assetName)
-		fmt.Fprintf(shared.Stderr(ctx), "Download the latest release manually:\n  %s\n", info.ReleaseURL)
-		return nil
-	}
 
 	// Download the new binary
 	tmpPath, err := update.DownloadUpdate(ctx, info)
@@ -118,7 +97,7 @@ func selfUpdate(ctx context.Context, _ string, info *update.UpdateInfo) error {
 	defer func() { _ = os.Remove(tmpPath) }() // clean up on failure
 
 	// Apply the update (atomic rename)
-	if err := update.ApplyUpdate(tmpPath); err != nil {
+	if err := update.ApplyUpdate(tmpPath, execPath); err != nil {
 		return fmt.Errorf("applying update: %w", err)
 	}
 

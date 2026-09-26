@@ -109,3 +109,24 @@ func captureOutput(fn func() error) (string, error) {
 	_, _ = buf.ReadFrom(r)
 	return buf.String(), runErr
 }
+
+func TestTrackCommand_PassesTargetSDKPolicyToPreflight(t *testing.T) {
+	origBuild := buildReadinessReportFn
+	var got validatecli.ReadinessOptions
+	buildReadinessReportFn = func(_ context.Context, opts validatecli.ReadinessOptions) *validation.ReadinessReport {
+		got = opts
+		report := &validation.ReadinessReport{}
+		report.AddCheck(validation.ReadinessCheck{ID: "blocking", Section: "artifact", State: validation.ReadinessBlocking, Message: "stop"})
+		return report
+	}
+	t.Cleanup(func() { buildReadinessReportFn = origBuild })
+
+	cmd := TrackCommand()
+	if err := cmd.FlagSet.Parse([]string{"--package", "com.example.app", "--bundle", "app.aab", "--app-type", "tv", "--min-target-sdk", "34"}); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	_ = cmd.Exec(context.Background(), nil)
+	if got.AppType != "tv" || got.MinTargetSDK != 34 {
+		t.Fatalf("readiness options = %+v, want AppType tv and MinTargetSDK 34", got)
+	}
+}
