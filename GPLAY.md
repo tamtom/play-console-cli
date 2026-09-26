@@ -3022,7 +3022,7 @@ gplay init [--package <name>] [--service-account <path>] [flags]
 | `--force` | Overwrite existing config | `false` |
 | `--package` | Default package name (applicationId) | `` |
 | `--service-account` | Path to service account JSON file | `` |
-| `--timeout` | Default request timeout | `30s` |
+| `--timeout` | Default request timeout, for example 90s (default: not written, so the built-in default applies) | `` |
 
 ---
 

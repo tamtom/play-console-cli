@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 )
 
@@ -137,5 +139,32 @@ func TestErrorOutputRedactsSecretsInURLs(t *testing.T) {
 	}
 	if strings.Contains(stderr, "SECRET_MARKER") {
 		t.Fatalf("stderr shows the token: %q", stderr)
+	}
+}
+
+func TestIgnoredGlobalYAMLConfigShowsWarning(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("GPLAY_CONFIG_PATH", "")
+	t.Setenv("GPLAY_AUDIT", "0")
+	t.Setenv("GPLAY_NO_UPDATE", "1")
+	if err := os.MkdirAll(filepath.Join(home, ".gplay"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".gplay", "config.yaml"), []byte("default_package: com.example.legacy\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+
+	var stdout, stderr bytes.Buffer
+	code := RunWithRuntime([]string{"rtdn", "decode", "--data", `{"version":"1.0","packageName":"com.example.test","eventTimeMillis":"1"}`}, "1.0.0", func(rt *cliruntime.Runtime) {
+		rt.WithIO(&stdout, &stderr).WithAuditSink(nil)
+	})
+	if code != ExitSuccess {
+		t.Fatalf("exit %d, stderr %q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "config.yaml is ignored") {
+		t.Fatalf("no warning about the ignored config.yaml: %q", stderr.String())
 	}
 }

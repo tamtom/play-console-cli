@@ -61,7 +61,7 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, shared.NewActionableError(
 			"failed to load config",
 			err,
-			"Check that your config file is valid JSON and readable. Use `gplay auth login` to recreate it.",
+			"Check that your config file is valid JSON and readable. Run `gplay init --force` to recreate a project config, or `gplay auth init --force` for the global config.",
 		)
 	}
 	client, err := newHTTPClient(ctx, cfg)

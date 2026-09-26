@@ -149,7 +149,7 @@ func NewCatalog(version string, rt *cliruntime.Runtime) *Catalog {
 		commandSpecWith("metadata", "File-based metadata sync (pull/push/validate).", "android-publisher-api", []string{"app.store_listing"}, metadata.MetadataCommand),
 		commandSpec("images", "Manage listing images and Play media sync.", images.ImagesCommand),
 		commandSpecWith("integrity", "Decode Play Integrity tokens and manage restricted Device Recall state.", "play-integrity-api", []string{"app.play_integrity"}, integrity.IntegrityCommand),
-		commandSpec("init", "Initialize a .gplay/config.yaml in the current directory.", initcmd.InitCommand),
+		commandSpec("init", "Initialize a .gplay/config.json in the current directory.", initcmd.InitCommand),
 		commandSpecWith("reviews", "Manage app reviews.", "android-publisher-api", []string{"app.reviews"}, reviews.ReviewsCommand),
 		commandSpec("details", "Manage app details (contact info, default language).", details.DetailsCommand),
 		commandSpec("testers", "Manage testers for closed testing tracks.", testers.TestersCommand),

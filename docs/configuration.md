@@ -3,7 +3,8 @@
 ## Config file
 
 Global: `~/.gplay/config.json`. Local: the nearest ancestor `.gplay/config.json`,
-up to the repository boundary. `GPLAY_CONFIG_PATH` explicitly selects a config;
+up to the repository boundary. The search stops at the home directory, so
+`~/.gplay` is always the global config and never a local config. `GPLAY_CONFIG_PATH` explicitly selects a config;
 otherwise local configuration takes precedence over global configuration.
 
 ```json
@@ -32,6 +33,15 @@ falling back to another account's global settings. Recreate it with
 and transfer custom timeouts/retry settings into JSON. The legacy file is kept;
 `config.json` takes precedence in the same directory. YAML is not loaded or
 silently converted.
+
+`init` writes only the values that you give. Without `--package`, the config
+has no `package_name`. Without `--timeout`, the built-in timeout applies.
+`init` stores the absolute path of the `--service-account` key.
+
+A global `~/.gplay/config.yaml` was never read. gplay ignores it and shows a
+warning when no `~/.gplay/config.json` exists. Run
+`gplay auth login --service-account /path/to/sa.json` to create the global
+`config.json`.
 
 Package precedence is `--package`, `GPLAY_PACKAGE`, legacy
 `GPLAY_PACKAGE_NAME`, then the loaded config's `package_name`.

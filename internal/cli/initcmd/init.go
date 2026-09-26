@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -19,7 +20,7 @@ func InitCommand() *ffcli.Command {
 	packageName := fs.String("package", "", "Default package name (applicationId)")
 	serviceAccount := fs.String("service-account", "", "Path to service account JSON file")
 	force := fs.Bool("force", false, "Overwrite existing config")
-	timeout := fs.String("timeout", "30s", "Default request timeout")
+	timeout := fs.String("timeout", "", "Default request timeout, for example 90s (default: not written, so the built-in default applies)")
 
 	return &ffcli.Command{
 		Name:       "init",
@@ -29,9 +30,13 @@ func InitCommand() *ffcli.Command {
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
 			configPath := filepath.Join(".gplay", "config.json")
-			duration, err := config.ParseDurationValue(*timeout)
-			if err != nil || duration.Duration <= 0 {
-				return fmt.Errorf("--timeout must be a positive duration")
+			var duration config.DurationValue
+			if strings.TrimSpace(*timeout) != "" {
+				parsed, err := config.ParseDurationValue(*timeout)
+				if err != nil || parsed.Duration <= 0 {
+					return fmt.Errorf("--timeout must be a positive duration")
+				}
+				duration = parsed
 			}
 			if !*force {
 				for _, path := range []string{configPath, filepath.Join(".gplay", "config.yaml")} {
@@ -43,22 +48,27 @@ func InitCommand() *ffcli.Command {
 				}
 			}
 
-			// Validate service account path if provided
-			if *serviceAccount != "" {
-				if _, err := os.Stat(*serviceAccount); os.IsNotExist(err) {
-					fmt.Fprintf(shared.Stderr(ctx), "Warning: service account file not found at %s\n", *serviceAccount)
+			// Store an absolute key path, so that the config works from
+			// any working directory.
+			keyPath := strings.TrimSpace(*serviceAccount)
+			if keyPath != "" {
+				abs, err := filepath.Abs(keyPath)
+				if err != nil {
+					return fmt.Errorf("resolve --service-account: %w", err)
+				}
+				keyPath = abs
+				if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+					fmt.Fprintf(shared.Stderr(ctx), "Warning: service account file not found at %s\n", keyPath)
 				}
 			}
 
-			// Generate config content
-			pkg := *packageName
-			if pkg == "" {
-				pkg = "com.example.app"
-			}
+			// Write only the values that the user gave. A placeholder package
+			// name would become the default target of every command.
+			pkg := strings.TrimSpace(*packageName)
 			cfg := &config.Config{PackageName: pkg, Timeout: duration}
-			if *serviceAccount != "" {
+			if keyPath != "" {
 				cfg.DefaultProfile = "default"
-				cfg.Profiles = []config.Profile{{Name: "default", Type: "service_account", KeyPath: *serviceAccount}}
+				cfg.Profiles = []config.Profile{{Name: "default", Type: "service_account", KeyPath: keyPath}}
 			}
 			if shared.IsDryRun(ctx) {
 				fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Would write %s. No changes were made.\n", configPath)
@@ -83,7 +93,9 @@ func InitCommand() *ffcli.Command {
 			}
 
 			fmt.Fprintln(shared.Stderr(ctx), "\nNext steps:")
-			fmt.Fprintln(shared.Stderr(ctx), "  gplay auth login --service-account /path/to/key.json --local")
+			if keyPath == "" {
+				fmt.Fprintln(shared.Stderr(ctx), "  gplay auth login --service-account /path/to/key.json --local")
+			}
 			fmt.Fprintln(shared.Stderr(ctx), "  gplay auth doctor")
 
 			return nil

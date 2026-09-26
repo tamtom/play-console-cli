@@ -17,6 +17,7 @@ import (
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/shared/errfmt"
+	"github.com/tamtom/play-console-cli/internal/config"
 	"github.com/tamtom/play-console-cli/internal/update"
 	"golang.org/x/term"
 )
@@ -68,6 +69,10 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 	if err != nil {
 		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitUsage
+	}
+
+	if legacy := config.IgnoredLegacyGlobalPath(); legacy != "" {
+		fmt.Fprintf(shared.Stderr(ctx), "Warning: %s is ignored. gplay reads config.json in the same directory. Run gplay auth login --service-account <path> to create it.\n", legacy)
 	}
 
 	// Record start time for JUnit reporting
