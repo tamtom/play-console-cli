@@ -71,6 +71,13 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 		return ExitUsage
 	}
 
+	// A root informational flag must never dispatch a trailing subcommand,
+	// so `gplay --version rollout halt` prints the version and changes nothing.
+	if versionFlag := root.FlagSet.Lookup("version"); versionFlag != nil && versionFlag.Value.String() == "true" {
+		fmt.Fprintln(shared.Stdout(ctx), versionInfo)
+		return ExitSuccess
+	}
+
 	if legacy := config.IgnoredLegacyGlobalPath(); legacy != "" {
 		fmt.Fprintf(shared.Stderr(ctx), "Warning: %s is ignored. gplay reads config.json in the same directory. Run gplay auth login --service-account <path> to create it.\n", legacy)
 	}

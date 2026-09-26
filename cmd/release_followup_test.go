@@ -266,6 +266,22 @@ func TestReleaseCommandsRejectNaNRollout(t *testing.T) {
 	}
 }
 
+func TestVersionFlagDoesNotRunTrailingCommand(t *testing.T) {
+	for _, args := range [][]string{
+		{"--version", "rtdn", "decode", "--data", `{"version":"1.0","packageName":"com.example.test","eventTimeMillis":"1"}`},
+		{"--version", "tracks", "list", "--package", "com.example.test"},
+		{"--version=true", "rollout", "halt", "--package", "com.example.test"},
+	} {
+		t.Run(strings.Join(args[:3], " "), func(t *testing.T) {
+			requests := 0
+			code, stdout, stderr := runReleaseCommand(t, args, func(w http.ResponseWriter, r *http.Request) { requests++; fmt.Fprint(w, `{}`) })
+			if code != ExitSuccess || requests != 0 || stdout != "1.0.0\n" {
+				t.Fatalf("code=%d requests=%d stdout=%q stderr=%q, want only the version", code, requests, stdout, stderr)
+			}
+		})
+	}
+}
+
 func TestAuditKeepsArgumentAfterBooleanSkipFlag(t *testing.T) {
 	got := strings.Join(scrubArgs([]string{"preflight", "--skip-secrets", "app.aab"}), " ")
 	if got != "preflight --skip-secrets app.aab" {

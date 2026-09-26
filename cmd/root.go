@@ -23,7 +23,7 @@ func constructRootCommand(version string) (*ffcli.Command, *cliruntime.Runtime) 
 	rootFS := flag.NewFlagSet("gplay", flag.ExitOnError)
 	rt := cliruntime.NewRoot(rootFS)
 	catalog := registry.NewCatalog(version, rt)
-	return newRootCommand(rootFS, rt, catalog.All(), version)
+	return newRootCommand(rootFS, rt, catalog.All())
 }
 
 // constructRootCommandForArgs builds complete metadata for root help while
@@ -36,11 +36,12 @@ func constructRootCommandForArgs(version string, args []string) (*ffcli.Command,
 	if selected := selectedRootCommand(args); selected != "" {
 		commands = catalog.CommandsFor(selected)
 	}
-	return newRootCommand(rootFS, rt, commands, version)
+	return newRootCommand(rootFS, rt, commands)
 }
 
-func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []*ffcli.Command, version string) (*ffcli.Command, *cliruntime.Runtime) {
-	versionFlag := rootFS.Bool("version", false, "Print version information and exit (or use gplay version)")
+func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []*ffcli.Command) (*ffcli.Command, *cliruntime.Runtime) {
+	// RunWithRuntime handles --version after the parse step, before dispatch.
+	rootFS.Bool("version", false, "Print version information and exit (or use gplay version)")
 	var root *ffcli.Command
 	root = &ffcli.Command{
 		Name:        "gplay",
@@ -50,10 +51,6 @@ func newRootCommand(rootFS *flag.FlagSet, rt *cliruntime.Runtime, subcommands []
 		UsageFunc:   RootUsageFunc,
 		Subcommands: subcommands,
 		Exec: func(ctx context.Context, args []string) error {
-			if *versionFlag {
-				fmt.Fprintln(shared.Stdout(ctx), version)
-				return nil
-			}
 			if len(args) == 0 {
 				return flag.ErrHelp
 			}
