@@ -49,6 +49,12 @@ func verify(candidate, expected string) error {
 			return err
 		}
 	}
+	// Five release runners ask GitHub for the latest release at the same
+	// time. Anonymous requests share a low rate limit, so use the workflow
+	// token when it is available.
+	if token := strings.TrimSpace(os.Getenv("GITHUB_TOKEN")); token != "" {
+		http.DefaultTransport = githubAuth{base: http.DefaultTransport, token: token}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	stable, err := update.CheckForUpdate(ctx, update.Options{ForceCheck: true})
@@ -133,4 +139,19 @@ func checkVersion(ctx context.Context, path, expected string) error {
 		return fmt.Errorf("installed version %q does not match %s", out, expected)
 	}
 	return nil
+}
+
+// githubAuth adds a bearer token to HTTPS requests for api.github.com only.
+// Download hosts do not get the token.
+type githubAuth struct {
+	base  http.RoundTripper
+	token string
+}
+
+func (t githubAuth) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Scheme == "https" && r.URL.Host == "api.github.com" {
+		r = r.Clone(r.Context())
+		r.Header.Set("Authorization", "Bearer "+t.token)
+	}
+	return t.base.RoundTrip(r)
 }

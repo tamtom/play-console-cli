@@ -111,6 +111,8 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
+          # verifyupgrade reads the latest release from the GitHub API.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           VERSION=${{ steps.version.outputs.version }}
           COMMIT=$(git rev-parse --short HEAD)
