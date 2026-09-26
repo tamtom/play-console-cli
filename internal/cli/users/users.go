@@ -13,6 +13,30 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+// accountPermissionsHelp lists the developerAccountPermissions values that
+// Play accepts. Tests compare this list with the embedded official schema.
+const accountPermissionsHelp = `Available account permissions:
+  - CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL: View app information and download bulk reports (read-only)
+  - CAN_VIEW_FINANCIAL_DATA_GLOBAL: View financial data, orders, and cancellation survey responses
+  - CAN_MANAGE_PERMISSIONS_GLOBAL: Admin (all permissions)
+  - CAN_EDIT_GAMES_GLOBAL: Edit Play Games Services projects
+  - CAN_PUBLISH_GAMES_GLOBAL: Publish Play Games Services projects
+  - CAN_REPLY_TO_REVIEWS_GLOBAL: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS_GLOBAL: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS_GLOBAL: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS_GLOBAL: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS_GLOBAL: Create, edit, and delete draft apps
+  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL: Create and publish private apps to your organization
+  - CAN_MANAGE_ORDERS_GLOBAL: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT_GLOBAL: Manage policy pages for all apps
+  - CAN_VIEW_APP_QUALITY_GLOBAL: View app quality data for all apps
+  - CAN_MANAGE_DEEPLINKS_GLOBAL: Manage the deep link setup for all apps
+  - CAN_VIEW_CONNECTED_APPS_GLOBAL: View connected apps in Play Console
+  - CAN_EDIT_CONNECTED_APPS_GLOBAL: Edit connected apps in Play Console
+
+The list does not show deprecated permissions.`
+
 func UsersCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("users", flag.ExitOnError)
 	return &ffcli.Command{
@@ -124,21 +148,7 @@ JSON format:
   "expirationTime": "2025-12-31T23:59:59Z"
 }
 
-Available account permissions:
-  - CAN_SEE_ALL_APPS
-  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
-  - CAN_MANAGE_PERMISSIONS_GLOBAL
-  - CAN_EDIT_GAMES_GLOBAL
-  - CAN_PUBLISH_GAMES_GLOBAL
-  - CAN_REPLY_TO_REVIEWS_GLOBAL
-  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_USERS_GLOBAL
-  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
-  - CAN_MANAGE_DRAFT_APPS_GLOBAL
-  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
-  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
-  - CAN_MANAGE_ORDERS_GLOBAL`,
+` + accountPermissionsHelp,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -196,26 +206,12 @@ func UpdateCommand() *ffcli.Command {
 JSON format:
 {
   "developerAccountPermissions": [
-    "CAN_SEE_ALL_APPS",
+    "CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL",
     "CAN_VIEW_FINANCIAL_DATA_GLOBAL"
   ]
 }
 
-Available account permissions:
-  - CAN_SEE_ALL_APPS
-  - CAN_VIEW_FINANCIAL_DATA_GLOBAL
-  - CAN_MANAGE_PERMISSIONS_GLOBAL
-  - CAN_EDIT_GAMES_GLOBAL
-  - CAN_PUBLISH_GAMES_GLOBAL
-  - CAN_REPLY_TO_REVIEWS_GLOBAL
-  - CAN_MANAGE_PUBLIC_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_APKS_GLOBAL
-  - CAN_MANAGE_TRACK_USERS_GLOBAL
-  - CAN_MANAGE_PUBLIC_LISTING_GLOBAL
-  - CAN_MANAGE_DRAFT_APPS_GLOBAL
-  - CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL
-  - CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL
-  - CAN_MANAGE_ORDERS_GLOBAL
+` + accountPermissionsHelp + `
 
 Use --update-mask to specify which fields to update. If omitted, all
 fields in the request body are applied.`,

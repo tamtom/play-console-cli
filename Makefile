@@ -338,7 +338,7 @@ help:
 update-api-spec:
 	@echo "$(BLUE)Downloading Google Play Android Publisher API v3 discovery document...$(NC)"
 	@curl -s 'https://androidpublisher.googleapis.com/$$discovery/rest?version=v3' | \
-		python3 -m json.tool > docs/api/discovery.json
+		python3 -m json.tool --sort-keys > docs/api/discovery.json
 	@echo "$(BLUE)Generating endpoints index...$(NC)"
 	@python3 scripts/gen-endpoints.py
 	@python3 scripts/check-api-drift.py --update

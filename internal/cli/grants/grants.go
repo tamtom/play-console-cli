@@ -13,6 +13,25 @@ import (
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
 
+// appPermissionsHelp lists the appLevelPermissions values that Play accepts.
+// Tests compare this list with the embedded official schema.
+const appPermissionsHelp = `Available app permissions:
+  - CAN_VIEW_NON_FINANCIAL_DATA: View app information (read-only)
+  - CAN_VIEW_FINANCIAL_DATA: View financial data
+  - CAN_MANAGE_PERMISSIONS: Admin (all permissions)
+  - CAN_REPLY_TO_REVIEWS: Reply to reviews
+  - CAN_MANAGE_PUBLIC_APKS: Release to production, exclude devices, and use app signing by Google Play
+  - CAN_MANAGE_TRACK_APKS: Release to testing tracks
+  - CAN_MANAGE_TRACK_USERS: Manage testing tracks and edit tester lists
+  - CAN_MANAGE_PUBLIC_LISTING: Manage store presence
+  - CAN_MANAGE_DRAFT_APPS: Edit and delete draft apps
+  - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+  - CAN_MANAGE_APP_CONTENT: Manage policy pages
+  - CAN_VIEW_APP_QUALITY: View app quality data, such as vitals and crashes
+  - CAN_MANAGE_DEEPLINKS: Manage the deep link setup of the app
+
+The list does not show deprecated permissions.`
+
 func GrantsCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("grants", flag.ExitOnError)
 	return &ffcli.Command{
@@ -57,30 +76,13 @@ func CreateCommand() *ffcli.Command {
 JSON format:
 {
   "appLevelPermissions": [
-    "CAN_ACCESS_APP",
-    "CAN_VIEW_FINANCIAL_DATA",
-    "CAN_MANAGE_PERMISSIONS",
-    "CAN_REPLY_TO_REVIEWS",
-    "CAN_MANAGE_PUBLIC_APKS",
-    "CAN_MANAGE_TRACK_APKS",
-    "CAN_MANAGE_TRACK_USERS",
-    "CAN_MANAGE_PUBLIC_LISTING",
-    "CAN_MANAGE_DRAFT_APPS",
-    "CAN_MANAGE_ORDERS"
+    "CAN_VIEW_NON_FINANCIAL_DATA",
+    "CAN_VIEW_APP_QUALITY",
+    "CAN_REPLY_TO_REVIEWS"
   ]
 }
 
-Available app permissions:
-  - CAN_ACCESS_APP: Basic app access
-  - CAN_VIEW_FINANCIAL_DATA: View financial reports
-  - CAN_MANAGE_PERMISSIONS: Manage user permissions
-  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
-  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
-  - CAN_MANAGE_TRACK_APKS: Manage test tracks
-  - CAN_MANAGE_TRACK_USERS: Manage testers
-  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
-  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
-  - CAN_MANAGE_ORDERS: Manage orders and subscriptions`,
+` + appPermissionsHelp,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -143,22 +145,12 @@ func UpdateCommand() *ffcli.Command {
 JSON format:
 {
   "appLevelPermissions": [
-    "CAN_ACCESS_APP",
+    "CAN_VIEW_NON_FINANCIAL_DATA",
     "CAN_MANAGE_PUBLIC_LISTING"
   ]
 }
 
-Available app permissions:
-  - CAN_ACCESS_APP: Basic app access
-  - CAN_VIEW_FINANCIAL_DATA: View financial reports
-  - CAN_MANAGE_PERMISSIONS: Manage user permissions
-  - CAN_REPLY_TO_REVIEWS: Reply to user reviews
-  - CAN_MANAGE_PUBLIC_APKS: Manage production releases
-  - CAN_MANAGE_TRACK_APKS: Manage test tracks
-  - CAN_MANAGE_TRACK_USERS: Manage testers
-  - CAN_MANAGE_PUBLIC_LISTING: Manage store listing
-  - CAN_MANAGE_DRAFT_APPS: Manage draft changes
-  - CAN_MANAGE_ORDERS: Manage orders and subscriptions
+` + appPermissionsHelp + `
 
 Use --update-mask to specify which fields to update. If omitted, all
 fields in the request body are applied.`,

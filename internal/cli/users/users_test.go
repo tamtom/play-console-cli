@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/testutil"
 )
 
 // --- UsersCommand tests ---
@@ -548,5 +550,14 @@ func TestAllSubcommands_HaveShortUsage(t *testing.T) {
 		if sub.ShortUsage == "" {
 			t.Errorf("subcommand %q missing ShortUsage", sub.Name)
 		}
+	}
+}
+
+func TestUsersHelp_ListsOfficialAccountPermissions(t *testing.T) {
+	current, deprecated := testutil.OfficialEnum(t, "androidpublisher", "User", "developerAccountPermissions")
+	for _, cmd := range []*ffcli.Command{CreateCommand(), UpdateCommand()} {
+		t.Run(cmd.Name, func(t *testing.T) {
+			testutil.AssertHelpListsEnum(t, cmd.LongHelp, current, deprecated)
+		})
 	}
 }
