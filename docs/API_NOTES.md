@@ -254,7 +254,8 @@ The CLI's error handling should:
 1. Parse the error JSON and display the `message` field to the user.
 2. For known error codes (409, 429), add contextual guidance (e.g., "Another
    edit is active. Use `gplay edits delete` to clean it up.").
-3. In `--debug` mode, print the full error JSON for troubleshooting.
+3. Not implemented: print the full error JSON for troubleshooting. `--debug`
+   only turns off the progress spinners.
 
 ---
 
