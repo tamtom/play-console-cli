@@ -54,6 +54,7 @@ Examples:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
+			*dryRun = *dryRun || shared.IsDryRun(ctx)
 			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
 				return err
 			}

@@ -153,7 +153,7 @@ Examples:
 			}
 
 			result, err := wf.ExecuteDefinition(ctx, def, selectedName, paramMap, wf.ExecuteOptions{
-				DryRun: *dryRun,
+				DryRun: *dryRun || shared.IsDryRun(ctx),
 				Resume: *resume,
 				Stdout: shared.Stderr(ctx),
 				Stderr: shared.Stderr(ctx),
