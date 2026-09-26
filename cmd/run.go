@@ -59,8 +59,9 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 		if errors.Is(err, flag.ErrHelp) {
 			return ExitSuccess
 		}
-		fmt.Fprintln(shared.Stderr(ctx), err)
-		return ExitCodeFromError(err)
+		// Every flag set uses ContinueOnError (see setCommandOutput), so the
+		// flag package already printed the error and the usage to stderr.
+		return ExitUsage
 	}
 
 	ctx, err = rt.ApplyRootContext(ctx)

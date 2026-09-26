@@ -81,3 +81,24 @@ func TestDefaultOutputEnvironmentDoesNotBreakCommands(t *testing.T) {
 		})
 	}
 }
+
+func TestFlagParseErrorsExitWithUsageCodeAndPrintOnce(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		msg  string
+	}{
+		{[]string{"tracks", "list", "--bogus"}, "flag provided but not defined: -bogus"},
+		{[]string{"--bogus"}, "flag provided but not defined: -bogus"},
+		{[]string{"tracks", "list", "--package"}, "flag needs an argument: -package"},
+	} {
+		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
+			code, _, stderr := runReleaseCommand(t, tc.args, nil)
+			if code != ExitUsage {
+				t.Fatalf("exit %d, want %d (usage); stderr %q", code, ExitUsage, stderr)
+			}
+			if n := strings.Count(stderr, tc.msg); n != 1 {
+				t.Fatalf("stderr has the parse error %d times, want 1: %q", n, stderr)
+			}
+		})
+	}
+}
