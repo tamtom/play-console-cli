@@ -5,6 +5,13 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  # A manual run validates a branch before the tag: checks, the five builds,
+  # and the installer and upgrade checks. It does not publish a release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to embed in the rehearsal builds, for example 1.0.0'
+        required: true
 
 permissions:
   contents: read
@@ -28,8 +35,11 @@ jobs:
         run: |
           make test
           python3 -m unittest discover -s scripts/tests
-      - name: Current discovery and SDK coverage
-        run: make check-api-drift
+      # The live discovery check (make check-api-drift) stays in the weekly
+      # API Drift workflow. It fails on revision-only changes at Google, which
+      # must not block a release of an unchanged commit.
+      - name: Embedded schema and SDK field coverage
+        run: make check-api-schema
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
@@ -84,8 +94,14 @@ jobs:
       - name: Get version
         id: version
         shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$INPUT_VERSION
+          fi
           VERSION=${VERSION#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -132,6 +148,7 @@ jobs:
 
   release:
     name: Create Release
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     needs: build

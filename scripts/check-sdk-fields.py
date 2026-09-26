@@ -53,8 +53,10 @@ def main():
         adapters = json.loads(args.adapters.read_text())
         sdk_root = args.sdk_root
         if sdk_root is None:
-            sdk_root = Path(subprocess.check_output(
-                ["go", "list", "-m", "-f", "{{.Dir}}", "google.golang.org/api"], cwd=ROOT, text=True).strip())
+            # "go list -m" prints an empty Dir when the module is not in the
+            # cache; "go mod download" fetches it first.
+            sdk_root = Path(json.loads(subprocess.check_output(
+                ["go", "mod", "download", "-json", "google.golang.org/api"], cwd=ROOT, text=True))["Dir"])
         reviewed = {api["name"]: {} for api in index["apis"]}
         for entry in index["types"]:
             reviewed[entry["api"]][entry["name"]] = entry["definition"]
