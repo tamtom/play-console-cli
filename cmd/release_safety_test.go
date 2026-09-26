@@ -361,8 +361,12 @@ func TestSnitchExplicitHelpSucceeds(t *testing.T) {
 func TestSubscriptionArchiveFailsLocally(t *testing.T) {
 	calls := 0
 	code, _, stderr := runReleaseCommand(t, []string{"subscriptions", "archive", "--package", "com.example.test", "--product-id", "monthly"}, func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, `{}`) })
-	if code == 0 || calls != 0 || !strings.Contains(stderr, "not supported") || !strings.Contains(stderr, "base-plans") {
+	if code == 0 || calls != 0 || !strings.Contains(stderr, "not supported") || !strings.Contains(stderr, "gplay baseplans deactivate --help") {
 		t.Fatalf("code=%d calls=%d stderr=%s", code, calls, stderr)
+	}
+	// The suggested command must exist.
+	if code, _, stderr := runReleaseCommand(t, []string{"baseplans", "deactivate", "--help"}, nil); code != 0 {
+		t.Fatalf("suggested command failed: code=%d stderr=%s", code, stderr)
 	}
 }
 

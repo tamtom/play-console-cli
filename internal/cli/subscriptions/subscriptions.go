@@ -461,10 +461,10 @@ func ArchiveCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name: "archive", ShortUsage: "gplay subscriptions archive [flags]",
 		ShortHelp: "DEPRECATED: Google does not support subscription archiving.",
-		LongHelp:  "Subscription archiving is not supported by Google. To stop new sales, consider base-plans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.",
+		LongHelp:  "Subscription archiving is not supported by Google. To stop new sales, consider gplay baseplans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.",
 		FlagSet:   fs, UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(context.Context, []string) error {
-			return fmt.Errorf("subscription archiving is not supported by Google; see gplay base-plans deactivate --help to stop new sales (different semantics)")
+			return fmt.Errorf("subscription archiving is not supported by Google; see gplay baseplans deactivate --help to stop new sales (different semantics)")
 		},
 	}
 }

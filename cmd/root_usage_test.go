@@ -145,3 +145,17 @@ func TestRootUsageFunc_NoSubcommands(t *testing.T) {
 		t.Errorf("expected USAGE section even with no subcommands, got:\n%s", got)
 	}
 }
+
+func TestRootCommandGroupsNameRegisteredCommands(t *testing.T) {
+	registered := map[string]bool{}
+	for _, sub := range RootCommand("1.0.0").Subcommands {
+		registered[sub.Name] = true
+	}
+	for _, group := range rootCommandGroups {
+		for _, name := range group.commands {
+			if !registered[name] {
+				t.Errorf("group %q lists %q, but no root command has that name", group.title, name)
+			}
+		}
+	}
+}

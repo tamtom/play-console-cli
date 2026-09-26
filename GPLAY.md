@@ -4988,7 +4988,7 @@ DEPRECATED: Google does not support subscription archiving.
 gplay subscriptions archive [flags]
 ```
 
-Subscription archiving is not supported by Google. To stop new sales, consider base-plans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.
+Subscription archiving is not supported by Google. To stop new sales, consider gplay baseplans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.
 
 | Flag | Description | Default |
 |------|-------------|---------|
