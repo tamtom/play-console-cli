@@ -59,6 +59,8 @@ func StatusCommand() *ffcli.Command {
 			if err != nil {
 				return fmt.Errorf("create Android Developer ID Status service: %w", err)
 			}
+			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
+			defer cancel()
 			call := service.API.Packages.PackageRegistrationStatus.Check("packages/" + strings.ReplaceAll(packageName, ".", "-") + "/packageRegistrationStatus").Context(ctx)
 			if fingerprintValue != "" {
 				call.CertificateFingerprint(fingerprintValue)

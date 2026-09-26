@@ -3,8 +3,6 @@ package shared
 import (
 	"flag"
 	"os"
-
-	"golang.org/x/term"
 )
 
 // OutputFlags holds the parsed output format flags.
@@ -14,11 +12,12 @@ type OutputFlags struct {
 }
 
 // BindOutputFlags registers --output and --pretty flags on the given FlagSet.
-// The default for --output is TTY-aware: "table" if stdout is a terminal, "json" otherwise.
+// JSON is the default for both terminals and automation.
 // The GPLAY_DEFAULT_OUTPUT env var overrides the default.
 func BindOutputFlags(fs *flag.FlagSet) *OutputFlags {
 	defaultFormat := defaultOutputFormat()
-	output := fs.String("output", defaultFormat, "Output format: json, table, markdown")
+	output := fs.String("output", "json", "Output format: json, table, markdown")
+	*output = defaultFormat
 	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
 	return &OutputFlags{Output: output, Pretty: pretty}
 }
@@ -42,9 +41,6 @@ func (o *OutputFlags) IsPretty() bool {
 func defaultOutputFormat() string {
 	if env := os.Getenv("GPLAY_DEFAULT_OUTPUT"); env != "" {
 		return env
-	}
-	if term.IsTerminal(int(os.Stdout.Fd())) {
-		return "table"
 	}
 	return "json"
 }

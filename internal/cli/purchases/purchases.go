@@ -2,12 +2,15 @@ package purchases
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"google.golang.org/api/androidpublisher/v3"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
@@ -539,7 +542,7 @@ func SubscriptionsV2DeferCommand() *ffcli.Command {
 JSON format:
 {
   "deferralContext": {
-    "deferDuration": "P7D",
+    "deferDuration": "604800s",
     "etag": "<etag from purchases subscriptionsv2 get>"
   }
 }`,
@@ -555,6 +558,19 @@ JSON format:
 			if strings.TrimSpace(*jsonFlag) == "" {
 				return fmt.Errorf("--json is required")
 			}
+			var req androidpublisher.DeferSubscriptionPurchaseRequest
+			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			if req.DeferralContext == nil || strings.TrimSpace(req.DeferralContext.Etag) == "" {
+				return fmt.Errorf("deferralContext and deferralContext.etag are required")
+			}
+			encodedDuration, _ := json.Marshal(req.DeferralContext.DeferDuration)
+			var duration durationpb.Duration
+			if err := protojson.Unmarshal(encodedDuration, &duration); err != nil || duration.Seconds < 0 || (duration.Seconds == 0 && duration.Nanos <= 0) {
+				return fmt.Errorf("deferralContext.deferDuration must be a positive protobuf duration in seconds, for example 604800s")
+			}
+
 			service, err := newPlayService(ctx)
 			if err != nil {
 				return err
@@ -562,10 +578,6 @@ JSON format:
 			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
 			if strings.TrimSpace(pkg) == "" {
 				return fmt.Errorf("--package is required")
-			}
-			var req androidpublisher.DeferSubscriptionPurchaseRequest
-			if err := shared.LoadJSONArg(*jsonFlag, &req); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
 			}
 
 			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
@@ -703,11 +715,12 @@ func SubscriptionsCancelCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "cancel",
 		ShortUsage: "gplay purchases subscriptions cancel --package <name> --subscription-id <id> --token <token> --confirm",
-		ShortHelp:  "Cancel a subscription.",
-		LongHelp: `Cancel a subscription.
+		ShortHelp:  "DEPRECATED: Cancel via the legacy API; prefer subscriptionsv2 cancel.",
+		LongHelp: `Legacy cancellation (API shutdown: 2028-08-31). Prefer purchases subscriptionsv2 cancel.
 
-The subscription remains active until the end of the current
-billing period, then will not renew.`,
+This preserves the legacy developer-requested stopping of payments: it prevents
+restoration and cancels remaining installment payments. User-requested stopping
+of renewals has different semantics; choose the cancellation type explicitly in v2.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
@@ -761,20 +774,21 @@ func SubscriptionsDeferCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "defer",
 		ShortUsage: "gplay purchases subscriptions defer --package <name> --subscription-id <id> --token <token> --json <json>",
-		ShortHelp:  "Defer billing for a subscription.",
-		LongHelp: `Defer billing for a subscription.
+		ShortHelp:  "DEPRECATED: Defer via the legacy API; prefer subscriptionsv2 defer.",
+		LongHelp: `Legacy deferral (API shutdown: 2028-08-31). Prefer purchases subscriptionsv2 defer.
+Replace the example timestamps with the current and desired expiry from your purchase.
 
 JSON format:
 {
   "deferralInfo": {
-    "expectedExpiryTimeMillis": 1735689600000,
-    "desiredExpiryTimeMillis": 1738368000000
+    "expectedExpiryTimeMillis": "1893456000000",
+    "desiredExpiryTimeMillis": "1894060800000"
   }
 }
 
 The new expiry time must be:
 - In the future
-- Before the current billing period ends
+- Greater than the current expiry (expectedExpiryTimeMillis)
 - No more than one year ahead`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,

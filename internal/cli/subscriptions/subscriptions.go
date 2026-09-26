@@ -454,42 +454,17 @@ func DeleteCommand() *ffcli.Command {
 
 func ArchiveCommand() *ffcli.Command {
 	fs := flag.NewFlagSet("subscriptions archive", flag.ExitOnError)
-	packageName := fs.String("package", "", "Package name (applicationId)")
-	productID := fs.String("product-id", "", "Subscription product ID")
-	outputFlag := fs.String("output", "json", "Output format: json (default), table, markdown")
-	pretty := fs.Bool("pretty", false, "Pretty-print JSON output")
-
+	fs.String("package", "", "Package name (applicationId)")
+	fs.String("product-id", "", "Subscription product ID")
+	fs.String("output", "json", "Output format: json, table, markdown")
+	fs.Bool("pretty", false, "Pretty-print JSON output")
 	return &ffcli.Command{
-		Name:       "archive",
-		ShortUsage: "gplay subscriptions archive --package <name> --product-id <id>",
-		ShortHelp:  "Archive a subscription (deprecate without deleting).",
-		FlagSet:    fs,
-		UsageFunc:  shared.DefaultUsageFunc,
-		Exec: func(ctx context.Context, args []string) error {
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
-				return err
-			}
-			if strings.TrimSpace(*productID) == "" {
-				return fmt.Errorf("--product-id is required")
-			}
-			service, err := playclient.NewService(ctx)
-			if err != nil {
-				return err
-			}
-			pkg := shared.ResolvePackageName(*packageName, service.Cfg)
-			if strings.TrimSpace(pkg) == "" {
-				return fmt.Errorf("--package is required")
-			}
-
-			ctx, cancel := shared.ContextWithTimeout(ctx, service.Cfg)
-			defer cancel()
-
-			req := &androidpublisher.ArchiveSubscriptionRequest{}
-			resp, err := service.API.Monetization.Subscriptions.Archive(pkg, *productID, req).Context(ctx).Do()
-			if err != nil {
-				return err
-			}
-			return shared.PrintOutputContext(ctx, resp, *outputFlag, *pretty)
+		Name: "archive", ShortUsage: "gplay subscriptions archive [flags]",
+		ShortHelp: "DEPRECATED: Google does not support subscription archiving.",
+		LongHelp:  "Subscription archiving is not supported by Google. To stop new sales, consider base-plans deactivate. Deactivation and deletion have different effects; review their help before choosing an operation.",
+		FlagSet:   fs, UsageFunc: shared.DefaultUsageFunc,
+		Exec: func(context.Context, []string) error {
+			return fmt.Errorf("subscription archiving is not supported by Google; see gplay base-plans deactivate --help to stop new sales (different semantics)")
 		},
 	}
 }

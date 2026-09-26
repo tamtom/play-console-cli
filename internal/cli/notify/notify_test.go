@@ -280,10 +280,10 @@ func TestMaskURL(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"https://hooks.slack.com/services/T00/B00/xxxyyy", "https://hooks.slack.com/***xxxyyy"},
-		{"https://example.com/a", "https://example.com/a"},
-		{"https://example.com/abcdef", "https://example.com/abcdef"},
-		{"https://example.com/abcdefg", "https://example.com/***bcdefg"},
+		{"https://hooks.slack.com/services/T00/B00/xxxyyy", "https://hooks.slack.com/***"},
+		{"https://example.com/a", "https://example.com/***"},
+		{"https://example.com/abcdef", "https://example.com/***"},
+		{"https://example.com/abcdefg", "https://example.com/***"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {

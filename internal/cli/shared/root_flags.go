@@ -19,7 +19,7 @@ type RootFlags struct {
 func BindRootFlags(fs *flag.FlagSet) *RootFlags {
 	return &RootFlags{
 		Profile:    fs.String("profile", "", "Config profile to use (overrides GPLAY_PROFILE)"),
-		Debug:      fs.Bool("debug", false, "Enable debug logging (overrides GPLAY_DEBUG)"),
+		Debug:      fs.Bool("debug", false, "Disable progress spinners (sets GPLAY_DEBUG=1)"),
 		DryRun:     fs.Bool("dry-run", false, "Preview write operations without executing them"),
 		Report:     fs.String("report", "", "CI report format (junit)"),
 		ReportFile: fs.String("report-file", "", "CI report output file path"),

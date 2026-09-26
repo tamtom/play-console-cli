@@ -47,6 +47,7 @@ all: build
 build: $(BINARY_NAME)
 	@echo "$(GREEN)✓ Build complete: $(BINARY_NAME)$(NC)"
 
+.PHONY: $(BINARY_NAME)
 $(BINARY_NAME): go.mod
 	@echo "$(BLUE)Building $(BINARY_NAME)...$(NC)"
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) .
@@ -56,7 +57,7 @@ $(BINARY_NAME): go.mod
 build-all: clean
 	@echo "$(BLUE)Building $(BINARY_NAME) $(VERSION) for all platforms...$(NC)"
 	@mkdir -p $(DIST_DIR)
-	@for platform in $(PLATFORMS); do \
+	@set -e; for platform in $(PLATFORMS); do \
 		GOOS=$${platform%/*} GOARCH=$${platform#*/} \
 		$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" \
 			-o $(DIST_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/}$$([ "$${platform%/*}" = "windows" ] && echo ".exe") . ; \
@@ -349,6 +350,7 @@ update-api-spec:
 check-api-drift:
 	@python3 scripts/gen-schema-index.py --check
 	@python3 scripts/check-api-drift.py
+	@python3 scripts/check-sdk-fields.py --live
 
 update-api-manifest:
 	@python3 scripts/check-api-drift.py --update
@@ -357,3 +359,4 @@ update-api-manifest:
 
 check-api-schema:
 	@python3 scripts/gen-schema-index.py --check
+	@python3 scripts/check-sdk-fields.py

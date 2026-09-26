@@ -102,6 +102,7 @@ Examples:
 			flushCommand(),
 		},
 		Exec: func(ctx context.Context, args []string) error {
+			effectiveDryRun := *dryRun || shared.IsDryRun(ctx)
 			// Validate required flags.
 			if strings.TrimSpace(*repro) == "" {
 				return shared.UsageError("--repro is required")
@@ -133,7 +134,7 @@ Examples:
 
 			token := resolveGitHubToken()
 
-			if len(entry.Labels) > 0 && (!*local || *dryRun) {
+			if len(entry.Labels) > 0 && (!*local || effectiveDryRun) {
 				validatedLabels, err := validateRequestedLabels(ctx, token, entry.Labels)
 				if err != nil {
 					if strings.Contains(err.Error(), "flag") {
@@ -146,7 +147,7 @@ Examples:
 				}
 			}
 
-			if *local && !*dryRun {
+			if *local && !effectiveDryRun {
 				return writeLocalLog(entry, shared.Stderr(ctx))
 			}
 
@@ -163,8 +164,8 @@ Examples:
 
 			printPotentialDuplicates(shared.Stderr(ctx), duplicates)
 
-			if *dryRun || !*confirm {
-				printPreview(shared.Stderr(ctx), entry, *dryRun)
+			if effectiveDryRun || !*confirm {
+				printPreview(shared.Stderr(ctx), entry, effectiveDryRun)
 				return nil
 			}
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,7 +33,7 @@ func ValidateWebhookURL(raw string) error {
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		return fmt.Errorf("invalid webhook URL: %w", err)
+		return fmt.Errorf("invalid webhook URL")
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("webhook URL must use http or https scheme, got %q", u.Scheme)
@@ -58,6 +59,10 @@ func PostWebhook(ctx context.Context, client HTTPDoer, webhookURL string, payloa
 
 	resp, err := client.Do(req)
 	if err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			err = urlErr.Err
+		}
 		return nil, fmt.Errorf("webhook request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -68,7 +73,7 @@ func PostWebhook(ctx context.Context, client HTTPDoer, webhookURL string, payloa
 	result := &WebhookResult{
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
-		WebhookURL: webhookURL,
+		WebhookURL: MaskURL(webhookURL),
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -78,23 +83,12 @@ func PostWebhook(ctx context.Context, client HTTPDoer, webhookURL string, payloa
 	return result, nil
 }
 
-// MaskURL redacts all but the last 6 characters of the URL path for safe display.
-// The leading "/" of the path is always preserved.
+// MaskURL retains only the destination origin. Paths, queries and userinfo can
+// all carry webhook credentials, including short path segments.
 func MaskURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil {
 		return "***"
 	}
-	path := u.Path
-	// Strip leading slash for masking, then re-add it.
-	trimmed := strings.TrimPrefix(path, "/")
-	if len(trimmed) > 6 {
-		trimmed = "***" + trimmed[len(trimmed)-6:]
-	}
-	if strings.HasPrefix(path, "/") {
-		path = "/" + trimmed
-	} else {
-		path = trimmed
-	}
-	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, path)
+	return fmt.Sprintf("%s://%s/***", u.Scheme, u.Host)
 }

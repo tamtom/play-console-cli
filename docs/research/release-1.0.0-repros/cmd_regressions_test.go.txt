@@ -1,0 +1,221 @@
+package cmd
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/audit"
+	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
+	"github.com/tamtom/play-console-cli/internal/config"
+	"github.com/tamtom/play-console-cli/internal/playclient"
+	"github.com/tamtom/play-console-cli/internal/update"
+)
+
+type auditProbeSink struct{ entries []audit.Entry }
+
+func (s *auditProbeSink) Enabled() bool             { return true }
+func (s *auditProbeSink) Write(e audit.Entry) error { s.entries = append(s.entries, e); return nil }
+
+func auditProbeRun(t *testing.T, args []string, handler http.HandlerFunc) (int, string, string) {
+	t.Helper()
+	var stdout, stderr bytes.Buffer
+	var service *playclient.Service
+	if handler != nil {
+		server := httptest.NewServer(handler)
+		t.Cleanup(server.Close)
+		var err error
+		service, err = playclient.NewServiceWithClient(context.Background(), server.Client(), server.URL+"/")
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	code := RunWithRuntime(args, "0.10.0", func(rt *cliruntime.Runtime) {
+		rt.WithIO(&stdout, &stderr).WithAuditSink(&auditProbeSink{})
+		rt.WithPlayServiceFactory(func(context.Context) (*playclient.Service, error) {
+			if service == nil {
+				return nil, fmt.Errorf("unexpected API service")
+			}
+			return service, nil
+		})
+	})
+	return code, stdout.String(), stderr.String()
+}
+
+func TestAuditRolloutWireBehavior(t *testing.T) {
+	for _, action := range []string{"complete", "update", "halt"} {
+		t.Run(action, func(t *testing.T) {
+			var payload map[string]any
+			var committed bool
+			initialStatus := "inProgress"
+			if action == "halt" {
+				initialStatus = "completed"
+			}
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/tracks/") {
+					fmt.Fprintf(w, `{"track":"production","releases":[{"status":%q,"versionCodes":["100"],"userFraction":0.1}]}`, initialStatus)
+				} else if r.Method == http.MethodPut {
+					if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+						t.Error(err)
+					}
+					json.NewEncoder(w).Encode(payload)
+				} else {
+					if strings.HasSuffix(r.URL.Path, ":commit") {
+						committed = true
+					}
+					fmt.Fprint(w, `{"id":"audit-edit"}`)
+				}
+			}
+			args := []string{"rollout", action, "--package", "com.example.audit"}
+			if action == "update" {
+				args = append(args, "--rollout", "1")
+			}
+			code, stdout, stderr := auditProbeRun(t, args, handler)
+			t.Logf("code=%d committed=%v payload=%s stdout=%s stderr=%s", code, committed, mustAuditJSON(payload), stdout, stderr)
+			if action == "halt" {
+				if code != 0 || payload == nil {
+					t.Error("completed releases must be eligible for halt")
+				}
+				return
+			}
+			if code != 0 {
+				t.Fatalf("unexpected command error: %s", stderr)
+			}
+			release := payload["releases"].([]any)[0].(map[string]any)
+			if action == "complete" {
+				if _, exists := release["userFraction"]; exists {
+					t.Error("completed release must omit userFraction")
+				}
+			}
+			if action == "update" && release["status"] != "completed" {
+				t.Error("rollout 1 must complete or reject the request, not succeed while keeping 10%")
+			}
+		})
+	}
+}
+func mustAuditJSON(v any) string { b, _ := json.Marshal(v); return string(b) }
+
+func TestAuditInvalidOutputBeforeMutation(t *testing.T) {
+	writes := 0
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodGet {
+			writes++
+		}
+		if r.Method == http.MethodGet {
+			fmt.Fprint(w, `{"track":"production","releases":[{"status":"inProgress","versionCodes":["100"],"userFraction":0.1}]}`)
+		} else {
+			fmt.Fprint(w, `{"id":"audit-edit"}`)
+		}
+	}
+	code, stdout, stderr := auditProbeRun(t, []string{"rollout", "halt", "--package", "com.example.audit", "--output", "xml"}, handler)
+	t.Logf("code=%d writes=%d stdout=%q stderr=%q", code, writes, stdout, stderr)
+	if writes != 0 {
+		t.Error("invalid output must fail before any API write")
+	}
+}
+
+func TestAuditDryRunWebhook(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, `{}`) }))
+	defer server.Close()
+	code, stdout, stderr := auditProbeRun(t, []string{"--dry-run", "notify", "send", "--webhook-url", server.URL, "--message", "audit-test-only"}, nil)
+	t.Logf("code=%d POSTs=%d stdout=%s stderr=%s", code, calls, stdout, stderr)
+	if calls != 0 {
+		t.Error("dry-run must not POST the webhook")
+	}
+}
+
+func TestAuditDryRunRTDN(t *testing.T) {
+	dir := t.TempDir()
+	log := filepath.Join(dir, "gcloud.log")
+	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$GPLAY_AUDIT_PROBE_CALLS\"\nprintf '{}\\n'\n"
+	if err := os.WriteFile(filepath.Join(dir, "gcloud"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	t.Setenv("GPLAY_AUDIT_PROBE_CALLS", log)
+	code, stdout, stderr := auditProbeRun(t, []string{"--dry-run", "rtdn", "setup", "--project", "audit-test-only", "--output", "json"}, nil)
+	calls, _ := os.ReadFile(log)
+	t.Logf("code=%d calls=%s stdout=%s stderr=%s", code, calls, stdout, stderr)
+	if len(calls) > 0 {
+		t.Error("global dry-run must prevent gcloud writes")
+	}
+}
+
+func TestAuditSecretRedaction(t *testing.T) {
+	for _, args := range [][]string{{"--api-key", "AUDIT_FAKE_SECRET"}, {"--webhook-url=https://example.invalid/AUDIT_FAKE_SECRET"}, {"-token", "AUDIT_FAKE_SECRET"}, {"--data", `{"purchaseToken":"AUDIT_FAKE_SECRET"}`}} {
+		got := scrubArgs(args)
+		if strings.Contains(strings.Join(got, " "), "AUDIT_FAKE_SECRET") {
+			t.Errorf("secret retained: %v", got)
+		}
+	}
+}
+
+func TestAuditRejectInvalidUpdateDownload(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "not a gplay executable") }))
+	defer server.Close()
+	path, err := update.DownloadUpdate(context.Background(), &update.UpdateInfo{DownloadURL: server.URL, LatestVersion: "1.0.0"})
+	if path != "" {
+		defer os.Remove(path)
+	}
+	t.Logf("download accepted=%v error=%v", path != "", err)
+	if err == nil {
+		t.Error("unverified non-binary content accepted for installation")
+	}
+}
+
+func TestAuditMissingRootFlagHelp(t *testing.T) {
+	help := RootCommand("audit").UsageFunc(RootCommand("audit"))
+	for _, flag := range []string{"--dry-run", "--profile", "--debug", "--report", "--report-file", "--version"} {
+		if !strings.Contains(help, flag) {
+			t.Errorf("root help omits %s", flag)
+		}
+	}
+}
+
+func TestAuditInitProducesLoadableConfig(t *testing.T) {
+	t.Chdir(t.TempDir())
+	code, stdout, stderr := auditProbeRun(t, []string{"init", "--package", "com.example.audit", "--timeout", "90s"}, nil)
+	if code != 0 {
+		t.Fatalf("init failed: %s", stderr)
+	}
+	path, err := config.LocalPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.LoadAt(path)
+	t.Logf("stdout=%s expected config=%s config=%v err=%v", stdout, path, cfg, err)
+	if err != nil {
+		t.Errorf("init must produce the configuration the loader reads: %v", err)
+	}
+}
+func TestAuditDocumentedPackageEnvironment(t *testing.T) {
+	t.Setenv("GPLAY_PACKAGE", "com.example.audit")
+	t.Setenv("GPLAY_PACKAGE_NAME", "")
+	if got := shared.ResolvePackageName("", nil); got != "com.example.audit" {
+		t.Errorf("documented GPLAY_PACKAGE ignored; got %q", got)
+	}
+}
+func TestAuditRTDNExistingTopic(t *testing.T) {
+	dir := t.TempDir()
+	script := "#!/bin/sh\ncase \"$*\" in *topics\\ create*) printf 'ERROR: already exists\\n' >&2; exit 1;; esac\nprintf '{}\\n'\n"
+	if err := os.WriteFile(filepath.Join(dir, "gcloud"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	code, stdout, stderr := auditProbeRun(t, []string{"rtdn", "setup", "--project", "audit-test-only", "--output", "json"}, nil)
+	t.Logf("code=%d stdout=%s stderr=%s", code, stdout, stderr)
+	if code != 0 {
+		t.Error("existing topic must not prevent IAM binding")
+	}
+}

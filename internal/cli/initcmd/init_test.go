@@ -32,7 +32,7 @@ func TestInitCommand_CreatesConfig(t *testing.T) {
 	}
 	_ = buf
 
-	configPath := filepath.Join(dir, ".gplay", "config.yaml")
+	configPath := filepath.Join(dir, ".gplay", "config.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("reading config: %v", err)
@@ -60,7 +60,7 @@ func TestInitCommand_ExistingConfig(t *testing.T) {
 	if err := os.MkdirAll(".gplay", 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0o600); err != nil {
+	if err := os.WriteFile(".gplay/config.json", []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,7 +89,7 @@ func TestInitCommand_Force(t *testing.T) {
 	if err := os.MkdirAll(".gplay", 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(".gplay/config.yaml", []byte("existing"), 0o600); err != nil {
+	if err := os.WriteFile(".gplay/config.json", []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,12 +97,5 @@ func TestInitCommand_Force(t *testing.T) {
 	err = cmd.ParseAndRun(context.Background(), []string{"--force"})
 	if err != nil {
 		t.Fatalf("init --force failed: %v", err)
-	}
-}
-
-func TestGenerateConfig(t *testing.T) {
-	cfg := generateConfig("com.test.app", "/path/to/key.json", "30s")
-	if cfg == "" {
-		t.Error("expected non-empty config")
 	}
 }

@@ -66,6 +66,10 @@ func ValidateScannerIDs(ids []string) error {
 
 // Scan runs the selected scanners against an AAB or APK and returns a Report.
 func Scan(path string, opts Options) (*Report, error) {
+	policy, err := targetSDKPolicy(opts)
+	if err != nil {
+		return nil, err
+	}
 	if err := ValidateScannerIDs(opts.Only); err != nil {
 		return nil, err
 	}
@@ -82,9 +86,10 @@ func Scan(path string, opts Options) (*Report, error) {
 	ctx := newScanContext(path, r, opts)
 
 	report := &Report{
-		Path:      path,
-		Format:    ctx.format,
-		TotalSize: ctx.totalCompressed,
+		TargetSDKPolicy: policy,
+		Path:            path,
+		Format:          ctx.format,
+		TotalSize:       ctx.totalCompressed,
 	}
 	if m := ctx.manifest; m != nil {
 		report.Package = m.Package

@@ -17,6 +17,8 @@ import (
 	cliruntime "github.com/tamtom/play-console-cli/internal/cli/runtime"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/cli/shared/errfmt"
+	"github.com/tamtom/play-console-cli/internal/update"
+	"golang.org/x/term"
 )
 
 // Run is the main entry point. It returns an exit code.
@@ -40,6 +42,7 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 	var err error
 	ctx, err = rt.ApplyRootContext(ctx)
 	if err != nil {
+		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitUsage
 	}
 	setCommandOutput(root, shared.Stderr(ctx))
@@ -53,12 +56,16 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 
 	// Parse flags and subcommands
 	if err := root.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return ExitSuccess
+		}
 		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitCodeFromError(err)
 	}
 
 	ctx, err = rt.ApplyRootContext(ctx)
 	if err != nil {
+		fmt.Fprintln(shared.Stderr(ctx), err)
 		return ExitUsage
 	}
 
@@ -101,16 +108,40 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 		return ExitCodeFromError(runErr)
 	}
 
+	maybeSuggestUpdate(ctx, args, versionInfo)
 	return ExitSuccess
+}
+
+func maybeSuggestUpdate(ctx context.Context, args []string, versionInfo string) {
+	terminal, ok := shared.Stderr(ctx).(*os.File)
+	if shared.IsDryRun(ctx) || os.Getenv("GPLAY_NO_UPDATE") == "1" || os.Getenv("CI") != "" || (!ok || !term.IsTerminal(int(terminal.Fd()))) {
+		return
+	}
+	switch selectedRootCommand(args) {
+	case "", "version", "completion", "update":
+		return
+	}
+	fields := strings.Fields(versionInfo)
+	if len(fields) == 0 {
+		return
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	info, err := update.CheckForUpdate(checkCtx, update.Options{CurrentVersion: fields[0]})
+	if err == nil {
+		update.PrintUpdateMessageTo(shared.Stderr(ctx), info)
+	}
 }
 
 func setCommandOutput(command *ffcli.Command, writer io.Writer) {
 	if command == nil {
 		return
 	}
-	if command.FlagSet != nil {
-		command.FlagSet.SetOutput(writer)
+	if command.FlagSet == nil {
+		command.FlagSet = flag.NewFlagSet(command.Name, flag.ContinueOnError)
 	}
+	command.FlagSet.Init(command.FlagSet.Name(), flag.ContinueOnError)
+	command.FlagSet.SetOutput(writer)
 	for _, subcommand := range command.Subcommands {
 		setCommandOutput(subcommand, writer)
 	}
@@ -156,7 +187,9 @@ func logAudit(ctx context.Context, rt *cliruntime.Runtime, commandName string, a
 	}
 	if runErr != nil && !errors.Is(runErr, flag.ErrHelp) {
 		entry.Status = "error"
-		entry.Error = runErr.Error()
+		// API errors can echo credentials from files or responses, not just flags.
+		// Persist only the classification; keep detailed diagnostics on stderr.
+		entry.Error = string(errfmt.Classify(runErr).Category)
 	}
 	_ = sink.Write(entry)
 }
@@ -166,12 +199,18 @@ func scrubArgs(args []string) []string {
 	if len(args) == 0 {
 		return nil
 	}
-	sensitive := map[string]bool{
-		"--service-account": true,
-		"--client-secret":   true,
-		"--token":           true,
-		"--key":             true,
-		"--json":            true,
+	sensitive := func(name string) bool {
+		name = strings.ToLower(strings.TrimLeft(name, "-"))
+		switch name {
+		case "service-account", "service-account-json", "webhook-url", "json", "data", "body", "payload", "authorization":
+			return true
+		}
+		for _, part := range []string{"token", "secret", "password", "key", "credential"} {
+			if strings.Contains(name, part) {
+				return true
+			}
+		}
+		return false
 	}
 	out := make([]string, 0, len(args))
 	skipNext := false
@@ -182,11 +221,11 @@ func scrubArgs(args []string) []string {
 			continue
 		}
 		if eq := strings.IndexByte(a, '='); eq > 0 {
-			if sensitive[a[:eq]] {
+			if strings.HasPrefix(a, "-") && sensitive(a[:eq]) {
 				out = append(out, a[:eq]+"=<redacted>")
 				continue
 			}
-		} else if sensitive[a] {
+		} else if strings.HasPrefix(a, "-") && sensitive(a) {
 			out = append(out, a)
 			skipNext = true
 			continue

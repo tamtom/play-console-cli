@@ -1,0 +1,5 @@
+{
+  "androidpublisher.AppStoreAppActiveApkSet.alreadyPublishedOnPlay": "internal/playclient/appstore.go forwards raw update JSON; internal/cli/appstores/appstores_test.go checks the HTTP body",
+  "androidpublisher.AppStoreAppActiveApkSet.versionCode": "internal/playclient/appstore.go forwards raw update JSON; internal/cli/appstores/appstores_test.go checks the HTTP body",
+  "androidpublisher.UpdateAppStoreHostedAppResponse.updateId": "internal/playclient/appstore.go decodes the full response; internal/cli/appstores/appstores_test.go checks CLI output"
+}

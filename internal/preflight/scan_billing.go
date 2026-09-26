@@ -3,6 +3,8 @@ package preflight
 import (
 	"fmt"
 	"strings"
+
+	"golang.org/x/mod/semver"
 )
 
 const refPaymentsPolicy = "https://support.google.com/googleplay/android-developer/answer/10281818"
@@ -59,6 +61,29 @@ func scanBilling(c *scanContext) []Finding {
 				Ref:      "https://developer.android.com/google/play/billing/deprecation-faq",
 			})
 		}
+	}
+
+	if hasPlayBilling || (c.manifest != nil && c.manifest.HasPermission(billingPermission)) {
+		version := ""
+		if c.manifest != nil {
+			version, _ = c.manifest.MetaDataValue("com.google.android.play.billingclient.version")
+		}
+		finding := Finding{
+			Check: "billing_version", Severity: SeverityWarning,
+			Message: "Billing Library version could not be established from manifest metadata",
+			Hint:    "verify com.google.android.play.billingclient.version in the merged manifest; ordinary submissions require Billing Library 8+ from 2026-08-31",
+			Ref:     "https://developer.android.com/google/play/billing/deprecation-faq",
+		}
+		if semver.IsValid("v" + version) {
+			finding.Message = fmt.Sprintf("Billing Library %s; minimum 8 for ordinary submissions from 2026-08-31", version)
+			finding.Severity = SeverityInfo
+			finding.Hint = "version read from com.google.android.play.billingclient.version"
+			if semver.Compare("v"+version, "v8.0.0") < 0 {
+				finding.Severity = SeverityError
+				finding.Hint = "upgrade to Billing Library 8+; a Play Console-approved v7 extension can apply through 2026-11-01, which this standard-deadline check does not assume"
+			}
+		}
+		out = append(out, finding)
 	}
 
 	// Billing wrappers still use Play Billing underneath, but the underlying

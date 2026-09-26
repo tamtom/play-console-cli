@@ -7,18 +7,46 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  checks:
+    name: Validate tagged commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          cache: true
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: go install mvdan.cc/gofumpt@v0.12.0
+      - run: make format-check check-docs
+      - name: Race-enabled test suite and release tool contracts
+        run: |
+          make test
+          python3 -m unittest discover -s scripts/tests
+      - name: Current discovery and SDK coverage
+        run: make check-api-drift
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.2
+      - name: Reachable vulnerability gate
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
   build:
     name: Build ${{ matrix.os }}/${{ matrix.arch }}
+    needs: checks
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
           - os: darwin
             arch: amd64
-            runner: macos-latest
+            runner: macos-15-intel
           - os: darwin
             arch: arm64
             runner: macos-latest
@@ -27,7 +55,7 @@ jobs:
             runner: ubuntu-latest
           - os: linux
             arch: arm64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
           - os: windows
             arch: amd64
             runner: windows-latest
@@ -43,6 +71,15 @@ jobs:
         with:
           go-version: '1.27.1'
           cache: true
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Native installer contracts
+        run: python -m unittest discover -s scripts/tests -p test_release_tools.py
+
+      - name: Native updater and terminal contracts
+        run: go test ./internal/update ./internal/cli/updatecmd ./cmd -run 'TestSelfUpdateInstallation|TestUpdateInstallerProcess|TestNormalCommandUpdateSuggestion|TestUpdateNotificationProcess|TestDryRunUpdateDoesNotCheckOrInstall' -count=1
 
       - name: Get version
         id: version
@@ -77,14 +114,14 @@ jobs:
 
           echo "Built: $BINARY_NAME"
 
-          if [ "${{ matrix.os }}" = "linux" ] && [ "${{ matrix.arch }}" = "amd64" ]; then
-            EXPECTED="$VERSION (commit: $COMMIT, date: $DATE)"
-            ACTUAL=$(./"$BINARY_NAME" --version)
-            if [ "$ACTUAL" != "$EXPECTED" ]; then
-              echo "release version mismatch: got '$ACTUAL', want '$EXPECTED'" >&2
-              exit 1
-            fi
+          EXPECTED="$VERSION (commit: $COMMIT, date: $DATE)"
+          ACTUAL=$(./"$BINARY_NAME" --version)
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "release version mismatch: got '$ACTUAL', want '$EXPECTED'" >&2
+            exit 1
           fi
+          go version -m "$BINARY_NAME"
+          go run ./tools/verifyupgrade --candidate "$BINARY_NAME" --version "$VERSION"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -95,6 +132,8 @@ jobs:
 
   release:
     name: Create Release
+    permissions:
+      contents: write
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -110,7 +149,10 @@ jobs:
         run: |
           mkdir -p release
           find artifacts -type f -exec mv {} release/ \;
-          ls -la release/
+          for asset in gplay-darwin-amd64 gplay-darwin-arm64 gplay-linux-amd64 gplay-linux-arm64 gplay-windows-amd64.exe; do
+            test -s "release/$asset"
+          done
+          test "$(find release -type f | wc -l)" -eq 5
 
       - name: Generate checksums
         run: |

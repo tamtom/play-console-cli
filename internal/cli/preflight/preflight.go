@@ -24,6 +24,7 @@ func PreflightCommand() *ffcli.Command {
 	only := fs.String("only", "", "Comma-separated scanners to run (default: all)")
 	skip := fs.String("skip", "", "Comma-separated scanners to exclude")
 	minTargetSDK := fs.Int("min-target-sdk", 0, "Minimum accepted targetSdkVersion (default: the current Play requirement)")
+	appType := fs.String("app-type", "mobile", "Submission policy: mobile, wear, automotive, tv, xr, private (permanently private organization apps)")
 	maxSize := fs.String("max-size", "", "Max allowed bundle size (e.g. 150M)")
 	maxDex := fs.String("max-dex", "", "Max allowed size per dex file (e.g. 64M)")
 	skipSecrets := fs.Bool("skip-secrets", false, "Skip the secrets scanner (faster)")
@@ -60,6 +61,11 @@ Exit codes:
   0   no findings at or above --fail-on
   1   findings at or above --fail-on severity
 
+Target SDK policy effective 2026-08-31: mobile 36, Wear OS/Automotive 35,
+TV/XR 34. Permanently private organization apps are exempt. Use --app-type
+to select the app context. For a Play-approved extension, explicitly set
+--min-target-sdk to the permitted level; the report marks this override.
+
 Examples:
   gplay preflight --file app.aab
   gplay preflight --file app.aab --fail-on warning
@@ -76,7 +82,7 @@ Examples:
 				}
 				return nil
 			}
-			if err := shared.ValidateOutputFlags(*outputFlag, *pretty); err != nil {
+			if err := shared.ValidateOutputFlags(*outputFlag, *pretty, "text"); err != nil {
 				return err
 			}
 			if strings.TrimSpace(*file) == "" {
@@ -91,6 +97,7 @@ Examples:
 				SkipSecretScan: *skipSecrets,
 				ListingsDir:    strings.TrimSpace(*listingsDir),
 				MinTargetSDK:   *minTargetSDK,
+				AppType:        *appType,
 			}
 			if s := strings.TrimSpace(*only); s != "" {
 				opts.Only = []string{s}
@@ -167,6 +174,7 @@ func printTextReport(out io.Writer, r *preflightpkg.Report) {
 		fmt.Fprintf(out, "  SDK:    min %d, target %d\n", r.MinSdk, r.TargetSdk)
 	}
 	fmt.Fprintf(out, "  Size:   %d bytes\n", r.TotalSize)
+	fmt.Fprintf(out, "  Target SDK policy: %s, minimum %d, effective %s (override: %t, exempt: %t)\n", r.TargetSDKPolicy.AppType, r.TargetSDKPolicy.Minimum, r.TargetSDKPolicy.EffectiveDate, r.TargetSDKPolicy.Override, r.TargetSDKPolicy.Exempt)
 	fmt.Fprintln(out)
 
 	if len(r.Findings) == 0 {

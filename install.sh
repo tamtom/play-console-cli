@@ -48,30 +48,31 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 echo "Downloading ${ASSET}..."
 curl -fsSL "${BIN_URL}" -o "${TMP_DIR}/${ASSET}"
 
-# Verify checksum if available
-if curl -fsSL "${CHECKSUMS_URL}" -o "${TMP_DIR}/checksums.txt" 2>/dev/null; then
-  if command -v shasum >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1; then
-    EXPECTED="$(grep -E "[ *]${ASSET}$" "${TMP_DIR}/checksums.txt" | awk '{print $1}')"
-    if [ -n "${EXPECTED}" ]; then
-      if command -v shasum >/dev/null 2>&1; then
-        ACTUAL="$(shasum -a 256 "${TMP_DIR}/${ASSET}" | awk '{print $1}')"
-      else
-        ACTUAL="$(sha256sum "${TMP_DIR}/${ASSET}" | awk '{print $1}')"
-      fi
-      if [ "${EXPECTED}" != "${ACTUAL}" ]; then
-        echo "Checksum verification failed."
-        exit 1
-      fi
-      echo "Checksum verified."
-    else
-      echo "Warning: Asset not found in checksums.txt. Skipping verification."
-    fi
-  else
-    echo "Warning: No checksum tool available. Skipping verification."
-  fi
-else
-  echo "Warning: Could not download checksums.txt. Skipping verification."
+# Every installation must have exactly one valid checksum for this asset.
+if ! curl -fsSL "${CHECKSUMS_URL}" -o "${TMP_DIR}/checksums.txt"; then
+  echo "Cannot download checksums.txt; refusing to install an unverified binary." >&2
+  exit 1
 fi
+EXPECTED="$(awk -v asset="${ASSET}" '
+  NF == 2 { name=$2; sub(/^\*/, "", name); if (name == asset) { count++; digest=$1 } }
+  END { if (count != 1 || length(digest) != 64 || digest ~ /[^0-9a-fA-F]/) exit 1; print tolower(digest) }
+' "${TMP_DIR}/checksums.txt")" || {
+  echo "Missing, duplicate, or invalid SHA-256 checksum for ${ASSET}." >&2
+  exit 1
+}
+if command -v shasum >/dev/null 2>&1; then
+  ACTUAL="$(shasum -a 256 "${TMP_DIR}/${ASSET}" | awk '{print $1}')"
+elif command -v sha256sum >/dev/null 2>&1; then
+  ACTUAL="$(sha256sum "${TMP_DIR}/${ASSET}" | awk '{print $1}')"
+else
+  echo "A SHA-256 tool (shasum or sha256sum) is required; refusing to install." >&2
+  exit 1
+fi
+if [ "${EXPECTED}" != "${ACTUAL}" ]; then
+  echo "Checksum verification failed." >&2
+  exit 1
+fi
+echo "Checksum verified."
 
 # Create install directory
 if ! mkdir -p "${INSTALL_DIR}" 2>/dev/null; then

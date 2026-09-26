@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -47,8 +48,11 @@ func HaltCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "halt",
 		ShortUsage: "gplay rollout halt --package <name> --track <track>",
-		ShortHelp:  "Halt a staged rollout.",
-		LongHelp: `Halt a staged rollout, preventing new users from getting the update.
+		ShortHelp:  "Halt a staged or completed rollout.",
+		LongHelp: `Halt a staged or completed rollout, preventing new users from getting the update.
+An active staged release is selected first. A completed release is selected only
+when no staged or halted release exists. Ambiguous tracks require tracks update.
+Google requires an eligible previous release to serve as the fallback.
 Existing users who received the update are not affected.
 
 Example:
@@ -56,7 +60,7 @@ Example:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateRolloutStatus(ctx, *packageName, *track, "halted", 0, *changesNotSent, *outputFlag, *pretty)
+			return updateRolloutStatus(ctx, *packageName, *track, "halt", 0, *changesNotSent, *outputFlag, *pretty)
 		},
 	}
 }
@@ -83,7 +87,7 @@ Example:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateRolloutStatus(ctx, *packageName, *track, "inProgress", *rolloutFraction, *changesNotSent, *outputFlag, *pretty)
+			return updateRolloutStatus(ctx, *packageName, *track, "resume", *rolloutFraction, *changesNotSent, *outputFlag, *pretty)
 		},
 	}
 }
@@ -101,8 +105,9 @@ func UpdateCommand() *ffcli.Command {
 		Name:       "update",
 		ShortUsage: "gplay rollout update --package <name> --track <track> --rollout <fraction>",
 		ShortHelp:  "Update rollout percentage.",
-		LongHelp: `Update the rollout percentage for a staged rollout.
-The new fraction must be greater than the current fraction.
+		LongHelp: `Update the rollout percentage for an active staged rollout.
+Use rollout resume to restart a halted release.
+The new fraction must be greater than the current fraction. A fraction of 1 completes the rollout.
 
 Example:
   gplay rollout update --package com.example.app --track production --rollout 0.5`,
@@ -112,7 +117,7 @@ Example:
 			if *rolloutFraction <= 0 || *rolloutFraction > 1 {
 				return fmt.Errorf("--rollout must be between 0.0 and 1.0")
 			}
-			return updateRolloutStatus(ctx, *packageName, *track, "inProgress", *rolloutFraction, *changesNotSent, *outputFlag, *pretty)
+			return updateRolloutStatus(ctx, *packageName, *track, "update", *rolloutFraction, *changesNotSent, *outputFlag, *pretty)
 		},
 	}
 }
@@ -136,14 +141,28 @@ Example:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			return updateRolloutStatus(ctx, *packageName, *track, "completed", 1.0, *changesNotSent, *outputFlag, *pretty)
+			return updateRolloutStatus(ctx, *packageName, *track, "complete", 1.0, *changesNotSent, *outputFlag, *pretty)
 		},
 	}
 }
 
-func updateRolloutStatus(ctx context.Context, packageName, track, status string, rolloutFraction float64, changesNotSent bool, outputFlag string, pretty bool) error {
+func updateRolloutStatus(ctx context.Context, packageName, track, action string, rolloutFraction float64, changesNotSent bool, outputFlag string, pretty bool) error {
 	if err := shared.ValidateOutputFlags(outputFlag, pretty); err != nil {
 		return err
+	}
+
+	if math.IsNaN(rolloutFraction) || math.IsInf(rolloutFraction, 0) || rolloutFraction < 0 || rolloutFraction > 1 {
+		return fmt.Errorf("--rollout must be finite and between 0 and 1; use rollout complete for 100%%")
+	}
+	status := "inProgress"
+	switch action {
+	case "halt":
+		status = "halted"
+	case "complete":
+		status = "completed"
+	}
+	if rolloutFraction == 1 {
+		status = "completed"
 	}
 
 	service, err := playclient.NewService(ctx)
@@ -173,27 +192,53 @@ func updateRolloutStatus(ctx context.Context, packageName, track, status string,
 		return fmt.Errorf("failed to get track: %w", err)
 	}
 
-	// Find the release to update
-	var targetRelease *androidpublisher.TrackRelease
+	var candidates []*androidpublisher.TrackRelease
 	for _, rel := range currentTrack.Releases {
+		if action == "update" && rel.Status != "inProgress" {
+			continue
+		}
 		if rel.Status == "inProgress" || rel.Status == "halted" {
-			targetRelease = rel
-			break
+			if action != "resume" || rel.Status == "halted" {
+				candidates = append(candidates, rel)
+			}
 		}
 	}
-	if targetRelease == nil {
-		return fmt.Errorf("no active or halted release found in %s track", track)
+	if len(candidates) == 0 && action == "halt" {
+		for _, rel := range currentTrack.Releases {
+			if rel.Status == "completed" {
+				candidates = append(candidates, rel)
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		if action == "update" {
+			return fmt.Errorf("no active staged release found in %s track; use rollout resume to restart a halted release", track)
+		}
+		return fmt.Errorf("no eligible release found in %s track", track)
+	}
+	if len(candidates) != 1 {
+		return fmt.Errorf("multiple eligible releases in %s; use tracks update to select the release explicitly", track)
+	}
+	targetRelease := candidates[0]
+	if rolloutFraction > 0 && rolloutFraction < targetRelease.UserFraction {
+		return fmt.Errorf("--rollout cannot decrease the current fraction %g", targetRelease.UserFraction)
+	}
+	if action == "resume" && rolloutFraction == 0 && targetRelease.UserFraction == 0 {
+		status = "completed"
+	}
+	if status == "inProgress" && rolloutFraction == 0 && (targetRelease.UserFraction <= 0 || targetRelease.UserFraction >= 1) {
+		return fmt.Errorf("--rollout must specify a fraction strictly between 0 and 1 for a staged release")
 	}
 
-	// Step 3: Update release status
 	fmt.Fprintf(shared.Stderr(ctx), "Updating rollout status to: %s\n", status)
-
 	targetRelease.Status = status
-	if rolloutFraction > 0 && rolloutFraction < 1 {
+	if status == "completed" {
+		targetRelease.UserFraction = 0
+	} else if rolloutFraction > 0 {
 		targetRelease.UserFraction = rolloutFraction
-	} else if status == "completed" {
-		targetRelease.UserFraction = 0 // Clear fraction for completed
-		targetRelease.ForceSendFields = append(targetRelease.ForceSendFields, "UserFraction")
+	}
+	if status != "inProgress" {
+		targetRelease.CountryTargeting = nil
 	}
 
 	trackObj := &androidpublisher.Track{

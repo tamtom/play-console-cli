@@ -16,5 +16,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
       - name: Compare reviewed manifest with official discovery documents
-        run: python3 scripts/check-api-drift.py
+        run: make check-api-drift

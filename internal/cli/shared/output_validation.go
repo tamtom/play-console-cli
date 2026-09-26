@@ -2,7 +2,8 @@ package shared
 
 import (
 	"context"
-	"fmt"
+	"flag"
+	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -34,16 +35,28 @@ func WrapCommandOutputValidation(cmd *ffcli.Command) {
 			prettyFlag := cmd.FlagSet.Lookup("pretty")
 
 			if outputFlag != nil {
-				format := strings.ToLower(strings.TrimSpace(outputFlag.Value.String()))
-				validFormats := map[string]bool{"json": true, "table": true, "markdown": true, "md": true, "": true}
-				if !validFormats[format] {
-					return fmt.Errorf("unsupported output format: %s", format)
-				}
-
-				if prettyFlag != nil && prettyFlag.Value.String() == "true" {
-					if format == "table" || format == "markdown" || format == "md" {
-						return fmt.Errorf("--pretty is only valid with JSON output")
+				explicit := false
+				cmd.FlagSet.Visit(func(f *flag.Flag) {
+					if f.Name == "output" {
+						explicit = true
 					}
+				})
+				if value := os.Getenv("GPLAY_DEFAULT_OUTPUT"); !explicit && value != "" {
+					if err := outputFlag.Value.Set(value); err != nil {
+						return err
+					}
+				}
+				format := strings.ToLower(strings.TrimSpace(outputFlag.Value.String()))
+				var additionalFormats []string
+				if outputFlag.DefValue == "text" {
+					additionalFormats = append(additionalFormats, "text")
+				}
+				if err := outputFlag.Value.Set(format); err != nil {
+					return err
+				}
+				pretty := prettyFlag != nil && prettyFlag.Value.String() == "true"
+				if err := ValidateOutputFlags(format, pretty, additionalFormats...); err != nil {
+					return err
 				}
 			}
 		}

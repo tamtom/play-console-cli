@@ -1,0 +1,13 @@
+package preflight
+
+import "testing"
+
+func TestAuditCurrentTargetSDKFloor(t *testing.T) {
+	findings := checkTargetSDKFloor(&scanContext{manifest: &Manifest{TargetSdk: 35, MinSdk: 23}})
+	for _, f := range findings {
+		if f.Check == "target_sdk" && f.Severity == SeverityError {
+			return
+		}
+	}
+	t.Errorf("ordinary app update targeting 35 passes current target SDK check: %+v", findings)
+}

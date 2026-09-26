@@ -1,7 +1,7 @@
 # gplay — Google Play Console CLI for AI Agents
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go" alt="Go Version">
+  <img src="https://img.shields.io/badge/Go-1.27.1+-00ADD8?style=for-the-badge&logo=go" alt="Go Version">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Homebrew-compatible-blue?style=for-the-badge" alt="Homebrew">
 </p>
@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/instal
 irm https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.ps1 | iex
 ```
 
-**Update:** `gplay update` self-updates in place. It also checks for new versions on startup (disable with `GPLAY_NO_UPDATE=1`).
+**Update:** `gplay update` verifies the release SHA-256 checksum before replacing a standalone binary. Homebrew and Go installations receive the appropriate update command. Successful interactive commands suggest newer stable releases on stderr, using a 24-hour cache; help, version, completion, CI, and piped commands skip automatic checks. Set `GPLAY_NO_UPDATE=1` to disable suggestions or run `gplay update --check` explicitly. Source builds require Go 1.27.1 or newer.
 
 After your first successful metadata push, edit commit, or release with `gh` installed, gplay
 prints an optional star suggestion to stderr. It never waits for input or
@@ -130,7 +130,7 @@ gplay reviews list --package com.example.app | jq '.reviews[0]'
 
 - **Current official API coverage** — the reviewed manifest tracks 218 methods across eight Play-specific discovery APIs, plus the two Cloud Storage methods needed for reports. All 145 current Android Publisher methods have a CLI path; specialized third-party-store and enterprise-KMS commands are explicitly scope-gated.
 - **Explicit safety boundary** — `gplay capabilities` distinguishes official, manual, and unsupported workflows; `gplay bootstrap plan` prepares initial app setup without logging in, contacting Google, or changing an account.
-- **Agent-native discovery** — `gplay search` ranks commands, examples, flags, and canonical intents locally; `gplay schema` embeds all 218 reviewed endpoints and 566 official request/response definitions with no credentials or network access.
+- **Agent-native discovery** — `gplay search` ranks commands, examples, flags, and canonical intents locally; `gplay schema` embeds all 218 reviewed endpoints and 568 official request/response definitions with no credentials or network access.
 - **Resilient one-shot workflows** — workflow steps support opt-in bounded retries and per-attempt timeouts, persist structured attempt diagnostics, fingerprint definitions, and refuse ambiguous or changed-definition resumes.
 - **Local weekly/daily insights** — compare installs, uninstalls, crashes, ANRs, and store-listing conversion from official Google Play CSV exports; UTF-8/UTF-16 are supported and missing metrics remain explicitly unavailable.
 - **Managed Google Play** — publish private (custom) apps to specific organizations with `gplay custom-apps create`, straight from the terminal.

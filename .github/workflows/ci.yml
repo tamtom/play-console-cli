@@ -38,6 +38,8 @@ jobs:
           go-version: '1.27.1'
           cache: true
       - run: go test -v -race ./...
+      - run: python3 -m unittest discover -s scripts/tests
+      - run: make check-api-schema
 
   build:
     name: Build

@@ -3,6 +3,7 @@ package shared
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,28 +44,39 @@ type DryRunTransport struct {
 // RoundTrip implements http.RoundTripper.
 func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if !writeMethods[req.Method] {
-		return t.Base.RoundTrip(req)
+		base := t.Base
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		return base.RoundTrip(req)
 	}
 
 	w := t.Writer
 	if w == nil {
-		return t.Base.RoundTrip(req)
+		w = io.Discard
 	}
 
 	// Log the intercepted request.
-	fmt.Fprintf(w, "[DRY RUN] %s %s\n", req.Method, req.URL.String()) // #nosec G705 -- writing to stderr, not a web response
+	fmt.Fprintf(w, "[DRY RUN] %s %s\n", req.Method, dryRunURL(req)) // #nosec G705 -- writing to stderr, not a web response
 
 	if req.Body != nil && req.Body != http.NoBody {
-		body, err := io.ReadAll(req.Body)
+		const limit = 2048
+		body, err := io.ReadAll(io.LimitReader(req.Body, limit+1))
 		req.Body.Close()
 		if err == nil && len(body) > 0 {
-			// Truncate very large bodies (e.g., binary uploads) for readability.
-			const maxBody = 2048
-			display := string(body)
-			if len(display) > maxBody {
-				display = display[:maxBody] + "... (truncated)"
+			display := "[omitted: non-JSON body]"
+			if len(body) > limit {
+				display = "[omitted: large body] ... (truncated)"
+			} else {
+				var value any
+				if json.Unmarshal(body, &value) == nil {
+					redactDryRunJSON(value)
+					if safe, err := json.Marshal(value); err == nil {
+						display = string(safe)
+					}
+				}
 			}
-			fmt.Fprintf(w, "[DRY RUN] Body: %s\n", strings.TrimSpace(display))
+			fmt.Fprintf(w, "[DRY RUN] Body: %s\n", display)
 		}
 	}
 
@@ -81,4 +93,53 @@ func (t *DryRunTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		Body:       io.NopCloser(bytes.NewBufferString("{}")),
 		Request:    req,
 	}, nil
+}
+
+func dryRunURL(req *http.Request) string {
+	u := *req.URL
+	u.User = nil
+	query := u.Query()
+	for key := range query {
+		if dryRunSensitiveName(key) {
+			query.Set(key, "<redacted>")
+		}
+	}
+	u.RawQuery = query.Encode()
+	segments := strings.Split(u.Path, "/")
+	for i := 1; i < len(segments); i++ {
+		if strings.EqualFold(segments[i-1], "tokens") {
+			segments[i] = "<redacted>"
+		}
+	}
+	u.Path = strings.Join(segments, "/")
+	u.RawPath = ""
+	u.Fragment = ""
+	return u.String()
+}
+
+func redactDryRunJSON(value any) {
+	switch v := value.(type) {
+	case map[string]any:
+		for key, child := range v {
+			if dryRunSensitiveName(key) {
+				v[key] = "<redacted>"
+			} else {
+				redactDryRunJSON(child)
+			}
+		}
+	case []any:
+		for _, child := range v {
+			redactDryRunJSON(child)
+		}
+	}
+}
+
+func dryRunSensitiveName(key string) bool {
+	name := strings.ToLower(key)
+	for _, part := range []string{"token", "secret", "password", "credential", "key", "authorization", "webhook", "payload", "data"} {
+		if strings.Contains(name, part) {
+			return true
+		}
+	}
+	return false
 }

@@ -40,11 +40,12 @@ type Report struct {
 	Path   string `json:"path"`
 	Format string `json:"format,omitempty"`
 
-	Package     string `json:"package,omitempty"`
-	VersionCode int64  `json:"version_code,omitempty"`
-	VersionName string `json:"version_name,omitempty"`
-	MinSdk      int    `json:"min_sdk,omitempty"`
-	TargetSdk   int    `json:"target_sdk,omitempty"`
+	Package         string          `json:"package,omitempty"`
+	VersionCode     int64           `json:"version_code,omitempty"`
+	VersionName     string          `json:"version_name,omitempty"`
+	MinSdk          int             `json:"min_sdk,omitempty"`
+	TargetSdk       int             `json:"target_sdk,omitempty"`
+	TargetSDKPolicy TargetSDKPolicy `json:"target_sdk_policy"`
 
 	Findings []Finding `json:"findings"`
 	Infos    int       `json:"infos"`
@@ -77,6 +78,8 @@ type Options struct {
 	// MinTargetSDK is the minimum target SDK Play accepts
 	// (0 = default currentMinTargetSDK).
 	MinTargetSDK int
+	// AppType selects the submission policy; private means permanently private organization apps.
+	AppType string
 	// Only restricts the run to these scanner IDs. Empty means all.
 	Only []string
 	// Skip excludes these scanner IDs.

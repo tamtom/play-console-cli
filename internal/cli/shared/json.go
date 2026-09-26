@@ -1,8 +1,10 @@
 package shared
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -10,22 +12,19 @@ import (
 
 // LoadJSONArg parses JSON from a literal string or @file path.
 func LoadJSONArg(value string, out interface{}) error {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return fmt.Errorf("empty json value")
+	data, err := LoadJSONArgRaw(value)
+	if err != nil {
+		return err
 	}
-	if strings.HasPrefix(trimmed, "@") {
-		path := strings.TrimSpace(strings.TrimPrefix(trimmed, "@"))
-		if path == "" {
-			return fmt.Errorf("invalid @file path")
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		return json.Unmarshal(data, out)
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		return err
 	}
-	return json.Unmarshal([]byte(trimmed), out)
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return fmt.Errorf("expected one JSON value")
+	}
+	return nil
 }
 
 // LoadJSONArgRaw returns the raw JSON bytes from a literal string or @file path

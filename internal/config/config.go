@@ -241,6 +241,10 @@ func LocalPath() (string, error) {
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
+		legacy := filepath.Join(dir, configDirName, "config.yaml")
+		if _, err := os.Stat(legacy); err == nil {
+			return legacy, nil
+		}
 
 		// Stop at .git boundary
 		gitDir := filepath.Join(dir, ".git")
@@ -292,7 +296,16 @@ func resolvePath() (string, error) {
 		}
 	}
 
-	return configPath()
+	path, err := configPath()
+	if err == nil {
+		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+			legacy := filepath.Join(filepath.Dir(path), "config.yaml")
+			if _, legacyErr := os.Stat(legacy); legacyErr == nil {
+				return legacy, nil
+			}
+		}
+	}
+	return path, err
 }
 
 func cleanConfigPath(path string) (string, error) {
@@ -320,6 +333,9 @@ func Load() (*Config, error) {
 
 // LoadAt reads configuration from a specific path.
 func LoadAt(path string) (*Config, error) {
+	if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+		return nil, fmt.Errorf("legacy YAML configuration at %s is unsupported; run gplay init --force with your --package, --service-account and --timeout values to create .gplay/config.json", path)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -336,6 +352,9 @@ func LoadAt(path string) (*Config, error) {
 
 // SaveAt writes configuration to a specific path.
 func SaveAt(path string, cfg *Config) error {
+	if ext := strings.ToLower(filepath.Ext(path)); ext == ".yaml" || ext == ".yml" {
+		return fmt.Errorf("legacy YAML configuration at %s is unsupported; recreate it as config.json using gplay init --force", path)
+	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err

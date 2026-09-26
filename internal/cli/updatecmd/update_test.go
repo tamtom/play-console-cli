@@ -5,50 +5,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/tamtom/play-console-cli/internal/update"
 )
-
-func TestUpdateCommandName(t *testing.T) {
-	cmd := UpdateCommand()
-	if cmd.Name != "update" {
-		t.Errorf("expected command name %q, got %q", "update", cmd.Name)
-	}
-}
-
-func TestUpdateCommandShortHelp(t *testing.T) {
-	cmd := UpdateCommand()
-	if cmd.ShortHelp == "" {
-		t.Error("expected non-empty ShortHelp")
-	}
-}
-
-func TestUpdateCommandFlags(t *testing.T) {
-	cmd := UpdateCommand()
-
-	checkFlag := cmd.FlagSet.Lookup("check")
-	if checkFlag == nil {
-		t.Fatal("expected --check flag to be registered")
-		return
-	}
-	if checkFlag.DefValue != "false" {
-		t.Errorf("expected --check default %q, got %q", "false", checkFlag.DefValue)
-	}
-
-	forceFlag := cmd.FlagSet.Lookup("force")
-	if forceFlag == nil {
-		t.Fatal("expected --force flag to be registered")
-		return
-	}
-	if forceFlag.DefValue != "false" {
-		t.Errorf("expected --force default %q, got %q", "false", forceFlag.DefValue)
-	}
-}
-
-func TestUpdateCommandUsageFunc(t *testing.T) {
-	cmd := UpdateCommand()
-	if cmd.UsageFunc == nil {
-		t.Error("expected UsageFunc to be set")
-	}
-}
 
 func TestDetectInstallMethod(t *testing.T) {
 	homeDir, err := os.UserHomeDir()
@@ -105,9 +64,9 @@ func TestDetectInstallMethod(t *testing.T) {
 			if tt.expected == "goinstall" {
 				t.Setenv("GOPATH", "")
 			}
-			got := detectInstallMethod(tt.path)
+			got := update.DetectInstallMethod(tt.path)
 			if got != tt.expected {
-				t.Errorf("detectInstallMethod(%q) = %q, want %q", tt.path, got, tt.expected)
+				t.Errorf("update.DetectInstallMethod(%q) = %q, want %q", tt.path, got, tt.expected)
 			}
 		})
 	}
@@ -116,7 +75,7 @@ func TestDetectInstallMethod(t *testing.T) {
 func TestDetectInstallMethodCustomGOPATH(t *testing.T) {
 	customGopath := filepath.Join(t.TempDir(), "gopath")
 	t.Setenv("GOPATH", customGopath)
-	got := detectInstallMethod(filepath.Join(customGopath, "bin", "gplay"))
+	got := update.DetectInstallMethod(filepath.Join(customGopath, "bin", "gplay"))
 	if got != "goinstall" {
 		t.Errorf("expected %q for custom GOPATH, got %q", "goinstall", got)
 	}

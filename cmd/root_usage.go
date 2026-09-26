@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -81,5 +82,12 @@ func RootUsageFunc(c *ffcli.Command) string {
 		fmt.Fprintln(&b)
 	}
 
+	if c.FlagSet != nil {
+		fmt.Fprintln(&b, "GLOBAL FLAGS (before the command)")
+		tw := tabwriter.NewWriter(&b, 2, 4, 2, ' ', 0)
+		c.FlagSet.VisitAll(func(f *flag.Flag) { fmt.Fprintf(tw, "  --%s\t%s\n", f.Name, f.Usage) })
+		_ = tw.Flush()
+		fmt.Fprintln(&b)
+	}
 	return b.String()
 }

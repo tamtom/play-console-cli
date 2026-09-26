@@ -1,6 +1,9 @@
 package preflight
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // currentMinTargetSDK is the minimum target API level Play accepts for new
 // apps and updates.
@@ -8,7 +11,38 @@ import "fmt"
 // Google raises this every year, roughly each August, to "latest release
 // minus one". Review this constant annually; `--min-target-sdk` overrides it
 // without a rebuild.
-const currentMinTargetSDK = 35
+const currentMinTargetSDK = 36
+
+// TargetSDKPolicy records the submission rule used by an offline scan.
+type TargetSDKPolicy struct {
+	AppType       string `json:"app_type"`
+	Minimum       int    `json:"minimum"`
+	EffectiveDate string `json:"effective_date"`
+	Source        string `json:"source"`
+	Override      bool   `json:"override,omitempty"`
+	Exempt        bool   `json:"exempt,omitempty"`
+}
+
+func targetSDKPolicy(opts Options) (TargetSDKPolicy, error) {
+	appType := strings.ToLower(strings.TrimSpace(opts.AppType))
+	if appType == "" {
+		appType = "mobile"
+	}
+	// Submission requirements effective 2026-08-31, reviewed 2026-09-26.
+	floors := map[string]int{"mobile": currentMinTargetSDK, "wear": 35, "automotive": 35, "tv": 34, "xr": 34, "private": 0}
+	floor, ok := floors[appType]
+	if !ok {
+		return TargetSDKPolicy{}, fmt.Errorf("--app-type must be mobile, wear, automotive, tv, xr or private")
+	}
+	if opts.MinTargetSDK < 0 {
+		return TargetSDKPolicy{}, fmt.Errorf("--min-target-sdk must be non-negative")
+	}
+	p := TargetSDKPolicy{AppType: appType, Minimum: floor, EffectiveDate: "2026-08-31", Source: refTargetSDK, Exempt: appType == "private"}
+	if opts.MinTargetSDK > 0 {
+		p.Minimum, p.Override, p.Exempt = opts.MinTargetSDK, true, false
+	}
+	return p, nil
+}
 
 // lowMinSDK is the API level below which device coverage no longer justifies
 // the compatibility cost.
@@ -66,13 +100,12 @@ func checkTargetSDKFloor(c *scanContext) []Finding {
 	}
 	m := c.manifest
 
-	floor := c.opts.MinTargetSDK
-	if floor <= 0 {
-		floor = currentMinTargetSDK
-	}
+	policy, _ := targetSDKPolicy(c.opts) // Scan validates options before opening the archive.
+	floor := policy.Minimum
 
 	var out []Finding
 	switch {
+	case policy.Exempt:
 	case m.TargetSdk == 0:
 		out = append(out, Finding{
 			Check:    "target_sdk",
@@ -85,7 +118,7 @@ func checkTargetSDKFloor(c *scanContext) []Finding {
 		out = append(out, Finding{
 			Check:    "target_sdk",
 			Severity: SeverityError,
-			Message:  fmt.Sprintf("targetSdkVersion %d is below the Play minimum of %d", m.TargetSdk, floor),
+			Message:  fmt.Sprintf("targetSdkVersion %d is below the Play minimum of %d for %s submissions (effective %s)", m.TargetSdk, floor, policy.AppType, policy.EffectiveDate),
 			Hint:     "Play blocks uploads below the current target API requirement; raise targetSdk and retest",
 			Ref:      refTargetSDK,
 		})

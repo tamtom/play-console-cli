@@ -269,3 +269,42 @@ func TestDryRunTransport_OutputFormat(t *testing.T) {
 		t.Fatalf("line 2 should be '[DRY RUN] No changes were made.', got: %s", lines[2])
 	}
 }
+
+func TestDryRunTransportMissingWriterStillBlocksWrites(t *testing.T) {
+	base := &fakeTransport{}
+	transport := &DryRunTransport{Base: base}
+	req, err := http.NewRequest(http.MethodPost, "https://example.invalid/test", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if base.called {
+		t.Fatal("missing log writer allowed a real write")
+	}
+}
+
+func TestDryRunDoesNotLogCredentials(t *testing.T) {
+	var output bytes.Buffer
+	transport := &DryRunTransport{Base: &fakeTransport{}, Writer: &output}
+	for _, body := range []string{`{"purchaseToken":"SECRET_MARKER","nested":{"client_secret":"SECRET_MARKER"},"status":"completed"}`, "SECRET_MARKER", strings.Repeat("SECRET_MARKER", 1000)} {
+		req, err := http.NewRequest(http.MethodPost, "https://user:SECRET_MARKER@example.test/purchases/subscriptions/tokens/SECRET_MARKER:cancel?key=SECRET_MARKER", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := transport.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+	}
+	if strings.Contains(output.String(), "SECRET_MARKER") {
+		t.Fatalf("dry-run leaked credentials: %s", output.String())
+	}
+	if !strings.Contains(output.String(), "completed") {
+		t.Fatal("lost non-sensitive payload preview")
+	}
+}

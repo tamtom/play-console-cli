@@ -119,7 +119,7 @@ gplay auth doctor --fix --confirm
 | `GPLAY_TIMEOUT` | Request timeout (e.g., `90s`, `2m`) |
 | `GPLAY_TIMEOUT_SECONDS` | Timeout in seconds (alternative) |
 | `GPLAY_UPLOAD_TIMEOUT` | Upload timeout (e.g., `5m`, `10m`) |
-| `GPLAY_DEBUG` | Enable debug logging (set to `api` for HTTP requests) |
+| `GPLAY_DEBUG` | Suppress progress spinners (`1` or `api`; HTTP logging is not implemented) |
 | `GPLAY_NO_UPDATE` | Disable update checks |
 | `GPLAY_MAX_RETRIES` | Max retries for transient read-only requests (default: 3; `0` disables retries) |
 | `GPLAY_RETRY_DELAY` | Base exponential-backoff delay for read-only retries (default: `1s`) |
@@ -128,15 +128,16 @@ gplay auth doctor --fix --confirm
 
 ## Config File
 
-Global config: `~/.gplay/config.yaml`
-Local config: `./.gplay/config.yaml` (takes precedence)
+Global config: `~/.gplay/config.json`
+Local config: `./.gplay/config.json` (takes precedence)
 
-```yaml
-default_package: com.example.app
-timeout: 120s
-upload_timeout: 5m
-max_retries: 3
-debug: false
+```json
+{
+  "package_name": "com.example.app",
+  "timeout": "120s",
+  "upload_timeout": "5m",
+  "max_retries": 3
+}
 ```
 
 ## Project Structure

@@ -78,6 +78,10 @@ func runSend(ctx context.Context, opts sendOpts) error {
 	}
 
 	payload := BuildPayload(pf, opts.message, opts.eventType, opts.packageName)
+	if shared.IsDryRun(ctx) {
+		fmt.Fprintln(shared.Stderr(ctx), "[DRY RUN] Would send webhook notification. No changes were made.")
+		return shared.PrintOutputContext(ctx, map[string]any{"dry_run": true, "format": string(pf)}, opts.outputFlag, opts.pretty)
+	}
 
 	// Apply timeout from config if available.
 	cfg, _ := config.Load()

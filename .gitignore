@@ -28,6 +28,7 @@ vendor/
 *.json
 !internal/apischema/schema-index.json
 !docs/api/google-play-api-manifest.json
+!docs/api/sdk-field-adapters.json
 !docs/api/discovery.json
 !docs/testing/command-coverage.json
 !go.mod
@@ -50,3 +51,6 @@ ROADMAP.md
 
 # SDK reference docs (local only)
 docs/androidpublisher-v3-reference.md
+
+# Python validation caches
+__pycache__/

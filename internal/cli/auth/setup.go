@@ -174,7 +174,7 @@ Example:
 				SAName:     strings.TrimSpace(*saName),
 				Profile:    strings.TrimSpace(*profile),
 				KeyOut:     strings.TrimSpace(*keyOut),
-				DryRun:     *dryRun,
+				DryRun:     *dryRun || shared.IsDryRun(ctx),
 				SetDefault: *setDefault,
 				NoBrowser:  *noBrowser,
 				NoInstall:  *noInstall,
@@ -241,10 +241,10 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout io.Writer) error {
 	}
 
 	if !opts.Auto {
-		return shared.NewReportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"manual setup: see https://developers.google.com/android-publisher/getting_started — " +
 				"or re-run with --auto to automate via gcloud",
-		))
+		)
 	}
 
 	var preSteps []string
@@ -264,11 +264,11 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout io.Writer) error {
 	if project == "" {
 		out, err := opts.Runner.Run(ctx, nil, "gcloud", "config", "get-value", "project", "--quiet")
 		if err != nil {
-			return shared.NewReportedError(fmt.Errorf("resolve project: %w", err))
+			return fmt.Errorf("resolve project: %w", err)
 		}
 		project = strings.TrimSpace(string(out))
 		if project == "" || project == "(unset)" {
-			return shared.NewReportedError(errors.New("no GCP project set; pass --project or run `gcloud config set project <id>`"))
+			return errors.New("no GCP project set; pass --project or run `gcloud config set project <id>`")
 		}
 	}
 
@@ -314,12 +314,14 @@ func RunSetup(ctx context.Context, opts SetupOptions, stdout io.Writer) error {
 		},
 	}
 
-	keyRoot, err := rootfs.OpenOrCreate(filepath.Dir(keyPath), 0o700)
-	if err != nil {
-		return fmt.Errorf("prepare key output dir: %w", err)
-	}
-	if err := keyRoot.Close(); err != nil {
-		return fmt.Errorf("close key output dir: %w", err)
+	if !opts.DryRun {
+		keyRoot, err := rootfs.OpenOrCreate(filepath.Dir(keyPath), 0o700)
+		if err != nil {
+			return fmt.Errorf("prepare key output dir: %w", err)
+		}
+		if err := keyRoot.Close(); err != nil {
+			return fmt.Errorf("close key output dir: %w", err)
+		}
 	}
 
 	// Enable API.
@@ -396,20 +398,20 @@ func ensureGcloud(ctx context.Context, opts SetupOptions, steps *[]string) error
 		return nil
 	}
 	if opts.NoInstall {
-		return shared.NewReportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"gcloud CLI not found; install it from https://cloud.google.com/sdk or omit --no-install to auto-install",
-		))
+		)
 	}
 
 	if err := opts.Runner.InstallGcloud(ctx); err != nil {
-		return shared.NewReportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"install gcloud: %w; install manually from https://cloud.google.com/sdk", err,
-		))
+		)
 	}
 	if _, err := opts.Runner.LookPath("gcloud"); err != nil {
-		return shared.NewReportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"gcloud was installed but is not on PATH yet; restart your shell and re-run `gplay setup --auto`",
-		))
+		)
 	}
 	*steps = append(*steps, "installed gcloud CLI")
 	return nil
@@ -429,17 +431,17 @@ func ensureGcloudAuth(ctx context.Context, opts SetupOptions, steps *[]string) e
 	}
 
 	if opts.NoBrowser {
-		return shared.NewReportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"not logged into gcloud; run `gcloud auth login` first (or omit --no-browser to launch it)",
-		))
+		)
 	}
 
 	if err := opts.Runner.RunInteractive(ctx, "gcloud", "auth", "login"); err != nil {
-		return shared.NewReportedError(fmt.Errorf("gcloud auth login: %w", err))
+		return fmt.Errorf("gcloud auth login: %w", err)
 	}
 	account := activeGcloudAccount(ctx, opts.Runner)
 	if account == "" {
-		return shared.NewReportedError(fmt.Errorf("gcloud login did not complete; re-run `gplay setup --auto`"))
+		return fmt.Errorf("gcloud login did not complete; re-run `gplay setup --auto`")
 	}
 	*steps = append(*steps, "logged into gcloud: "+account)
 	return nil

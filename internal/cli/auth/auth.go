@@ -76,6 +76,9 @@ func AuthInitCommand() *ffcli.Command {
 			}
 
 			template := &config.Config{}
+			if shared.IsDryRun(ctx) {
+				return previewConfigChange(ctx, path)
+			}
 			if err := config.SaveAt(path, template); err != nil {
 				return err
 			}
@@ -146,6 +149,9 @@ Examples:
 			if err != nil {
 				return err
 			}
+			if shared.IsDryRun(ctx) {
+				return previewConfigChange(ctx, path)
+			}
 			if err := config.SaveAt(path, cfg); err != nil {
 				return err
 			}
@@ -187,6 +193,9 @@ func AuthSwitchCommand() *ffcli.Command {
 			path, err := config.Path()
 			if err != nil {
 				return err
+			}
+			if shared.IsDryRun(ctx) {
+				return previewConfigChange(ctx, path)
 			}
 			if err := config.SaveAt(path, cfg); err != nil {
 				return err
@@ -236,6 +245,9 @@ func AuthLogoutCommand() *ffcli.Command {
 			path, err := config.Path()
 			if err != nil {
 				return err
+			}
+			if shared.IsDryRun(ctx) {
+				return previewConfigChange(ctx, path)
 			}
 			if err := config.SaveAt(path, cfg); err != nil {
 				return err
@@ -317,7 +329,7 @@ func AuthDoctorCommand() *ffcli.Command {
 			report := buildAuthReport()
 			if normalized == "json" {
 				if *fix {
-					fixes := attemptFixes(report, *confirm)
+					fixes := attemptFixes(report, *confirm && !shared.IsDryRun(ctx))
 					result := struct {
 						Report authReport  `json:"report"`
 						Fixes  []fixResult `json:"fixes"`
@@ -336,7 +348,7 @@ func AuthDoctorCommand() *ffcli.Command {
 			printAuthReport(shared.Stdout(ctx), report)
 
 			if *fix {
-				fixes := attemptFixes(report, *confirm)
+				fixes := attemptFixes(report, *confirm && !shared.IsDryRun(ctx))
 				printFixes(shared.Stdout(ctx), fixes)
 			}
 
@@ -452,4 +464,9 @@ func envAuthPresent() bool {
 		return true
 	}
 	return false
+}
+
+func previewConfigChange(ctx context.Context, path string) error {
+	fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Would update configuration at %s; no changes made.\n", path)
+	return shared.PrintOutputContext(ctx, map[string]any{"dry_run": true, "config_path": path}, "json", false)
 }

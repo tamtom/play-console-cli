@@ -1,7 +1,9 @@
 package appstores
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,8 +13,42 @@ import (
 	"testing"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/playclient"
 )
+
+func TestUpdateAppPreservesDiscoveryFieldsAndScalarPresence(t *testing.T) {
+	input := `{"packageName":"app.example","activeApks":{"activeApkSets":[{"baseApkId":"base.apk","versionCode":"42","alreadyPublishedOnPlay":true}]},"policyDeclarations":[{"declarationId":"test","responses":[{"booleanResponse":{"value":false}}]}]}`
+	var got []byte
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"updateId":"review-42"}`)
+	}))
+	defer server.Close()
+	installAppStoreService(t, server)
+	var out, stderr bytes.Buffer
+	ctx := shared.ContextWithIO(context.Background(), &out, &stderr)
+	err := UpdateAppCommand().ParseAndRun(ctx, []string{"--app-store-package", "store.example", "--registered-third-party-store", "--confirm", "--json", input})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected, actual any
+	if err := json.Unmarshal([]byte(input), &expected); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(got, &actual); err != nil {
+		t.Fatal(err)
+	}
+	wantJSON, _ := json.Marshal(expected)
+	gotJSON, _ := json.Marshal(actual)
+	if string(gotJSON) != string(wantJSON) {
+		t.Errorf("request dropped fields: %s", got)
+	}
+	if !strings.Contains(out.String(), `"updateId":"review-42"`) {
+		t.Errorf("response dropped updateId: %s", out.String())
+	}
+}
 
 func TestCommand_ExposesAllOfficialThirdPartyStoreMethods(t *testing.T) {
 	cmd := AppStoresCommand()

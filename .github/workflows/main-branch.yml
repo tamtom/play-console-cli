@@ -35,6 +35,8 @@ jobs:
           cache: true
       - name: Run tests with coverage
         run: go test -v -race -coverprofile=coverage.out ./...
+      - run: python3 -m unittest discover -s scripts/tests
+      - run: make check-api-schema
       - name: Upload coverage
         uses: codecov/codecov-action@v7
         with:

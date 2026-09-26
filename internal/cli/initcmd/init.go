@@ -10,7 +10,7 @@ import (
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
-	"github.com/tamtom/play-console-cli/internal/rootfs"
+	"github.com/tamtom/play-console-cli/internal/config"
 )
 
 // InitCommand returns the init command.
@@ -24,24 +24,22 @@ func InitCommand() *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "init",
 		ShortUsage: "gplay init [--package <name>] [--service-account <path>] [flags]",
-		ShortHelp:  "Initialize a .gplay/config.yaml in the current directory.",
+		ShortHelp:  "Initialize a .gplay/config.json in the current directory.",
 		FlagSet:    fs,
 		UsageFunc:  shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			configDir := ".gplay"
-			configPath := filepath.Join(configDir, "config.yaml")
-			configRoot, err := rootfs.OpenOrCreate(configDir, 0o700)
-			if err != nil {
-				return fmt.Errorf("creating config directory: %w", err)
+			configPath := filepath.Join(".gplay", "config.json")
+			duration, err := config.ParseDurationValue(*timeout)
+			if err != nil || duration.Duration <= 0 {
+				return fmt.Errorf("--timeout must be a positive duration")
 			}
-			defer func() { _ = configRoot.Close() }()
-
-			// Check if config already exists
 			if !*force {
-				if _, err := configRoot.ReadFile("config.yaml"); err == nil {
-					return fmt.Errorf("config already exists at %s (use --force to overwrite)", configPath)
-				} else if !errors.Is(err, os.ErrNotExist) {
-					return fmt.Errorf("inspect existing config: %w", err)
+				for _, path := range []string{configPath, filepath.Join(".gplay", "config.yaml")} {
+					if _, err := os.Stat(path); err == nil {
+						return fmt.Errorf("config already exists at %s (use --force to overwrite)", path)
+					} else if !errors.Is(err, os.ErrNotExist) {
+						return fmt.Errorf("inspect existing config: %w", err)
+					}
 				}
 			}
 
@@ -57,9 +55,16 @@ func InitCommand() *ffcli.Command {
 			if pkg == "" {
 				pkg = "com.example.app"
 			}
-			content := generateConfig(pkg, *serviceAccount, *timeout)
-
-			if err := configRoot.AtomicWrite("config.yaml", []byte(content), 0o600); err != nil {
+			cfg := &config.Config{PackageName: pkg, Timeout: duration}
+			if *serviceAccount != "" {
+				cfg.DefaultProfile = "default"
+				cfg.Profiles = []config.Profile{{Name: "default", Type: "service_account", KeyPath: *serviceAccount}}
+			}
+			if shared.IsDryRun(ctx) {
+				fmt.Fprintf(shared.Stderr(ctx), "[DRY RUN] Would write %s. No changes were made.\n", configPath)
+				return shared.PrintOutputContext(ctx, map[string]any{"config_path": configPath, "created": false, "dry_run": true}, "json", false)
+			}
+			if err := config.SaveAt(configPath, cfg); err != nil {
 				return fmt.Errorf("writing config: %w", err)
 			}
 
@@ -84,20 +89,4 @@ func InitCommand() *ffcli.Command {
 			return nil
 		},
 	}
-}
-
-func generateConfig(packageName, serviceAccount, timeout string) string {
-	cfg := "# gplay local configuration\n"
-	cfg += "# See: gplay --help for all available options\n\n"
-	cfg += fmt.Sprintf("default_package: %s\n", packageName)
-	if serviceAccount != "" {
-		cfg += fmt.Sprintf("service_account: %s\n", serviceAccount)
-	} else {
-		cfg += "# service_account: /path/to/service-account.json\n"
-	}
-	cfg += fmt.Sprintf("\n# timeout: %s\n", timeout)
-	cfg += "# upload_timeout: 5m\n"
-	cfg += "# max_retries: 3\n"
-	cfg += "# debug: false\n"
-	return cfg
 }
