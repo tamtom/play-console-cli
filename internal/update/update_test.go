@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -95,8 +96,20 @@ func TestReleaseVersionComparison(t *testing.T) {
 	for _, tc := range []struct {
 		current string
 		newer   bool
-	}{{"0.9.0", true}, {"1.0.0-rc.1", true}, {"1.0.0", false}, {"1.0.0+build.5", false}, {"1.1.0", false}, {"dev", false}} {
+	}{
+		{"0.9.0", true},
+		{"1.0.0-rc.1", true},
+		{"1.0.0", false},
+		{"1.0.0+build.5", false},
+		{"1.1.0", false},
+		{"dev", false},
+		// git describe versions are development builds, not releases.
+		{"0.10.0-35-gc896cf6", false},
+		{"0.10.0-35-gc896cf6-dirty", false},
+		{"0.9.0-dirty", false},
+	} {
 		t.Run(tc.current, func(t *testing.T) {
+			t.Setenv("GPLAY_NO_UPDATE", "")
 			t.Setenv("HOME", t.TempDir())
 			t.Setenv("USERPROFILE", t.TempDir())
 			base := http.DefaultTransport
@@ -112,9 +125,10 @@ func TestReleaseVersionComparison(t *testing.T) {
 	}
 }
 
-func TestSuccessfulCheckCachesReleaseButFailuresDoNot(t *testing.T) {
+func TestCheckCachesSuccessAndFailure(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+			t.Setenv("GPLAY_NO_UPDATE", "")
 			t.Setenv("HOME", t.TempDir())
 			t.Setenv("USERPROFILE", t.TempDir())
 			previous := version.Version
@@ -130,23 +144,87 @@ func TestSuccessfulCheckCachesReleaseButFailuresDoNot(t *testing.T) {
 				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"tag_name":"v1.0.0"}`))}, nil
 			})
 			t.Cleanup(func() { http.DefaultTransport = base })
-			for range 2 {
+			for i := range 2 {
 				info, err := CheckForUpdate(context.Background(), Options{})
-				if fail {
-					if err == nil {
-						t.Fatal("failed check cached as success")
-					}
-				} else if err != nil || info == nil || !info.IsNewer {
+				switch {
+				case fail && i == 0 && err == nil:
+					t.Fatal("the failed check returned no error")
+				case fail && info != nil:
+					t.Fatalf("failed check cached as success: %+v", info)
+				case !fail && (err != nil || info == nil || !info.IsNewer):
 					t.Fatalf("cached update unavailable: info=%v err=%v", info, err)
 				}
 			}
-			want := 1
-			if fail {
-				want = 2
-			}
-			if calls != want {
-				t.Fatalf("requests=%d want=%d", calls, want)
+			// A failed check is also cached, for FailedCheckInterval, so that
+			// an offline machine does not wait for the network on each command.
+			if calls != 1 {
+				t.Fatalf("requests=%d want=1", calls)
 			}
 		})
+	}
+}
+
+func TestCheckSkipsDevelopmentBuildsAndDisabledChecks(t *testing.T) {
+	for _, tc := range []struct{ current, noUpdate string }{
+		{"0.10.0-35-gc896cf6", ""},
+		{"dev", ""},
+		{"0.9.0", "true"},
+		{"0.9.0", "YES"},
+	} {
+		t.Run(tc.current+"_"+tc.noUpdate, func(t *testing.T) {
+			t.Setenv("GPLAY_NO_UPDATE", tc.noUpdate)
+			t.Setenv("HOME", t.TempDir())
+			t.Setenv("USERPROFILE", t.TempDir())
+			calls := 0
+			base := http.DefaultTransport
+			http.DefaultTransport = testTransport(func(*http.Request) (*http.Response, error) {
+				calls++
+				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"tag_name":"v1.0.0"}`))}, nil
+			})
+			t.Cleanup(func() { http.DefaultTransport = base })
+			info, err := CheckForUpdate(context.Background(), Options{CurrentVersion: tc.current})
+			if info != nil || err != nil || calls != 0 {
+				t.Fatalf("info=%+v err=%v requests=%d, want no check", info, err, calls)
+			}
+		})
+	}
+}
+
+func TestIsReleaseVersion(t *testing.T) {
+	for v, want := range map[string]bool{
+		"1.0.0": true, "v1.0.0": true, "1.0.0-rc.1": true,
+		"0.10.0-35-gc896cf6": false, "0.10.0-35-gc896cf6-dirty": false, "1.0.0-dirty": false, "dev": false, "c896cf6": false,
+	} {
+		if got := IsReleaseVersion(v); got != want {
+			t.Errorf("IsReleaseVersion(%q) = %v, want %v", v, got, want)
+		}
+	}
+}
+
+func TestRemoveStaleBackupsKeepsOtherFiles(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"gplay.exe", "gplay.exe.old-A1", "gplay.exe.old-B2", "gplay.exe.new-C3", "other.exe.old-D4"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+
+	removeStaleBackups(root, "gplay.exe")
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	if got := strings.Join(names, ","); got != "gplay.exe,gplay.exe.new-C3,other.exe.old-D4" {
+		t.Fatalf("files after cleanup = %s", got)
 	}
 }

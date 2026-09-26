@@ -120,7 +120,7 @@ func RunWithRuntime(args []string, versionInfo string, configure func(*cliruntim
 
 func maybeSuggestUpdate(ctx context.Context, args []string, versionInfo string) {
 	terminal, ok := shared.Stderr(ctx).(*os.File)
-	if shared.IsDryRun(ctx) || os.Getenv("GPLAY_NO_UPDATE") == "1" || os.Getenv("CI") != "" || (!ok || !term.IsTerminal(int(terminal.Fd()))) {
+	if shared.IsDryRun(ctx) || update.Disabled() || os.Getenv("CI") != "" || (!ok || !term.IsTerminal(int(terminal.Fd()))) {
 		return
 	}
 	switch selectedRootCommand(args) {

@@ -58,7 +58,7 @@ Package precedence is `--package`, `GPLAY_PACKAGE`, legacy
 | `GPLAY_TIMEOUT` | Request timeout (e.g., `90s`, `2m`) |
 | `GPLAY_TIMEOUT_SECONDS` | Timeout in seconds (alternative) |
 | `GPLAY_UPLOAD_TIMEOUT` | Upload timeout (e.g., `5m`, `10m`) |
-| `GPLAY_NO_UPDATE` | Disable automatic update suggestions (set to `1`); explicit `update --check` still works |
+| `GPLAY_NO_UPDATE` | Disable automatic update suggestions (set to `1`, `true`, or `yes`); explicit `update --check` still works |
 | `GPLAY_NO_STAR_PROMPT` | Suppress the one-time GitHub star suggestion (set to `1`) |
 | `GPLAY_DEBUG` | Suppress progress spinners (`1` or `api`); HTTP payload logging is not implemented |
 | `GPLAY_MAX_RETRIES` | Max retries for transient read-only requests (default: 3; `0` disables retries) |

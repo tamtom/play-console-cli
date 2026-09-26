@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -28,7 +29,32 @@ const (
 
 	// CheckInterval is how often to check for updates
 	CheckInterval = 24 * time.Hour
+
+	// FailedCheckInterval is how long a failed check stops new checks, so
+	// that an offline machine does not wait for the network on each command.
+	FailedCheckInterval = time.Hour
 )
+
+// describeSuffix matches the suffix that `git describe --tags --dirty` adds
+// to a tag, for example "-35-gc896cf6" or "-dirty".
+var describeSuffix = regexp.MustCompile(`(-\d+-g[0-9a-f]+)?(-dirty)?$`)
+
+// IsReleaseVersion reports whether v is the version of a release build. A
+// `git describe` version such as 0.10.0-35-gc896cf6 is a valid SemVer
+// prerelease of 0.10.0, but it is a development build of a later commit.
+func IsReleaseVersion(v string) bool {
+	v = "v" + strings.TrimPrefix(strings.TrimSpace(v), "v")
+	return semver.IsValid(v) && describeSuffix.FindString(v) == ""
+}
+
+// Disabled reports whether GPLAY_NO_UPDATE turns off the update check.
+func Disabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("GPLAY_NO_UPDATE"))) {
+	case "1", "true", "yes":
+		return true
+	}
+	return false
+}
 
 // Release represents a GitHub release
 type Release struct {
@@ -73,6 +99,7 @@ type Options struct {
 type cachedRelease struct {
 	CheckedAt time.Time `json:"checked_at"`
 	Release   Release   `json:"release"`
+	Failed    bool      `json:"failed,omitempty"`
 }
 
 func cachePath() (string, error) {
@@ -83,8 +110,10 @@ func cachePath() (string, error) {
 	return filepath.Join(homeDir, ".cache", "gplay", "update-release.json"), nil
 }
 
-// CheckForUpdate caches only successful stable-release lookups. A cached
-// release is compared with the running version again after every upgrade.
+// CheckForUpdate caches a successful stable-release lookup for CheckInterval
+// and a failed lookup for FailedCheckInterval. A cached release is compared
+// with the running version again after every upgrade. ForceCheck ignores the
+// cache and does not record a failure.
 func CheckForUpdate(ctx context.Context, opts Options) (*UpdateInfo, error) {
 	if opts.SkipCheck {
 		return nil, nil
@@ -94,7 +123,7 @@ func CheckForUpdate(ctx context.Context, opts Options) (*UpdateInfo, error) {
 		current = version.Version
 	}
 	current = strings.TrimPrefix(current, "v")
-	if !opts.ForceCheck && (!semver.IsValid("v"+current) || os.Getenv("GPLAY_NO_UPDATE") == "1") {
+	if !opts.ForceCheck && (!IsReleaseVersion(current) || Disabled()) {
 		return nil, nil
 	}
 
@@ -103,19 +132,30 @@ func CheckForUpdate(ctx context.Context, opts Options) (*UpdateInfo, error) {
 	if !opts.ForceCheck && pathErr == nil {
 		if data, err := os.ReadFile(path); err == nil {
 			var cached cachedRelease
-			if json.Unmarshal(data, &cached) == nil && time.Since(cached.CheckedAt) >= 0 && time.Since(cached.CheckedAt) < CheckInterval && validStableRelease(&cached.Release) {
-				release = &cached.Release
+			if json.Unmarshal(data, &cached) == nil {
+				age := time.Since(cached.CheckedAt)
+				switch {
+				case cached.Failed && age >= 0 && age < FailedCheckInterval:
+					return nil, nil
+				case !cached.Failed && age >= 0 && age < CheckInterval && validStableRelease(&cached.Release):
+					release = &cached.Release
+				}
 			}
 		}
 	}
 	if release == nil {
 		var err error
 		release, err = getLatestRelease(ctx)
-		if err != nil {
-			return nil, err
+		if err == nil && !validStableRelease(release) {
+			err = fmt.Errorf("GitHub did not return a valid stable release")
 		}
-		if !validStableRelease(release) {
-			return nil, fmt.Errorf("GitHub did not return a valid stable release")
+		if err != nil {
+			if !opts.ForceCheck && pathErr == nil {
+				if data, marshalErr := json.Marshal(cachedRelease{CheckedAt: time.Now().UTC(), Failed: true}); marshalErr == nil {
+					_ = rootfs.AtomicWriteFile(path, data, 0o600, 0o700)
+				}
+			}
+			return nil, err
 		}
 		if pathErr == nil {
 			data, err := json.Marshal(cachedRelease{CheckedAt: time.Now().UTC(), Release: *release})
@@ -129,7 +169,7 @@ func CheckForUpdate(ctx context.Context, opts Options) (*UpdateInfo, error) {
 		CurrentVersion: current,
 		LatestVersion:  latest,
 		ReleaseURL:     release.HTMLURL,
-		IsNewer:        semver.IsValid("v"+current) && compareVersions(latest, current) > 0,
+		IsNewer:        IsReleaseVersion(current) && compareVersions(latest, current) > 0,
 	}
 	for _, asset := range release.Assets {
 		if asset.Name == getBinaryName() {

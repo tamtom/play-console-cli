@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"golang.org/x/mod/semver"
-
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
 	"github.com/tamtom/play-console-cli/internal/update"
@@ -59,7 +57,7 @@ func runUpdate(ctx context.Context, checkOnly bool, force bool) error {
 	}
 
 	currentVersion := version.Version
-	if !checkOnly && !force && !semver.IsValid("v"+info.CurrentVersion) {
+	if !checkOnly && !force && !update.IsReleaseVersion(info.CurrentVersion) {
 		return fmt.Errorf("cannot compare development version %q with release %s; use --check for details or --force to install", currentVersion, info.LatestVersion)
 	}
 	if !info.IsNewer && !force && !checkOnly {

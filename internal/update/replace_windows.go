@@ -21,6 +21,7 @@ func replaceExecutable(path string, source io.Reader) error {
 		return err
 	}
 	defer func() { _ = root.Close() }()
+	removeStaleBackups(root, name)
 	info, err := root.Lstat(name)
 	if err != nil {
 		return err
@@ -37,7 +38,7 @@ func replaceExecutable(path string, source io.Reader) error {
 	}
 	if err := root.Rename(staged, name); err != nil {
 		if rollback := root.Rename(backup, name); rollback != nil {
-			return fmt.Errorf("install failed: %v; rollback failed: %w (previous binary: %s)", err, rollback, filepath.Join(dir, backup))
+			return fmt.Errorf("install failed: %w; rollback failed: %w (previous binary: %s)", err, rollback, filepath.Join(dir, backup))
 		}
 		return fmt.Errorf("install failed; previous executable restored: %w", err)
 	}
