@@ -291,8 +291,8 @@ func checkPackageConfigured(env Env) CheckResult {
 	if err != nil || cfg == nil {
 		return CheckResult{Name: "default package", Severity: SeveritySkip}
 	}
-	if strings.TrimSpace(cfg.PackageName) == "" && strings.TrimSpace(os.Getenv("GPLAY_PACKAGE_NAME")) == "" {
-		return CheckResult{Name: "default package", Severity: SeverityWarn, Detail: "no default package", Hint: "set package_name in config or export GPLAY_PACKAGE_NAME"}
+	if strings.TrimSpace(cfg.PackageName) == "" && strings.TrimSpace(os.Getenv("GPLAY_PACKAGE")) == "" && strings.TrimSpace(os.Getenv("GPLAY_PACKAGE_NAME")) == "" {
+		return CheckResult{Name: "default package", Severity: SeverityWarn, Detail: "no default package", Hint: "set package_name in config or export GPLAY_PACKAGE"}
 	}
 	return CheckResult{Name: "default package", Severity: SeverityOK}
 }
