@@ -50,3 +50,34 @@ func TestGlobalDryRunReachesCommandsWithLocalDryRun(t *testing.T) {
 		}
 	})
 }
+
+func TestOutputValidationIgnoresDirectoryOutputFlags(t *testing.T) {
+	for _, args := range [][]string{
+		{"generated-apks", "download", "--package", "com.example.test", "--version-code", "1", "--download-id", "abc"},
+		{"system-apks", "download", "--package", "com.example.test", "--version-code", "1", "--variant-id", "1"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			_, _, stderr := runReleaseCommand(t, append(args, "--output", t.TempDir()), nil)
+			if strings.Contains(stderr, "output format") {
+				t.Fatalf("directory --output was validated as a format: %q", stderr)
+			}
+		})
+	}
+}
+
+func TestDefaultOutputEnvironmentDoesNotBreakCommands(t *testing.T) {
+	t.Setenv("GPLAY_DEFAULT_OUTPUT", "table")
+	for _, args := range [][]string{
+		{"rtdn", "decode", "--data", `{"version":"1.0","packageName":"com.example.test","eventTimeMillis":"1"}`},
+		{"auth", "doctor"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			_, _, stderr := runReleaseCommand(t, args, nil)
+			for _, bad := range []string{"unsupported", "--pretty is only valid"} {
+				if strings.Contains(stderr, bad) {
+					t.Fatalf("GPLAY_DEFAULT_OUTPUT broke the command: %q", stderr)
+				}
+			}
+		})
+	}
+}

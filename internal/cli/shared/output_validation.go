@@ -34,14 +34,12 @@ func WrapCommandOutputValidation(cmd *ffcli.Command) {
 			outputFlag := cmd.FlagSet.Lookup("output")
 			prettyFlag := cmd.FlagSet.Lookup("pretty")
 
-			if outputFlag != nil {
-				explicit := false
-				cmd.FlagSet.Visit(func(f *flag.Flag) {
-					if f.Name == "output" {
-						explicit = true
-					}
-				})
-				if value := os.Getenv("GPLAY_DEFAULT_OUTPUT"); !explicit && value != "" {
+			if isFormatFlag(outputFlag) {
+				explicit := map[string]bool{}
+				cmd.FlagSet.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
+				// Commands with a "text" default support their own format list,
+				// so the environment default applies only to JSON-default flags.
+				if value := os.Getenv("GPLAY_DEFAULT_OUTPUT"); !explicit["output"] && value != "" && outputFlag.DefValue == "json" {
 					if err := outputFlag.Value.Set(value); err != nil {
 						return err
 					}
@@ -55,6 +53,13 @@ func WrapCommandOutputValidation(cmd *ffcli.Command) {
 					return err
 				}
 				pretty := prettyFlag != nil && prettyFlag.Value.String() == "true"
+				// A --pretty default of true applies only to JSON output.
+				if pretty && !explicit["pretty"] && format != "json" {
+					if err := prettyFlag.Value.Set("false"); err != nil {
+						return err
+					}
+					pretty = false
+				}
 				if err := ValidateOutputFlags(format, pretty, additionalFormats...); err != nil {
 					return err
 				}
@@ -63,4 +68,11 @@ func WrapCommandOutputValidation(cmd *ffcli.Command) {
 
 		return originalExec(ctx, args)
 	}
+}
+
+// isFormatFlag reports whether an --output flag selects an output format.
+// Some commands, such as generated-apks download, use --output for a
+// directory; their usage text does not start with "Output format".
+func isFormatFlag(f *flag.Flag) bool {
+	return f != nil && strings.HasPrefix(f.Usage, "Output format")
 }
