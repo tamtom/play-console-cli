@@ -3564,7 +3564,9 @@ gplay rollout resume --package <name> --track <track> [--rollout <fraction>]
 ```
 
 Resume a previously halted staged rollout.
-Optionally specify a new rollout fraction.
+Optionally specify a new rollout fraction. If the halted release has no
+fraction, --rollout is required; use rollout complete to release to all users.
+To change the fraction of an active rollout, use rollout update.
 
 Example:
   gplay rollout resume --package com.example.app --track production

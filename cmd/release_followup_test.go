@@ -3,7 +3,9 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -166,5 +168,100 @@ func TestIgnoredGlobalYAMLConfigShowsWarning(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "config.yaml is ignored") {
 		t.Fatalf("no warning about the ignored config.yaml: %q", stderr.String())
+	}
+}
+
+// rolloutServer returns a fake Play API that serves one release on GET and
+// records the PUT payload and the commit.
+func rolloutServer(t *testing.T, release string) (http.HandlerFunc, *[]map[string]any, *int) {
+	t.Helper()
+	var releases []map[string]any
+	writes := 0
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			fmt.Fprintf(w, `{"track":"production","releases":[%s]}`, release)
+		case http.MethodPut:
+			writes++
+			var payload struct {
+				Releases []map[string]any `json:"releases"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Error(err)
+			}
+			releases = payload.Releases
+			fmt.Fprint(w, `{}`)
+		default:
+			if strings.HasSuffix(r.URL.Path, ":commit") {
+				writes++
+			}
+			fmt.Fprint(w, `{"id":"edit"}`)
+		}
+	}, &releases, &writes
+}
+
+func TestRolloutRejectsAmbiguousChanges(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		release string
+		args    []string
+		want    string
+	}{
+		{"resume halted release without fraction", `{"status":"halted","versionCodes":["100"]}`, []string{"resume"}, "rollout complete"},
+		{"resume active release", `{"status":"inProgress","versionCodes":["100"],"userFraction":0.1}`, []string{"resume"}, "rollout update"},
+		{"update to the same fraction", `{"status":"inProgress","versionCodes":["100"],"userFraction":0.1}`, []string{"update", "--rollout", "0.1"}, "greater than the current fraction"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, _, writes := rolloutServer(t, tc.release)
+			args := append([]string{"rollout"}, tc.args...)
+			args = append(args, "--package", "com.example.test")
+			code, _, stderr := runReleaseCommand(t, args, handler)
+			if code == ExitSuccess || *writes != 0 || !strings.Contains(stderr, tc.want) {
+				t.Fatalf("code=%d writes=%d stderr=%q, want an error that contains %q", code, *writes, stderr, tc.want)
+			}
+		})
+	}
+}
+
+func TestRolloutCountryTargetingIsKeptUntilCompletion(t *testing.T) {
+	const targeted = `{"status":"inProgress","versionCodes":["100"],"userFraction":0.1,"countryTargeting":{"countries":["DE"]}}`
+	for _, tc := range []struct {
+		action string
+		keep   bool
+	}{
+		{"halt", true},
+		{"complete", false},
+	} {
+		t.Run(tc.action, func(t *testing.T) {
+			handler, releases, _ := rolloutServer(t, targeted)
+			code, _, stderr := runReleaseCommand(t, []string{"rollout", tc.action, "--package", "com.example.test"}, handler)
+			if code != ExitSuccess || len(*releases) != 1 {
+				t.Fatalf("code=%d releases=%v stderr=%q", code, *releases, stderr)
+			}
+			if _, ok := (*releases)[0]["countryTargeting"]; ok != tc.keep {
+				t.Fatalf("countryTargeting present = %v, want %v: %v", ok, tc.keep, (*releases)[0])
+			}
+		})
+	}
+}
+
+func TestReleaseCommandsRejectNaNRollout(t *testing.T) {
+	aab := filepath.Join(t.TempDir(), "app.aab")
+	if err := os.WriteFile(aab, []byte("fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"release", "--package", "com.example.test", "--track", "beta", "--bundle", aab, "--rollout", "NaN"},
+		{"promote", "--package", "com.example.test", "--from", "beta", "--to", "production", "--rollout", "NaN"},
+		{"publish", "track", "--package", "com.example.test", "--track", "beta", "--bundle", aab, "--rollout", "NaN"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			requests := 0
+			code, _, stderr := runReleaseCommand(t, args, func(w http.ResponseWriter, r *http.Request) { requests++; fmt.Fprint(w, `{}`) })
+			if code == ExitSuccess || requests != 0 || !strings.Contains(stderr, "--rollout") {
+				t.Fatalf("code=%d requests=%d stderr=%q", code, requests, stderr)
+			}
+		})
 	}
 }

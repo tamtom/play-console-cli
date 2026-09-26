@@ -79,7 +79,9 @@ func ResumeCommand() *ffcli.Command {
 		ShortUsage: "gplay rollout resume --package <name> --track <track> [--rollout <fraction>]",
 		ShortHelp:  "Resume a halted rollout.",
 		LongHelp: `Resume a previously halted staged rollout.
-Optionally specify a new rollout fraction.
+Optionally specify a new rollout fraction. If the halted release has no
+fraction, --rollout is required; use rollout complete to release to all users.
+To change the fraction of an active rollout, use rollout update.
 
 Example:
   gplay rollout resume --package com.example.app --track production
@@ -114,7 +116,7 @@ Example:
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
-			if *rolloutFraction <= 0 || *rolloutFraction > 1 {
+			if err := shared.ValidateRolloutFraction(*rolloutFraction); err != nil || *rolloutFraction == 0 {
 				return fmt.Errorf("--rollout must be between 0.0 and 1.0")
 			}
 			return updateRolloutStatus(ctx, *packageName, *track, "update", *rolloutFraction, *changesNotSent, *outputFlag, *pretty)
@@ -214,17 +216,30 @@ func updateRolloutStatus(ctx context.Context, packageName, track, action string,
 		if action == "update" {
 			return fmt.Errorf("no active staged release found in %s track; use rollout resume to restart a halted release", track)
 		}
+		if action == "resume" {
+			for _, rel := range currentTrack.Releases {
+				if rel.Status == "inProgress" {
+					return fmt.Errorf("the staged release in %s track is not halted; use rollout update to change the fraction", track)
+				}
+			}
+		}
 		return fmt.Errorf("no eligible release found in %s track", track)
 	}
 	if len(candidates) != 1 {
 		return fmt.Errorf("multiple eligible releases in %s; use tracks update to select the release explicitly", track)
 	}
 	targetRelease := candidates[0]
+	if action == "update" && rolloutFraction <= targetRelease.UserFraction {
+		return fmt.Errorf("--rollout must be greater than the current fraction %g", targetRelease.UserFraction)
+	}
 	if rolloutFraction > 0 && rolloutFraction < targetRelease.UserFraction {
 		return fmt.Errorf("--rollout cannot decrease the current fraction %g", targetRelease.UserFraction)
 	}
+	// A halted release with no fraction can be a halted staged rollout or a
+	// halted full release. Do not guess, because a guess can release to all
+	// users.
 	if action == "resume" && rolloutFraction == 0 && targetRelease.UserFraction == 0 {
-		status = "completed"
+		return fmt.Errorf("the halted release in %s track has no rollout fraction; use --rollout <fraction> to resume a staged rollout, or rollout complete to release to all users", track)
 	}
 	if status == "inProgress" && rolloutFraction == 0 && (targetRelease.UserFraction <= 0 || targetRelease.UserFraction >= 1) {
 		return fmt.Errorf("--rollout must specify a fraction strictly between 0 and 1 for a staged release")
@@ -237,7 +252,10 @@ func updateRolloutStatus(ctx context.Context, packageName, track, action string,
 	} else if rolloutFraction > 0 {
 		targetRelease.UserFraction = rolloutFraction
 	}
-	if status != "inProgress" {
+	// A completed release goes to all countries of the track. A halted
+	// release keeps its country targeting, so that resume does not expand
+	// the rollout to all countries.
+	if status == "completed" {
 		targetRelease.CountryTargeting = nil
 	}
 
