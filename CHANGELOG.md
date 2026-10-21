@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-21
+
 ### Fixed
 
 - `gplay status` no longer reports `degraded` for every app. Thanks to
@@ -23,6 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     instead of one `latest` row.
 - `gplay vitals performance startup` works without `--dimension`. It always
   sends `startType`, and `--dimension` adds a second dimension (#302).
+- The `iap create` help no longer lists `subscription` as a `purchaseType`.
+  Google deprecated it in the `inappproducts` API. Use `gplay subscriptions`
+  (#303).
+
+### Changed
+
+- Updated `google.golang.org/api` to `v0.307.0`, `golang.org/x/text` to
+  `v0.43.0`, `golang.org/x/mod` to `v0.42.0`, `golang.org/x/term` to
+  `v0.47.0`, and associated transitive dependencies (#298, #299, #301, #303).
+- The API manifest uses the discovery revisions of 2026-10-21. No API
+  methods changed (#303).
 
 ## [1.0.0] - 2026-09-26
 
