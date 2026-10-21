@@ -118,7 +118,9 @@ type VitalsSnapshot struct {
 	Window    TimeWindow         `json:"window"`
 	Startup   *MetricSetSnapshot `json:"startup,omitempty"`
 	Rendering *MetricSetSnapshot `json:"rendering,omitempty"`
-	Battery   *BatterySnapshot   `json:"battery,omitempty"`
+	// RenderingSkipped tells why Rendering is missing.
+	RenderingSkipped string           `json:"rendering_skipped,omitempty"`
+	Battery          *BatterySnapshot `json:"battery,omitempty"`
 }
 
 type BatterySnapshot struct {
@@ -130,6 +132,9 @@ type MetricSetSnapshot struct {
 	MetricSet string            `json:"metric_set"`
 	Rows      int               `json:"rows"`
 	Latest    *MetricRowSummary `json:"latest,omitempty"`
+	// LatestByStartType replaces Latest for slow start, which has one row per
+	// start type and day.
+	LatestByStartType map[string]*MetricRowSummary `json:"latest_by_start_type,omitempty"`
 }
 
 type MetricRowSummary struct {
@@ -303,7 +308,7 @@ func fetchVitalsSnapshot(ctx context.Context, svc *reportingclient.Service, pkg 
 	reqCtx, cancel := shared.ContextWithTimeout(ctx, svc.Cfg)
 	defer cancel()
 
-	window, err := vitalsWindow(reqCtx, svc, pkg, now)
+	window, renderingAvailable, err := vitalsWindow(reqCtx, svc, pkg, now)
 	if err != nil {
 		return nil, err
 	}
@@ -322,20 +327,19 @@ func fetchVitalsSnapshot(ctx context.Context, svc *reportingclient.Service, pkg 
 	}
 	snapshot.Startup = startup
 
-	rendering, err := queryMetricSet(reqCtx, svc.API.Vitals.Slowrenderingrate, metricQuerySpec{
-		name:     metricSetName(pkg, "slowRenderingRateMetricSet"),
-		metrics:  renderingMetrics,
-		timeline: window.timelineSpec(),
-		request:  "rendering",
-	})
-	switch {
-	case isForbidden(err):
-		// Play serves slow rendering metrics only for games and answers 403 for
-		// other apps. Startup already succeeded, so this is not missing access.
-	case err != nil:
-		return nil, err
-	default:
+	if renderingAvailable {
+		rendering, err := queryMetricSet(reqCtx, svc.API.Vitals.Slowrenderingrate, metricQuerySpec{
+			name:     metricSetName(pkg, "slowRenderingRateMetricSet"),
+			metrics:  renderingMetrics,
+			timeline: window.timelineSpec(),
+			request:  "rendering",
+		})
+		if err != nil {
+			return nil, err
+		}
 		snapshot.Rendering = rendering
+	} else {
+		snapshot.RenderingSkipped = "Play serves slow rendering metrics only for games"
 	}
 
 	wakeup, err := queryMetricSet(reqCtx, svc.API.Vitals.Excessivewakeuprate, metricQuerySpec{
@@ -420,7 +424,7 @@ func queryMetricSet(ctx context.Context, service interface{}, spec metricQuerySp
 		if err != nil {
 			return nil, fmt.Errorf("status %s query failed: %w", spec.request, err)
 		}
-		return summarizeMetricSet(spec.name, resp.Rows), nil
+		return summarizeByStartType(spec.name, resp.Rows), nil
 	case *playdeveloperreporting.VitalsSlowrenderingrateService:
 		resp, err := svc.Query(spec.name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowRenderingRateMetricSetRequest{
 			Dimensions:   spec.dimensions,
@@ -468,6 +472,29 @@ func summarizeMetricSet(metricSet string, rows []*playdeveloperreporting.GoogleP
 		return snapshot
 	}
 	snapshot.Latest = summarizeRow(rows[len(rows)-1])
+	return snapshot
+}
+
+// summarizeByStartType keeps the latest row of each start type.
+func summarizeByStartType(metricSet string, rows []*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1MetricsRow) *MetricSetSnapshot {
+	snapshot := &MetricSetSnapshot{
+		MetricSet: metricSet,
+		Rows:      len(rows),
+	}
+	for _, row := range rows {
+		summary := summarizeRow(row)
+		if summary == nil || summary.Dimensions["startType"] == "" {
+			continue
+		}
+		startType := summary.Dimensions["startType"]
+		if latest, ok := snapshot.LatestByStartType[startType]; ok && latest.StartTime > summary.StartTime {
+			continue
+		}
+		if snapshot.LatestByStartType == nil {
+			snapshot.LatestByStartType = map[string]*MetricRowSummary{}
+		}
+		snapshot.LatestByStartType[startType] = summary
+	}
 	return snapshot
 }
 
@@ -537,24 +564,74 @@ func joinVersionCodes(versionCodes []int64) string {
 	return strings.Join(parts, ",")
 }
 
-// vitalsWindow returns the vitalsWindowDays days that end where daily vitals data
-// ends. Daily data trails the current date by a day or two, and Play rejects
-// queries that end later. All Android vitals metric sets share this freshness, so
-// the slow start metric set stands in for the others.
-func vitalsWindow(ctx context.Context, svc *reportingclient.Service, pkg string, now time.Time) (TimeWindow, error) {
-	set, err := svc.API.Vitals.Slowstartrate.Get(metricSetName(pkg, "slowStartRateMetricSet")).Context(ctx).Do()
-	if err != nil {
-		return TimeWindow{}, fmt.Errorf("status vitals freshness query failed: %w", err)
-	}
+// vitalsMetricSets are the metric sets that status queries. Slow start comes
+// first: when its lookup succeeds, a later 403 for slow rendering cannot mean
+// missing access.
+var vitalsMetricSets = []string{
+	"slowStartRateMetricSet",
+	"slowRenderingRateMetricSet",
+	"excessiveWakeupRateMetricSet",
+	"stuckBackgroundWakelockRateMetricSet",
+}
+
+// vitalsWindow returns the vitalsWindowDays days that end at the earliest daily
+// freshness of the queried metric sets. Daily data trails the current date by a
+// day or two, the metric sets do not always agree, and Play rejects a query that
+// ends after the freshness of its metric set. renderingAvailable is false when
+// Play answers 403 for slow rendering, which it serves only for games.
+func vitalsWindow(ctx context.Context, svc *reportingclient.Service, pkg string, now time.Time) (TimeWindow, bool, error) {
 	end := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	if latest, ok := latestDailyEnd(set.FreshnessInfo); ok && latest.Before(end) {
-		end = latest
+	renderingAvailable := true
+	for _, set := range vitalsMetricSets {
+		info, err := metricSetFreshness(ctx, svc.API.Vitals, pkg, set)
+		if set == "slowRenderingRateMetricSet" && isForbidden(err) {
+			renderingAvailable = false
+			continue
+		}
+		if err != nil {
+			return TimeWindow{}, false, fmt.Errorf("status vitals freshness query failed: %w", err)
+		}
+		if latest, ok := latestDailyEnd(info); ok && latest.Before(end) {
+			end = latest
+		}
 	}
 	start := end.AddDate(0, 0, -vitalsWindowDays)
 	return TimeWindow{
 		Start: start.Format("2006-01-02"),
 		End:   end.Format("2006-01-02"),
-	}, nil
+	}, renderingAvailable, nil
+}
+
+func metricSetFreshness(ctx context.Context, vitals *playdeveloperreporting.VitalsService, pkg, set string) (*playdeveloperreporting.GooglePlayDeveloperReportingV1beta1FreshnessInfo, error) {
+	name := metricSetName(pkg, set)
+	switch set {
+	case "slowStartRateMetricSet":
+		resp, err := vitals.Slowstartrate.Get(name).Context(ctx).Do()
+		if err != nil {
+			return nil, err
+		}
+		return resp.FreshnessInfo, nil
+	case "slowRenderingRateMetricSet":
+		resp, err := vitals.Slowrenderingrate.Get(name).Context(ctx).Do()
+		if err != nil {
+			return nil, err
+		}
+		return resp.FreshnessInfo, nil
+	case "excessiveWakeupRateMetricSet":
+		resp, err := vitals.Excessivewakeuprate.Get(name).Context(ctx).Do()
+		if err != nil {
+			return nil, err
+		}
+		return resp.FreshnessInfo, nil
+	case "stuckBackgroundWakelockRateMetricSet":
+		resp, err := vitals.Stuckbackgroundwakelockrate.Get(name).Context(ctx).Do()
+		if err != nil {
+			return nil, err
+		}
+		return resp.FreshnessInfo, nil
+	default:
+		return nil, fmt.Errorf("unsupported metric set %s", name)
+	}
 }
 
 // latestDailyEnd returns the exclusive end date of the available daily data.

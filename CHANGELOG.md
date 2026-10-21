@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release notes for **0.5.0 – 0.7.1** were auto-generated and live in
 > [GitHub Releases](https://github.com/tamtom/play-console-cli/releases).
 
+## [Unreleased]
+
+### Fixed
+
+- `gplay status` no longer reports `degraded` for every app. Thanks to
+  @HaukeSchnau (#302).
+  - The slow start query sends the `startType` dimension, which Play requires.
+  - The vitals window ends at the earliest daily freshness of the queried
+    metric sets. Slow start and the battery metric sets can differ by a day.
+  - For apps that are not games, status leaves out slow rendering and sets
+    `rendering_skipped`.
+  - The startup summary reports `latest_by_start_type` (COLD, WARM, HOT)
+    instead of one `latest` row.
+- `gplay vitals performance startup` works without `--dimension`. It always
+  sends `startType`, and `--dimension` adds a second dimension (#302).
+
 ## [1.0.0] - 2026-09-26
 
 ### Upgrade notes
