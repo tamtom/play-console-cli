@@ -4,7 +4,7 @@
       "base_url": "https://androiddeveloperidstatus.googleapis.com/",
       "discovery_url": "https://androiddeveloperidstatus.googleapis.com/$discovery/rest?version=v1",
       "name": "androiddeveloperidstatus",
-      "revision": "20260924",
+      "revision": "20261019",
       "service_path": "",
       "version": "v1"
     },
@@ -12,7 +12,7 @@
       "base_url": "https://androidpublisher.googleapis.com/",
       "discovery_url": "https://androidpublisher.googleapis.com/$discovery/rest?version=v3",
       "name": "androidpublisher",
-      "revision": "20260924",
+      "revision": "20261021",
       "service_path": "",
       "version": "v3"
     },
@@ -20,7 +20,7 @@
       "base_url": "https://checks.googleapis.com/",
       "discovery_url": "https://checks.googleapis.com/$discovery/rest?version=v1alpha",
       "name": "checks",
-      "revision": "20260924",
+      "revision": "20261018",
       "service_path": "",
       "version": "v1alpha"
     },
@@ -28,7 +28,7 @@
       "base_url": "https://gamesconfiguration.googleapis.com/",
       "discovery_url": "https://gamesconfiguration.googleapis.com/$discovery/rest?version=v1configuration",
       "name": "gamesconfiguration",
-      "revision": "20260907",
+      "revision": "20261001",
       "service_path": "",
       "version": "v1configuration"
     },
@@ -36,7 +36,7 @@
       "base_url": "https://gamesmanagement.googleapis.com/",
       "discovery_url": "https://gamesmanagement.googleapis.com/$discovery/rest?version=v1management",
       "name": "gamesmanagement",
-      "revision": "20260907",
+      "revision": "20261001",
       "service_path": "",
       "version": "v1management"
     },
@@ -44,7 +44,7 @@
       "base_url": "https://playcustomapp.googleapis.com/",
       "discovery_url": "https://playcustomapp.googleapis.com/$discovery/rest?version=v1",
       "name": "playcustomapp",
-      "revision": "20260924",
+      "revision": "20261020",
       "service_path": "",
       "version": "v1"
     },
@@ -52,7 +52,7 @@
       "base_url": "https://playdeveloperreporting.googleapis.com/",
       "discovery_url": "https://playdeveloperreporting.googleapis.com/$discovery/rest?version=v1beta1",
       "name": "playdeveloperreporting",
-      "revision": "20260924",
+      "revision": "20261021",
       "service_path": "",
       "version": "v1beta1"
     },
@@ -60,7 +60,7 @@
       "base_url": "https://playintegrity.googleapis.com/",
       "discovery_url": "https://playintegrity.googleapis.com/$discovery/rest?version=v1",
       "name": "playintegrity",
-      "revision": "20260924",
+      "revision": "20261020",
       "service_path": "",
       "version": "v1"
     }
@@ -12263,7 +12263,8 @@
             "description": "Default price. Cannot be zero, as in-app products are never free. Always in the developer's Checkout merchant currency."
           },
           "gracePeriod": {
-            "description": "Grace period of the subscription, specified in ISO 8601 format. Allows developers to give their subscribers a grace period when the payment for the new recurrence period is declined. Acceptable values are P0D (zero days), P3D (three days), P7D (seven days), P14D (14 days), and P30D (30 days).",
+            "deprecated": true,
+            "description": "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead.",
             "type": "string"
           },
           "listings": {
@@ -12295,10 +12296,15 @@
               "managedUser",
               "subscription"
             ],
+            "enumDeprecated": [
+              false,
+              false,
+              true
+            ],
             "enumDescriptions": [
               "Unspecified purchase type.",
               "The default product type - one time purchase.",
-              "In-app product with a recurring period."
+              "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead."
             ],
             "type": "string"
           },
@@ -12321,15 +12327,18 @@
             "type": "string"
           },
           "subscriptionPeriod": {
-            "description": "Subscription period, specified in ISO 8601 format. Acceptable values are P1W (one week), P1M (one month), P3M (three months), P6M (six months), and P1Y (one year).",
+            "deprecated": true,
+            "description": "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead.",
             "type": "string"
           },
           "subscriptionTaxesAndComplianceSettings": {
             "$ref": "SubscriptionTaxAndComplianceSettings",
-            "description": "Details about taxes and legal compliance. Only applicable to subscription products."
+            "deprecated": true,
+            "description": "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead."
           },
           "trialPeriod": {
-            "description": "Trial period, specified in ISO 8601 format. Acceptable values are anything between P7D (seven days) and P999D (999 days).",
+            "deprecated": true,
+            "description": "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead.",
             "type": "string"
           }
         },
@@ -12344,7 +12353,8 @@
         "id": "InAppProductListing",
         "properties": {
           "benefits": {
-            "description": "Localized entitlement benefits for a subscription.",
+            "deprecated": true,
+            "description": "Deprecated: Subscriptions are no longer supported in the InAppProducts API. Use the Subscriptions API instead.",
             "items": {
               "type": "string"
             },
@@ -22222,7 +22232,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. * Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. * Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22302,7 +22312,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100,000; values above 100,000 will be coerced to 100,000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10,000; values above 10,000 will be coerced to 10,000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22382,7 +22392,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22462,7 +22472,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100,000; values above 100,000 will be coerced to 100,000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10,000; values above 10,000 will be coerced to 10,000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22542,7 +22552,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22606,7 +22616,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22686,7 +22696,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100,000; values above 100,000 will be coerced to 100,000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10,000; values above 10,000 will be coerced to 10,000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22766,7 +22776,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22846,7 +22856,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
@@ -22926,7 +22936,7 @@
             "type": "array"
           },
           "pageSize": {
-            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 100000; values above 100000 will be coerced to 100000.",
+            "description": "Optional. Maximum size of the returned data. If unspecified, at most 1000 rows will be returned. The maximum value is 10000; values above 10000 will be coerced to 10000.",
             "format": "int32",
             "type": "integer"
           },
