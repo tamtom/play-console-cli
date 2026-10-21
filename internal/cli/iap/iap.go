@@ -260,9 +260,8 @@ JSON format:
   }
 }
 
-purchaseType can be:
-  - managedUser: One-time purchase
-  - subscription: Recurring subscription (use subscriptions command instead)`,
+purchaseType must be managedUser (one-time purchase). Google deprecated
+subscription in this API; use the subscriptions command instead.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
