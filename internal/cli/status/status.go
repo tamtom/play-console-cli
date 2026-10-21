@@ -2,14 +2,17 @@ package status
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"google.golang.org/api/androidpublisher/v3"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/playdeveloperreporting/v1beta1"
 
 	"github.com/tamtom/play-console-cli/internal/cli/shared"
@@ -300,14 +303,19 @@ func fetchVitalsSnapshot(ctx context.Context, svc *reportingclient.Service, pkg 
 	reqCtx, cancel := shared.ContextWithTimeout(ctx, svc.Cfg)
 	defer cancel()
 
-	window := currentWindow(now)
+	window, err := vitalsWindow(reqCtx, svc, pkg, now)
+	if err != nil {
+		return nil, err
+	}
 	snapshot := &VitalsSnapshot{Window: window}
 
 	startup, err := queryMetricSet(reqCtx, svc.API.Vitals.Slowstartrate, metricQuerySpec{
-		name:     metricSetName(pkg, "slowStartRateMetricSet"),
-		metrics:  startupMetrics,
-		timeline: window.timelineSpec(),
-		request:  "startup",
+		name:    metricSetName(pkg, "slowStartRateMetricSet"),
+		metrics: startupMetrics,
+		// The slow start metric set rejects queries without this dimension.
+		dimensions: []string{"startType"},
+		timeline:   window.timelineSpec(),
+		request:    "startup",
 	})
 	if err != nil {
 		return nil, err
@@ -320,10 +328,15 @@ func fetchVitalsSnapshot(ctx context.Context, svc *reportingclient.Service, pkg 
 		timeline: window.timelineSpec(),
 		request:  "rendering",
 	})
-	if err != nil {
+	switch {
+	case isForbidden(err):
+		// Play serves slow rendering metrics only for games and answers 403 for
+		// other apps. Startup already succeeded, so this is not missing access.
+	case err != nil:
 		return nil, err
+	default:
+		snapshot.Rendering = rendering
 	}
-	snapshot.Rendering = rendering
 
 	wakeup, err := queryMetricSet(reqCtx, svc.API.Vitals.Excessivewakeuprate, metricQuerySpec{
 		name:     metricSetName(pkg, "excessiveWakeupRateMetricSet"),
@@ -352,10 +365,16 @@ func fetchVitalsSnapshot(ctx context.Context, svc *reportingclient.Service, pkg 
 }
 
 type metricQuerySpec struct {
-	name     string
-	metrics  []string
-	timeline *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1TimelineSpec
-	request  string
+	name       string
+	metrics    []string
+	dimensions []string
+	timeline   *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1TimelineSpec
+	request    string
+}
+
+func isForbidden(err error) bool {
+	var apiErr *googleapi.Error
+	return errors.As(err, &apiErr) && apiErr.Code == http.StatusForbidden
 }
 
 var startupMetrics = []string{
@@ -393,6 +412,7 @@ func queryMetricSet(ctx context.Context, service interface{}, spec metricQuerySp
 	switch svc := service.(type) {
 	case *playdeveloperreporting.VitalsSlowstartrateService:
 		resp, err := svc.Query(spec.name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowStartRateMetricSetRequest{
+			Dimensions:   spec.dimensions,
 			Metrics:      append([]string(nil), spec.metrics...),
 			TimelineSpec: spec.timeline,
 			UserCohort:   "OS_PUBLIC",
@@ -403,6 +423,7 @@ func queryMetricSet(ctx context.Context, service interface{}, spec metricQuerySp
 		return summarizeMetricSet(spec.name, resp.Rows), nil
 	case *playdeveloperreporting.VitalsSlowrenderingrateService:
 		resp, err := svc.Query(spec.name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowRenderingRateMetricSetRequest{
+			Dimensions:   spec.dimensions,
 			Metrics:      append([]string(nil), spec.metrics...),
 			TimelineSpec: spec.timeline,
 			UserCohort:   "OS_PUBLIC",
@@ -413,6 +434,7 @@ func queryMetricSet(ctx context.Context, service interface{}, spec metricQuerySp
 		return summarizeMetricSet(spec.name, resp.Rows), nil
 	case *playdeveloperreporting.VitalsExcessivewakeuprateService:
 		resp, err := svc.Query(spec.name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryExcessiveWakeupRateMetricSetRequest{
+			Dimensions:   spec.dimensions,
 			Metrics:      append([]string(nil), spec.metrics...),
 			TimelineSpec: spec.timeline,
 			UserCohort:   "OS_PUBLIC",
@@ -423,6 +445,7 @@ func queryMetricSet(ctx context.Context, service interface{}, spec metricQuerySp
 		return summarizeMetricSet(spec.name, resp.Rows), nil
 	case *playdeveloperreporting.VitalsStuckbackgroundwakelockrateService:
 		resp, err := svc.Query(spec.name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QueryStuckBackgroundWakelockRateMetricSetRequest{
+			Dimensions:   spec.dimensions,
 			Metrics:      append([]string(nil), spec.metrics...),
 			TimelineSpec: spec.timeline,
 			UserCohort:   "OS_PUBLIC",
@@ -514,13 +537,39 @@ func joinVersionCodes(versionCodes []int64) string {
 	return strings.Join(parts, ",")
 }
 
-func currentWindow(now time.Time) TimeWindow {
+// vitalsWindow returns the vitalsWindowDays days that end where daily vitals data
+// ends. Daily data trails the current date by a day or two, and Play rejects
+// queries that end later. All Android vitals metric sets share this freshness, so
+// the slow start metric set stands in for the others.
+func vitalsWindow(ctx context.Context, svc *reportingclient.Service, pkg string, now time.Time) (TimeWindow, error) {
+	set, err := svc.API.Vitals.Slowstartrate.Get(metricSetName(pkg, "slowStartRateMetricSet")).Context(ctx).Do()
+	if err != nil {
+		return TimeWindow{}, fmt.Errorf("status vitals freshness query failed: %w", err)
+	}
 	end := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if latest, ok := latestDailyEnd(set.FreshnessInfo); ok && latest.Before(end) {
+		end = latest
+	}
 	start := end.AddDate(0, 0, -vitalsWindowDays)
 	return TimeWindow{
 		Start: start.Format("2006-01-02"),
 		End:   end.Format("2006-01-02"),
+	}, nil
+}
+
+// latestDailyEnd returns the exclusive end date of the available daily data.
+func latestDailyEnd(info *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1FreshnessInfo) (time.Time, bool) {
+	if info == nil {
+		return time.Time{}, false
 	}
+	for _, freshness := range info.Freshnesses {
+		if freshness == nil || freshness.AggregationPeriod != "DAILY" || freshness.LatestEndTime == nil {
+			continue
+		}
+		end := freshness.LatestEndTime
+		return time.Date(int(end.Year), time.Month(end.Month), int(end.Day), 0, 0, 0, 0, time.UTC), true
+	}
+	return time.Time{}, false
 }
 
 func (w TimeWindow) timelineSpec() *playdeveloperreporting.GooglePlayDeveloperReportingV1beta1TimelineSpec {

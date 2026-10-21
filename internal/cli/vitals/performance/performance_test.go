@@ -316,7 +316,10 @@ func TestStartupCommand_Success(t *testing.T) {
 	if requests[0].Path != "/v1beta1/apps/com.example.app/slowStartRateMetricSet:query" {
 		t.Fatalf("unexpected request path: %s", requests[0].Path)
 	}
-	assertRequestFields(t, requests[0].Body, []string{"slowStartRate", "slowStartRate7dUserWeighted", "slowStartRate28dUserWeighted", "distinctUsers"}, "apiLevel", "2026-03-01", "2026-03-04")
+	assertRequestFields(t, requests[0].Body, []string{"slowStartRate", "slowStartRate7dUserWeighted", "slowStartRate28dUserWeighted", "distinctUsers"}, "", "2026-03-01", "2026-03-04")
+	if got := fmt.Sprint(requests[0].Body["dimensions"]); got != "[startType apiLevel]" {
+		t.Fatalf("expected the required startType dimension before apiLevel, got %s", got)
+	}
 	if !strings.Contains(stdout, "slowStartRate") {
 		t.Fatalf("expected output to include slowStartRate response, got: %s", stdout)
 	}

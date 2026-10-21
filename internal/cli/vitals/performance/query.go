@@ -3,6 +3,7 @@ package performance
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -142,7 +143,7 @@ func querySlowStartRate(ctx context.Context, service *reportingclient.Service, p
 	name := metricSetName(pkg, "slowStartRateMetricSet")
 	if !opts.paginate {
 		resp, err := service.API.Vitals.Slowstartrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowStartRateMetricSetRequest{
-			Dimensions:   buildDimensions(opts.dimension),
+			Dimensions:   startupDimensions(opts.dimension),
 			Metrics:      append([]string(nil), startupMetrics...),
 			PageSize:     defaultMetricQueryPageSize,
 			TimelineSpec: timelineSpec,
@@ -158,7 +159,7 @@ func querySlowStartRate(ctx context.Context, service *reportingclient.Service, p
 	guard := shared.NewPaginationGuard(0)
 	for {
 		resp, err := service.API.Vitals.Slowstartrate.Query(name, &playdeveloperreporting.GooglePlayDeveloperReportingV1beta1QuerySlowStartRateMetricSetRequest{
-			Dimensions:   buildDimensions(opts.dimension),
+			Dimensions:   startupDimensions(opts.dimension),
 			Metrics:      append([]string(nil), startupMetrics...),
 			PageSize:     defaultMetricQueryPageSize,
 			PageToken:    pageToken,
@@ -375,6 +376,15 @@ func buildDimensions(dimension string) []string {
 		return nil
 	}
 	return []string{trimmed}
+}
+
+// startupDimensions adds startType, which the slow start metric set requires.
+func startupDimensions(dimension string) []string {
+	dimensions := buildDimensions(dimension)
+	if slices.Contains(dimensions, "startType") {
+		return dimensions
+	}
+	return append([]string{"startType"}, dimensions...)
 }
 
 func metricSetName(pkg, metricSet string) string {

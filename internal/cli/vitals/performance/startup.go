@@ -28,9 +28,9 @@ func StartupCommand() *ffcli.Command {
 		ShortHelp:  "Get app startup time metrics.",
 		LongHelp: `Get app startup time metrics.
 
-Returns cold, warm, and hot start duration percentiles for the specified
-package and date range. Use --dimension to break down results by API level,
-device model, or country.`,
+Returns slow start rates for the specified package and date range, broken
+down by start type (cold, warm, hot), which Play requires. Use --dimension to
+add a breakdown by API level, device model, or country.`,
 		FlagSet:   fs,
 		UsageFunc: shared.DefaultUsageFunc,
 		Exec: func(ctx context.Context, args []string) error {
