@@ -13,9 +13,9 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-// UpdateAppStoreHostedApp preserves the current discovery request and response.
-// The generated SDK lacks activeApkSets.versionCode/alreadyPublishedOnPlay and
-// response.updateId; raw JSON also retains explicit false policy answers.
+// UpdateAppStoreHostedApp sends the request JSON unchanged and returns the full
+// response. The generated PolicyBooleanResponse.Value uses omitempty, so the SDK
+// struct drops an explicit false policy answer.
 func (s *Service) UpdateAppStoreHostedApp(ctx context.Context, store string, body json.RawMessage) (map[string]json.RawMessage, error) {
 	if s.HTTPClient == nil {
 		return nil, fmt.Errorf("missing authenticated HTTP client")

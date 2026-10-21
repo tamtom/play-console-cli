@@ -9,7 +9,7 @@ import (
 
 func TestLoadJSONArgRejectsFieldsTheSDKWouldDrop(t *testing.T) {
 	var req androidpublisher.UpdateAppStoreHostedAppRequest
-	err := LoadJSONArg(`{"packageName":"com.example.test","activeApks":{"activeApkSets":[{"versionCode":"42"}]}}`, &req)
+	err := LoadJSONArg(`{"packageName":"com.example.test","activeApks":{"activeApkSets":[{"gplayUnknownField":"42"}]}}`, &req)
 	if err == nil || !strings.Contains(err.Error(), "unknown field") {
 		t.Fatalf("unknown SDK field silently dropped: %v", err)
 	}
