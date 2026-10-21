@@ -61,26 +61,44 @@ func TestBuildStatusReport_Success(t *testing.T) {
 	}))
 	t.Cleanup(playServer.Close)
 
+	// Play reports a different daily freshness for each metric set.
+	freshness := map[string]int{
+		"slowStartRateMetricSet":               3,
+		"slowRenderingRateMetricSet":           3,
+		"excessiveWakeupRateMetricSet":         2,
+		"stuckBackgroundWakelockRateMetricSet": 2,
+	}
+	var mu sync.Mutex
 	var startupDimensions []any
+	queryEnds := map[string]string{}
 	reportingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet"):
-			writeFreshness(t, w, 2026, 4, 2)
-		case strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet:query"):
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode startup request: %v", err)
+		set := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+		if r.Method == http.MethodGet {
+			day, ok := freshness[set]
+			if !ok {
+				t.Fatalf("unexpected metric set lookup: %s", r.URL.Path)
 			}
+			writeFreshness(t, w, 2026, 4, day)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode %s request: %v", set, err)
+		}
+		mu.Lock()
+		queryEnds[set] = timelineEnd(body)
+		mu.Unlock()
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet:query"):
+			mu.Lock()
 			startupDimensions, _ = body["dimensions"].([]any)
+			mu.Unlock()
 			writeJSON(t, w, map[string]any{
 				"rows": []any{
-					map[string]any{
-						"aggregationPeriod": "DAILY",
-						"startTime":         map[string]any{"year": 2026, "month": 4, "day": 3},
-						"metrics": []any{
-							map[string]any{"metric": "slowStartRate", "decimalValue": map[string]any{"value": "0.12"}},
-						},
-					},
+					startupRow(1, "COLD", "0.10"),
+					startupRow(1, "HOT", "0.30"),
+					startupRow(2, "COLD", "0.12"),
+					startupRow(2, "HOT", "0.31"),
 				},
 			})
 		case strings.HasSuffix(r.URL.Path, "/slowRenderingRateMetricSet:query"):
@@ -169,6 +187,29 @@ func TestBuildStatusReport_Success(t *testing.T) {
 	if len(startupDimensions) != 1 || startupDimensions[0] != "startType" {
 		t.Fatalf("startup dimensions = %#v", startupDimensions)
 	}
+	// Every query must end at the earliest freshness, or Play rejects it.
+	for set, end := range queryEnds {
+		if end != "2026-04-02" {
+			t.Fatalf("%s query ends %s, want 2026-04-02", set, end)
+		}
+	}
+	if len(queryEnds) != 4 {
+		t.Fatalf("queried metric sets = %#v", queryEnds)
+	}
+	// One row per start type and day: a single "latest" row would hide the others.
+	startup := report.Vitals.Startup
+	if startup.Latest != nil {
+		t.Fatalf("startup latest = %#v, want nil", startup.Latest)
+	}
+	for startType, want := range map[string]string{"COLD": "0.12", "HOT": "0.31"} {
+		got := startup.LatestByStartType[startType]
+		if got == nil || got.StartTime != "2026-04-02" || got.Metrics["slowStartRate"] != want {
+			t.Fatalf("startup latest %s = %#v, want 2026-04-02 slowStartRate %s", startType, got, want)
+		}
+	}
+	if len(startup.LatestByStartType) != 2 {
+		t.Fatalf("startup latest by start type = %#v", startup.LatestByStartType)
+	}
 }
 
 func TestBuildStatusReport_SkipsRenderingForNonGames(t *testing.T) {
@@ -186,12 +227,14 @@ func TestBuildStatusReport_SkipsRenderingForNonGames(t *testing.T) {
 	}
 	reportingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet"):
-			writeFreshness(t, w, 2026, 4, 2)
-		case strings.HasSuffix(r.URL.Path, "/slowRenderingRateMetricSet:query"):
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/slowRenderingRateMetricSet"):
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			_, _ = io.WriteString(w, `{"error":{"code":403,"message":"slowRenderingRateMetricSet resource is only accessible to games","status":"PERMISSION_DENIED"}}`)
+		case r.Method == http.MethodGet:
+			writeFreshness(t, w, 2026, 4, 2)
+		case strings.HasSuffix(r.URL.Path, "/slowRenderingRateMetricSet:query"):
+			t.Fatalf("slow rendering must not be queried after its lookup answered 403")
 		case strings.HasSuffix(r.URL.Path, ":query"):
 			writeJSON(t, w, map[string]any{"rows": []any{}})
 		default:
@@ -219,6 +262,9 @@ func TestBuildStatusReport_SkipsRenderingForNonGames(t *testing.T) {
 	if report.Vitals.Rendering != nil || report.Vitals.Startup == nil || report.Vitals.Battery == nil {
 		t.Fatalf("unexpected vitals snapshot: %#v", report.Vitals)
 	}
+	if !strings.Contains(report.Vitals.RenderingSkipped, "games") {
+		t.Fatalf("rendering_skipped = %q, want a reason that names games", report.Vitals.RenderingSkipped)
+	}
 }
 
 func TestBuildStatusReport_PartialFailure(t *testing.T) {
@@ -236,7 +282,7 @@ func TestBuildStatusReport_PartialFailure(t *testing.T) {
 	}
 	reportingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet"):
+		case r.Method == http.MethodGet:
 			writeFreshness(t, w, 2026, 4, 2)
 		case strings.HasSuffix(r.URL.Path, "/slowStartRateMetricSet:query"),
 			strings.HasSuffix(r.URL.Path, "/slowRenderingRateMetricSet:query"),
@@ -432,4 +478,26 @@ func writeFreshness(t *testing.T, w http.ResponseWriter, year, month, day int) {
 			},
 		},
 	})
+}
+
+// startupRow returns a daily slow start row for the given April 2026 day and start type.
+func startupRow(day int, startType, rate string) map[string]any {
+	return map[string]any{
+		"aggregationPeriod": "DAILY",
+		"startTime":         map[string]any{"year": 2026, "month": 4, "day": day},
+		"dimensions":        []any{map[string]any{"dimension": "startType", "stringValue": startType}},
+		"metrics": []any{
+			map[string]any{"metric": "slowStartRate", "decimalValue": map[string]any{"value": rate}},
+		},
+	}
+}
+
+// timelineEnd returns the timeline end date of a metric set query body as YYYY-MM-DD.
+func timelineEnd(body map[string]any) string {
+	spec, _ := body["timelineSpec"].(map[string]any)
+	end, _ := spec["endTime"].(map[string]any)
+	year, _ := end["year"].(float64)
+	month, _ := end["month"].(float64)
+	day, _ := end["day"].(float64)
+	return fmt.Sprintf("%04d-%02d-%02d", int(year), int(month), int(day))
 }
