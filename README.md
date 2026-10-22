@@ -1,7 +1,7 @@
 # gplay — Google Play Console CLI for AI Agents
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.27.1+-00ADD8?style=for-the-badge&logo=go" alt="Go Version">
+  <img src="https://img.shields.io/badge/Go-1.27.3+-00ADD8?style=for-the-badge&logo=go" alt="Go Version">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Homebrew-compatible-blue?style=for-the-badge" alt="Homebrew">
 </p>
@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/instal
 irm https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.ps1 | iex
 ```
 
-**Update:** `gplay update` verifies the release SHA-256 checksum before replacing a standalone binary. Homebrew and Go installations receive the appropriate update command. Successful interactive commands suggest newer stable releases on stderr, using a 24-hour cache; a failed check waits one hour before the next try. Help, version, completion, CI, piped commands, and development builds (`git describe` versions) skip automatic checks. Set `GPLAY_NO_UPDATE` to `1`, `true`, or `yes` to disable suggestions or run `gplay update --check` explicitly. Source builds require Go 1.27.1 or newer.
+**Update:** `gplay update` verifies the release SHA-256 checksum before replacing a standalone binary. Homebrew and Go installations receive the appropriate update command. Successful interactive commands suggest newer stable releases on stderr, using a 24-hour cache; a failed check waits one hour before the next try. Help, version, completion, CI, piped commands, and development builds (`git describe` versions) skip automatic checks. Set `GPLAY_NO_UPDATE` to `1`, `true`, or `yes` to disable suggestions or run `gplay update --check` explicitly. Source builds require Go 1.27.3 or newer.
 
 After your first successful metadata push, edit commit, or release with `gh` installed, gplay
 prints an optional star suggestion to stderr. It never waits for input or
