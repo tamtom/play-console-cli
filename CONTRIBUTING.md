@@ -5,7 +5,7 @@ Thanks for your interest in contributing to gplay (Google Play Console CLI).
 ## Development Setup
 
 Requirements:
-- Go 1.27.1 or newer (the version in `go.mod`)
+- Go 1.27.3 or newer (the version in `go.mod`)
 
 Clone and build:
 ```bash

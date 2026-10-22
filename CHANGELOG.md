@@ -10,7 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-22
+
+### Security
+
+- The release binaries use Go 1.27.3. Go 1.27.1 has 14 standard library
+  vulnerabilities that `govulncheck` reports as reachable. They are in
+  `crypto/tls`, `crypto/x509`, `html/template`, `mime/multipart`,
+  `net/http`, and `os`.
+- **Source builds:** Go 1.27.3 or newer is necessary.
+
 ## [1.0.1] - 2026-10-21
+
+The 1.0.1 release workflow failed in the vulnerability scan. No binaries
+exist for 1.0.1. Use 1.0.2, which contains all the 1.0.1 changes.
 
 ### Fixed
 

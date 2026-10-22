@@ -163,7 +163,7 @@ format-check:
 tools:
 	@echo "$(BLUE)Installing dev tools...$(NC)"
 	$(GO) install mvdan.cc/gofumpt@v0.12.0
-	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 	@echo "$(GREEN)✓ Tools installed$(NC)"
 	@echo "$(YELLOW)Make sure '$(GOBIN)' is on your PATH$(NC)"
 
