@@ -9,7 +9,7 @@ require (
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/term v0.47.0
 	golang.org/x/text v0.43.0
-	google.golang.org/api v0.307.0
+	google.golang.org/api v0.308.0
 	google.golang.org/protobuf v1.36.12
 )
 
